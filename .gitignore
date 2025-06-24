@@ -134,3 +134,22 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Native build artifacts
+build/
+*.node
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Platform-specific build directories
+Release/
+Debug/
+x64/
+x86/
+
+# Node-gyp artifacts
+.node-gyp/
+.vscode/

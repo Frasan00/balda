@@ -1,0 +1,14 @@
+Dockerfile
+docker-compose.yml
+yarn.lock
+tsup.config.ts
+src/
+node_modules/
+.dockerignore
+.gitignore
+.npmignore
+.env
+.prettierrc
+.prettierignore
+.prettierignore
+native/
