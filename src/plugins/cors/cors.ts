@@ -1,6 +1,7 @@
 import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
 import type { NextFunction } from "../../server/http/next";
-import type { Response } from "../../server/response";
+import type { Request } from "../../server/http/request";
+import type { Response } from "../../server/http/response";
 import type { CorsOptions } from "./cors_types";
 
 /**

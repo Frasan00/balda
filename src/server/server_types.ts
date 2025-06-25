@@ -9,7 +9,7 @@ import type {
 } from "../runtime/native_server/server_types";
 import type { RunTimeType } from "../runtime/runtime";
 import type { NextFunction } from "./http/next";
-import type { Response } from "./response";
+import type { Response } from "./http/response";
 
 export type ServerPlugin = {
   cors?: CorsOptions;

@@ -2,7 +2,7 @@ import type { Server as HttpServer } from "http";
 import type { Logger } from "pino";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/response";
+import type { Response } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
