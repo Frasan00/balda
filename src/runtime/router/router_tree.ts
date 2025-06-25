@@ -137,7 +137,8 @@ export class RouteTree {
   }
 
   private parsePath(path: string): string[] {
-    return path.split("/").filter(Boolean);
+    const pathWithoutQuery = path.split("?")[0];
+    return pathWithoutQuery.split("/").filter(Boolean);
   }
 
   getAllRoutes(): ServerRoute[] {

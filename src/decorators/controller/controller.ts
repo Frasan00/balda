@@ -1,11 +1,11 @@
+import { join } from "node:path";
 import { MetadataStore } from "../../metadata_store";
 import { router } from "../../runtime/router/router";
-import { join } from "path";
 
 /**
  * Decorator to mark a class as a controller
  */
-export const controller = (path: string) => {
+export const controller = (path?: string) => {
   return (target: any) => {
     const classMeta = MetadataStore.get(target.prototype, "__class__");
     const classMiddlewares = classMeta?.middlewares || [];
@@ -16,7 +16,7 @@ export const controller = (path: string) => {
       }
 
       const handler = target.prototype[propertyKey];
-      const fullPath = join(path, meta.route.path);
+      const fullPath = path ? join(path, meta.route.path) : meta.route.path;
 
       // Prepend class-level middlewares before route-level
       const allMiddlewares = [...classMiddlewares, ...(meta.middlewares || [])];

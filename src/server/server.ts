@@ -1,5 +1,5 @@
 import { glob } from "glob";
-import { PROTECTED_KEYS } from "src/server/server_constants";
+import { PROTECTED_KEYS } from "./server_constants";
 import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
@@ -10,7 +10,13 @@ import type {
 import { router } from "../runtime/router/router";
 import type { RunTimeType } from "../runtime/runtime";
 import type { Response } from "../server/response";
-import type { ServerInterface, ServerOptions } from "./server_types";
+import type {
+  ServerInterface,
+  ServerOptions,
+  ServerPlugin,
+} from "./server_types";
+import { cors } from "../plugins/cors/cors";
+import type { CorsOptions } from "../plugins/cors/cors_types";
 
 /**
  * The server class that is used to create and manage the server
@@ -63,6 +69,34 @@ export class Server implements ServerInterface {
   }
 
   /**
+   * The constructor for the server
+   * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
+   * @param options - The options for the server
+   * @param options.port - The port to listen on, defaults to 80
+   * @param options.host - The hostname to listen on, defaults to 0.0.0.0
+   * @param options.controllerPatterns - The patterns to match for controllers, defaults to every .ts and .js file in the root directory
+   * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
+   */
+  constructor(options?: ServerOptions) {
+    this.options = {
+      port: options?.port ?? 80,
+      host: options?.host ?? "0.0.0.0",
+      controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
+      plugins: options?.plugins ?? {},
+    };
+
+    this.serverConnector = new ServerConnector({
+      routes: [],
+      port: this.options.port,
+      host: this.options.host,
+    });
+
+    this.applyPlugins(this.options.plugins);
+
+    this.isListening = false;
+  }
+
+  /**
    * Register a GET route for the server, useful for simple routes, use decorators for more complex scenarios
    */
   get(path: string, handler: ServerRouteHandler): void;
@@ -76,10 +110,11 @@ export class Server implements ServerInterface {
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler
   ): void {
-    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
-      middlewaresOrHandler,
-      maybeHandler
-    );
+    const { middlewares, handler } =
+      this.extractMiddlewaresAndHandlerFromRouteRegistration(
+        middlewaresOrHandler,
+        maybeHandler
+      );
 
     router.addOrUpdateRoute({
       path,
@@ -103,10 +138,11 @@ export class Server implements ServerInterface {
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler
   ): void {
-    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
-      middlewaresOrHandler,
-      maybeHandler
-    );
+    const { middlewares, handler } =
+      this.extractMiddlewaresAndHandlerFromRouteRegistration(
+        middlewaresOrHandler,
+        maybeHandler
+      );
 
     router.addOrUpdateRoute({
       path,
@@ -125,10 +161,11 @@ export class Server implements ServerInterface {
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler
   ): void {
-    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
-      middlewaresOrHandler,
-      maybeHandler
-    );
+    const { middlewares, handler } =
+      this.extractMiddlewaresAndHandlerFromRouteRegistration(
+        middlewaresOrHandler,
+        maybeHandler
+      );
 
     router.addOrUpdateRoute({
       path,
@@ -152,10 +189,11 @@ export class Server implements ServerInterface {
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler
   ): void {
-    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
-      middlewaresOrHandler,
-      maybeHandler
-    );
+    const { middlewares, handler } =
+      this.extractMiddlewaresAndHandlerFromRouteRegistration(
+        middlewaresOrHandler,
+        maybeHandler
+      );
 
     router.addOrUpdateRoute({
       path,
@@ -179,10 +217,11 @@ export class Server implements ServerInterface {
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler
   ): void {
-    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
-      middlewaresOrHandler,
-      maybeHandler
-    );
+    const { middlewares, handler } =
+      this.extractMiddlewaresAndHandlerFromRouteRegistration(
+        middlewaresOrHandler,
+        maybeHandler
+      );
 
     router.addOrUpdateRoute({
       path,
@@ -190,30 +229,6 @@ export class Server implements ServerInterface {
       middlewares,
       handler,
     });
-  }
-
-  /**
-   * The constructor for the server
-   * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
-   * @param options - The options for the server
-   * @param options.port - The port to listen on, defaults to 80
-   * @param options.host - The hostname to listen on, defaults to 0.0.0.0
-   * @param options.controllerPatterns - The patterns to match for controllers, defaults to every .ts and .js file in the root directory
-   */
-  constructor(options?: ServerOptions) {
-    this.options = {
-      port: options?.port ?? 80,
-      host: options?.host ?? "0.0.0.0",
-      controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
-    };
-
-    this.serverConnector = new ServerConnector({
-      routes: [],
-      port: this.options.port,
-      host: this.options.host,
-    });
-
-    this.isListening = false;
   }
 
   /**
@@ -290,6 +305,12 @@ export class Server implements ServerInterface {
    * This method will also register the routes defined in the controllers
    */
   async listen(cb?: ServerListenCallback): Promise<void> {
+    if (this.isListening) {
+      throw new Error(
+        "Server is already listening, you can't call listen multiple times"
+      );
+    }
+
     await this.importControllers();
     if (this.globalMiddlewares.length > 0) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
@@ -348,5 +369,15 @@ export class Server implements ServerInterface {
         : maybeHandler!;
 
     return { middlewares, handler };
+  }
+
+  private applyPlugins(plugins: ServerPlugin): void {
+    Object.entries(plugins).forEach(([pluginName, pluginOptions]) => {
+      switch (pluginName as keyof ServerPlugin) {
+        case "cors":
+          this.useGlobalMiddleware(cors(pluginOptions as CorsOptions));
+          break;
+      }
+    });
   }
 }

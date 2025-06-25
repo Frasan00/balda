@@ -7,12 +7,14 @@ export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
 export * from "./server/server";
 
-import { cors } from "src/plugins/cors/cors";
+import { cors } from "./plugins/cors/cors";
 import { controller } from "./decorators/controller/controller";
 import { get } from "./decorators/handlers/get";
 import { middleware } from "./decorators/middleware/middleware";
 import { Response } from "./server/response";
+import { Request } from "./server/request";
 import { Server } from "./server/server";
+import { post } from "./decorators/handlers/post";
 
 declare module "./server/server" {
   interface Server {
@@ -21,13 +23,18 @@ declare module "./server/server" {
 }
 
 (async () => {
-  const server = new Server();
+  const server = new Server({
+    plugins: {
+      cors: {
+        origin: "*",
+      },
+    },
+  });
+
   server.embed("test", () => {
     console.log("test");
   });
   server.test();
-
-  server.useGlobalMiddleware(cors({ origin: "*" }));
 
   server.useGlobalMiddleware(async (req, res, next) => {
     console.log("Global middleware");
@@ -40,7 +47,7 @@ declare module "./server/server" {
     res.status(500).text("Error");
   });
 
-  @controller("/v1")
+  @controller()
   class TestController {
     @get("/test/:id")
     @middleware(async (_req, _res, next) => {
@@ -49,12 +56,20 @@ declare module "./server/server" {
       console.log("Middleware after");
     })
     test(req: Request, res: Response) {
-      const params = req.params;
-      console.log(params);
+      req.query;
+      console.log(req.params);
       console.log("Handler");
       res.setHeader("X-Test", "test");
       console.log(res.responseHeaders);
       res.text("Hello, world!");
+    }
+
+    @post("/post")
+    async testPost(req: Request, res: Response) {
+      console.log(req.query);
+      res.ok({
+        test: "test",
+      });
     }
   }
 

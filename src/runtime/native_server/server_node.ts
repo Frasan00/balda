@@ -4,6 +4,7 @@ import {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
+import { routeNotFoundError } from "../../errors/errors_constants";
 import { router } from "../router/router";
 import type { ServerInterface } from "./server_interface";
 import type { ServerConnectInput, ServerRoute } from "./server_types";
@@ -26,24 +27,37 @@ export class ServerNode implements ServerInterface {
   listen(): void {
     this.runtimeServer = createServer(
       async (req: IncomingMessage, httpResponse: ServerResponse) => {
-        const request = new Request(`http://${req.headers.host}${req.url}`, {
-          method: req.method,
-          headers: req.headers as Record<string, string>,
-          body:
-            req.method !== "GET" && req.method !== "HEAD"
-              ? (req as unknown as ReadableStream)
-              : undefined,
-        });
-
-        const match = router.findRoute(req.url!, req.method as any);
-
-        if (!match) {
-          httpResponse.writeHead(404, { "Content-Type": "text/plain" });
-          httpResponse.end("Not Found");
+        if (!req.url) {
+          httpResponse.writeHead(400, { "Content-Type": "application/json" });
+          httpResponse.end(
+            JSON.stringify({ error: "Invalid request: missing URL" })
+          );
           return;
         }
 
-        (request as any).params = match.params;
+        const requestUrl = `http://${req.headers.host}${req.url}`;
+        const request = new Request(requestUrl, {
+          method: req.method,
+          headers: req.headers as Record<string, string>,
+        });
+
+        const match = router.findRoute(req.url!, req.method as any);
+        if (!match) {
+          httpResponse.writeHead(routeNotFoundError.status, {
+            "Content-Type": "application/json",
+          });
+
+          httpResponse.end(
+            JSON.stringify({
+              error: routeNotFoundError.error,
+            })
+          );
+          return;
+        }
+
+        const url = new URL(requestUrl);
+        request.params = match.params;
+        request.query = Object.fromEntries(url.searchParams.entries());
         const route = match.route;
 
         const response = await executeMiddlewareChain(
@@ -57,7 +71,7 @@ export class ServerNode implements ServerInterface {
           Object.fromEntries(response.nativeResponse.headers.entries())
         );
 
-        const body = response.getBody("buffer");
+        const body = response.getBody();
         httpResponse.end(body);
       }
     );

@@ -1,5 +1,6 @@
 import type { Server as HttpServer } from "http";
 import type { Response } from "../../server/response";
+import type { Request } from "../../server/request";
 import type { RunTimeType } from "../runtime";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";

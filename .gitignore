@@ -153,3 +153,4 @@ x86/
 # Node-gyp artifacts
 .node-gyp/
 .vscode/
+lib/

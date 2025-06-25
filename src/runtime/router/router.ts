@@ -23,7 +23,10 @@ class Router {
   findRoute(
     path: string,
     method: HttpMethod
-  ): { route: ServerRoute; params: Record<string, string> } | null {
+  ): {
+    route: ServerRoute;
+    params: Record<string, string>;
+  } | null {
     return this.routeTree.findRoute(path, method);
   }
 

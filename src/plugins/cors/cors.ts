@@ -1,4 +1,4 @@
-import { CorsOptions } from "src/plugins/cors/cors_types";
+import type { CorsOptions } from "src/plugins/cors/cors_types";
 import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
 import type { Response } from "src/server/response";
 
