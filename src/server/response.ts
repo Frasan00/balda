@@ -39,9 +39,24 @@ export type ResponseStatus =
   | 505; // HTTP Version Not Supported;
 
 export class Response {
+  /**
+   * The native response object that all runtimes use
+   */
   nativeResponse: NativeResponse;
-  private responseStatus: ResponseStatus;
-  private responseHeaders: Record<string, string>;
+
+  /**
+   * The status of the response
+   */
+  responseStatus: ResponseStatus;
+
+  /**
+   * The headers of the response
+   */
+  responseHeaders: Record<string, string>;
+
+  /**
+   * The body of the response
+   */
   private body: any;
 
   constructor(status: ResponseStatus = 200) {

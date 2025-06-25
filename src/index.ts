@@ -7,6 +7,7 @@ export * from "./decorators/handlers/del";
 export * from "./decorators/middleware/middleware";
 export * from "./server/server";
 
+import { cors } from "src/plugins/cors/cors";
 import { controller } from "./decorators/controller/controller";
 import { get } from "./decorators/handlers/get";
 import { middleware } from "./decorators/middleware/middleware";
@@ -26,21 +27,18 @@ declare module "./server/server" {
   });
   server.test();
 
-  server.globalMiddleware(async (req, res, next) => {
+  server.useGlobalMiddleware(cors({ origin: "*" }));
+
+  server.useGlobalMiddleware(async (req, res, next) => {
     console.log("Global middleware");
     await next();
     console.log("Global middleware after");
   });
 
+
   server.setErrorHandler(async (_req, res, _next, _error) => {
     console.log("Error handler");
     res.status(500).text("Error");
-  });
-
-  server.defineMiddleware("test", async (_req, _res, next) => {
-    console.log("Test middleware");
-    await next();
-    console.log("Test middleware after");
   });
 
   @controller("/v1")
@@ -54,6 +52,7 @@ declare module "./server/server" {
     test(req: Request, res: Response) {
       console.log("Handler");
       res.setHeader("X-Test", "test");
+      console.log(res.responseHeaders);
       res.text("Hello, world!");
     }
   }

@@ -1,15 +1,15 @@
 import { glob } from "glob";
-import { router } from "../runtime/router/router";
-import type { RunTimeType } from "../runtime/runtime";
-import { ServerConnector } from "../runtime/server/server_connector";
+import { PROTECTED_KEYS } from "src/server/server_constants";
+import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
   ServerRouteMiddleware,
-} from "../runtime/server/server_types";
+} from "../runtime/native_server/server_types";
+import { router } from "../runtime/router/router";
+import type { RunTimeType } from "../runtime/runtime";
 import type { Response } from "../server/response";
 import type { ServerInterface, ServerOptions } from "./server_types";
-import { PROTECTED_KEYS } from "src/server/server_constants";
 
 /**
  * The server class that is used to create and manage the server
@@ -23,7 +23,7 @@ export class Server implements ServerInterface {
   /**
    * The paths that are blacklisted from being imported as controllers
    */
-  controllerBlacklistedPaths: string[] = ["node_modules", "dist"];
+  controllerImportBlacklistedPaths: string[] = ["node_modules", "dist"];
 
   /**
    * The server connector for the current runtime
@@ -98,17 +98,6 @@ export class Server implements ServerInterface {
   }
 
   /**
-   * Define a middleware that can be referenced by string in middleware decorator
-   * @param name - The name of the middleware
-   * @param middleware - The middleware to be defined
-   */
-  // TODO: implement this
-  defineMiddleware<T extends string>(
-    name: T,
-    middleware: ServerRouteMiddleware
-  ): void {}
-
-  /**
    * Embed the given key into the server instance, this is useful for embedding the server with custom properties, you can extend the server with your own properties to type it
    * @param key - The key to embed
    * @param value - The value to embed
@@ -140,7 +129,7 @@ export class Server implements ServerInterface {
   /**
    * Add a global middleware to the router that will be applied to all routes. Will be applied in the order they are added.
    */
-  globalMiddleware(middleware: ServerRouteMiddleware): void {
+  useGlobalMiddleware(middleware: ServerRouteMiddleware): void {
     this.globalMiddlewares.push(middleware);
   }
 
@@ -200,7 +189,7 @@ export class Server implements ServerInterface {
 
     controllerPaths = controllerPaths.filter(
       (path) =>
-        !this.controllerBlacklistedPaths.some((blacklistedPath) =>
+        !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
           path.includes(blacklistedPath)
         )
     );

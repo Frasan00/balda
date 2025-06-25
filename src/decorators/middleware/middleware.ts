@@ -1,10 +1,12 @@
 import { MetadataStore } from "../../metadata_store";
-import type { ServerRouteMiddleware } from "../../runtime/server/server_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
 
 /**
  * Decorator to mark a middleware for a route or a controller class
  */
-export const middleware = (middleware: ServerRouteMiddleware) => {
+export const middleware = (
+  middleware: ServerRouteMiddleware | ServerRouteMiddleware[]
+) => {
   return (
     target: any,
     propertyKey?: string,
@@ -29,7 +31,11 @@ export const middleware = (middleware: ServerRouteMiddleware) => {
         );
       }
 
-      meta.middlewares.push(middleware);
+      if (!Array.isArray(middleware)) {
+        middleware = [middleware];
+      }
+
+      meta.middlewares.push(...middleware);
       MetadataStore.set(target.prototype, "__class__", meta);
       return target;
     }
@@ -44,7 +50,11 @@ export const middleware = (middleware: ServerRouteMiddleware) => {
       meta.middlewares = [];
     }
 
-    meta.middlewares.push(middleware);
+    if (!Array.isArray(middleware)) {
+      middleware = [middleware];
+    }
+
+    meta.middlewares.push(...middleware);
     MetadataStore.set(target, propertyKey, meta);
     return descriptor;
   };

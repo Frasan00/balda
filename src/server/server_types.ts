@@ -1,5 +1,5 @@
+import type { RuntimeServerMap, ServerListenCallback, ServerRouteMiddleware } from "../runtime/native_server/server_types";
 import type { RunTimeType } from "../runtime/runtime";
-import type { RuntimeServerMap, ServerListenCallback, ServerRouteMiddleware } from "../runtime/server/server_types";
 import type { Response } from "./response";
 
 export interface ServerOptions {
@@ -17,8 +17,7 @@ export interface ServerInterface {
   port: number;
   host: string;
   getServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
-  defineMiddleware: <T extends string>(name: T, middleware: ServerRouteMiddleware) => void;
-  globalMiddleware: (middleware: ServerRouteMiddleware) => void;
+  useGlobalMiddleware: (middleware: ServerRouteMiddleware) => void;
   setErrorHandler: (errorHandler?: (req: Request, res: Response, next: () => void, error: Error) => void) => void;
   listen: (cb?: ServerListenCallback) => Promise<void>;
   close: () => Promise<void>;

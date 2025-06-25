@@ -2,7 +2,7 @@ import {
   HttpMethod,
   ServerRoute,
   ServerRouteMiddleware,
-} from "../server/server_types";
+} from "../native_server/server_types";
 import { RouteTree } from "./router_tree";
 
 class Router {

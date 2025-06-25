@@ -1,9 +1,8 @@
-import { MetadataStore } from "../../metadata_store";
 import type {
   HttpMethod,
   ServerRoute,
   ServerRouteMiddleware,
-} from "../server/server_types";
+} from "../native_server/server_types";
 
 interface RouteNode {
   path: string;
