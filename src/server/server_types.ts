@@ -1,13 +1,15 @@
+import type { Logger } from "pino";
+import type { createLogger } from "../logger/logger";
+import type { CorsOptions } from "../plugins/cors/cors_types";
+import type { JsonOptions } from "../plugins/json/json_options";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
   ServerRouteMiddleware,
 } from "../runtime/native_server/server_types";
 import type { RunTimeType } from "../runtime/runtime";
+import type { NextFunction } from "./http/next";
 import type { Response } from "./response";
-import type { CorsOptions } from "../plugins/cors/cors_types";
-import type { JsonOptions } from "../plugins/json/json_options";
-import type { NextFunction } from "./next";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -23,6 +25,8 @@ export interface ServerOptions {
   controllerPatterns?: string[];
   /** Basic plugins to apply to the server, by default no plugins are applied */
   plugins?: ServerPlugin;
+  /** The logger to use, defaults to the global logger */
+  logger?: Parameters<typeof createLogger>[0];
 }
 
 export type ServerErrorHandler = (
@@ -34,6 +38,7 @@ export type ServerErrorHandler = (
 
 export interface ServerInterface {
   isListening: boolean;
+  logger: Logger;
   url: string;
   port: number;
   host: string;

@@ -1,4 +1,4 @@
-import { NativeRequest } from "../runtime/native_request";
+import { NativeRequest } from "../../runtime/native_request";
 
 export class Request extends NativeRequest {
   /**

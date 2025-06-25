@@ -5,19 +5,18 @@ export * from "./decorators/handlers/patch";
 export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
-export * from "./server/next";
-export * from "./server/request";
-export * from "./server/response";
+export * from "./server/http/next";
+export * from "./server/http/request";
+export * from "./server/http/response";
 export * from "./server/server";
 
 import { controller } from "./decorators/controller/controller";
 import { get } from "./decorators/handlers/get";
-import { middleware } from "./decorators/middleware/middleware";
-import { Response } from "./server/response";
-import { Request } from "./server/request";
+import { Request } from "./server/http/request";
+import { Response } from "./server/http/response";
 
-import { Server } from "./server/server";
 import { post } from "./decorators/handlers/post";
+import { Server } from "./server/server";
 
 declare module "./server/server" {
   interface Server {
@@ -38,7 +37,7 @@ declare module "./server/server" {
   });
 
   server.embed("test", () => {
-    console.log("test");
+    server.logger.info("test");
   });
   server.test();
 
@@ -86,8 +85,8 @@ declare module "./server/server" {
     }
   }
 
-  server.listen(({ port, host, url }) => {
-    console.log(
+  server.listen(({ port, host, url, logger }) => {
+    logger.info(
       `Server is listening on ${url} on port ${port} on host ${host}`
     );
   });

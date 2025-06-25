@@ -19,8 +19,9 @@ import { cors } from "../plugins/cors/cors";
 import { json } from "../plugins/json/json";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
-import { canHaveBody } from "src/runtime/native_server/server_utils";
 import { bodyParser } from "src/plugins/body_parser/body_parser";
+import { type Logger } from "pino";
+import { createLogger } from "src/logger/logger";
 
 /**
  * The server class that is used to create and manage the server
@@ -32,9 +33,18 @@ export class Server implements ServerInterface {
   isListening: boolean;
 
   /**
+   * The logger for the server
+   */
+  logger: Logger;
+
+  /**
    * The paths that are blacklisted from being imported as controllers
    */
-  controllerImportBlacklistedPaths: string[] = ["node_modules", "dist"];
+  controllerImportBlacklistedPaths: string[] = [
+    "node_modules",
+    "dist",
+    ".config",
+  ];
 
   /**
    * The server connector for the current runtime
@@ -87,6 +97,7 @@ export class Server implements ServerInterface {
       host: options?.host ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
       plugins: options?.plugins ?? {},
+      logger: options?.logger ?? {},
     };
 
     this.serverConnector = new ServerConnector({
@@ -94,6 +105,8 @@ export class Server implements ServerInterface {
       port: this.options.port,
       host: this.options.host,
     });
+
+    this.logger = createLogger(this.options.logger);
 
     this.useGlobalMiddleware(bodyParser());
     this.applyPlugins(this.options.plugins);
@@ -321,6 +334,7 @@ export class Server implements ServerInterface {
       port: this.port,
       host: this.host,
       url: this.url,
+      logger: this.logger,
     });
   }
 
@@ -348,8 +362,9 @@ export class Server implements ServerInterface {
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
         await import(controllerPath).catch((err) => {
-          // TODO: logger
-          console.error(`Error importing controller ${controllerPath}: ${err}`);
+          this.logger.error(
+            `Error importing controller ${controllerPath}: ${err}`
+          );
         });
       })
     );

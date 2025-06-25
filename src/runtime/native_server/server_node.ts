@@ -5,8 +5,8 @@ import {
   ServerResponse,
 } from "node:http";
 import { routeNotFoundError } from "../../errors/errors_constants";
+import { Request } from "../../server/http/request";
 import { router } from "../router/router";
-import { Request } from "../../server/request";
 import type { ServerInterface } from "./server_interface";
 import type { ServerConnectInput, ServerRoute } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";

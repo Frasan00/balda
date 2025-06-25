@@ -1,4 +1,5 @@
 import { routeNotFoundError } from "../../errors/errors_constants";
+import type { Request } from "../../server/http/request";
 import { router } from "../router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
@@ -6,7 +7,6 @@ import type {
   ServerConnectInput,
   ServerRoute,
 } from "./server_types";
-import type { Request } from "../../server/request";
 import { executeMiddlewareChain } from "./server_utils";
 
 export class ServerBun implements ServerInterface {

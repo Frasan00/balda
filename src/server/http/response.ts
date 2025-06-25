@@ -1,4 +1,4 @@
-import { NativeResponse } from "../runtime/native_response";
+import { NativeResponse } from "../../runtime/native_response";
 
 export type ResponseStatus =
   // 2xx Success

@@ -1,5 +1,5 @@
-import type { Request } from "../../server/request";
-import { Response } from "../../server/response";
+import type { Request } from "../../server/http/request";
+import { Response } from "../../server/http/response";
 import type { ServerRouteHandler, ServerRouteMiddleware } from "./server_types";
 
 /**
