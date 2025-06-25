@@ -2,29 +2,28 @@
   "name": "balda-js",
   "version": "0.0.1",
   "main": "lib/index.js",
+  "type": "module",
   "repository": "git@github.com:Frasan00/balda-js.git",
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {
     "dev": "tsx watch src/",
+    "dev:bun": "bun run --watch src/index.ts",
+    "dev:deno": "deno task dev",
     "build": "tsup",
-    "build:prod": "tsup --minify",
-    "build:native": "node-gyp rebuild",
-    "build:native:clean": "node-gyp clean && node-gyp rebuild",
-    "install": "node-gyp rebuild",
-    "clean": "node-gyp clean",
-    "test": "node test/native-test.js",
-    "test:all": "npm run test && npm run build && node dist/index.js",
-    "prebuild": "npm run build:native",
-    "postinstall": "node-gyp rebuild"
+    "build:prod": "tsup --minify"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
+    "@types/deno": "^2.3.0",
+    "@types/node": "^24.0.4",
     "autocannon": "^8.0.0",
+    "bun-types": "^1.2.17",
     "node-gyp": "^11.2.0",
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "glob": "^11.0.3"
+  }
 }
