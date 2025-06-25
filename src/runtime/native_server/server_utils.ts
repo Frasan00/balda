@@ -10,7 +10,7 @@ export const executeMiddlewareChain = async (
   handler: ServerRouteHandler,
   req: Request,
   res: Response = new Response(),
-  index: number = 0
+  index: number = 0,
 ): Promise<Response> => {
   if (index >= middlewares.length) {
     await handler(req, res);

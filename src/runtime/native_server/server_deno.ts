@@ -1,4 +1,5 @@
 import { routeNotFoundError } from "../../errors/errors_constants";
+import { Request } from "../../server/http/request";
 import { router } from "../router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
@@ -28,6 +29,8 @@ export class ServerDeno implements ServerInterface {
       port: this.port,
       hostname: this.hostname,
       handler: async (req) => {
+        Request.enrichRequest(req as Request);
+
         const url = new URL(req.url);
         const match = router.findRoute(url.pathname, req.method as HttpMethod);
         if (!match) {
@@ -38,7 +41,7 @@ export class ServerDeno implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
 
@@ -48,7 +51,7 @@ export class ServerDeno implements ServerInterface {
         const res = await executeMiddlewareChain(
           route.middlewares ?? [],
           route.handler,
-          req,
+          req as Request
         );
 
         return res.nativeResponse;

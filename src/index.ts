@@ -69,8 +69,14 @@ declare module "./server/server" {
 
     @post("/post")
     async testPost(req: Request, res: Response) {
-      console.log(req.body);
-      console.log(req.query);
+      const a = req.validate(
+        (Type) =>
+          Type.Object({
+            name: Type.String(),
+            age: Type.Number(),
+          })
+      );
+
       res.ok({
         test: "test",
       });

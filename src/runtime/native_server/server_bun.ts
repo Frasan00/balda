@@ -1,5 +1,5 @@
 import { routeNotFoundError } from "../../errors/errors_constants";
-import type { Request } from "../../server/http/request";
+import { Request } from "../../server/http/request";
 import { router } from "../router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
@@ -29,6 +29,8 @@ export class ServerBun implements ServerInterface {
       port: this.port,
       hostname: this.hostname,
       fetch: async (req) => {
+        Request.enrichRequest(req as Request);
+
         const url = new URL(req.url);
         const match = router.findRoute(url.pathname, req.method as HttpMethod);
         if (!match) {

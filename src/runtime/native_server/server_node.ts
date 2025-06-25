@@ -28,7 +28,7 @@ export class ServerNode implements ServerInterface {
         if (!req.url) {
           httpResponse.writeHead(400, { "Content-Type": "application/json" });
           httpResponse.end(
-            JSON.stringify({ error: "Invalid request: missing URL" })
+            JSON.stringify({ error: "Invalid request: missing URL" }),
           );
           return;
         }
@@ -51,7 +51,7 @@ export class ServerNode implements ServerInterface {
           httpResponse.end(
             JSON.stringify({
               error: routeNotFoundError.error,
-            })
+            }),
           );
           return;
         }
@@ -64,17 +64,17 @@ export class ServerNode implements ServerInterface {
         const response = await executeMiddlewareChain(
           route.middlewares ?? [],
           route.handler,
-          request
+          request,
         );
 
         httpResponse.writeHead(
           response.nativeResponse.status,
-          Object.fromEntries(response.nativeResponse.headers.entries())
+          Object.fromEntries(response.nativeResponse.headers.entries()),
         );
 
         const body = await response.getBody();
         httpResponse.end(body);
-      }
+      },
     );
   }
 

@@ -37,7 +37,7 @@ export class RouteTree {
         return;
       }
 
-      if (segment.startsWith(':')) {
+      if (segment.startsWith(":")) {
         if (!node.paramChild) {
           const paramName = segment.slice(1);
           node.paramChild = {
@@ -71,7 +71,7 @@ export class RouteTree {
 
   findRoute(
     path: string,
-    method: HttpMethod
+    method: HttpMethod,
   ): { route: ServerRoute; params: Record<string, string> } | null {
     const segments = this.parsePath(path);
     const params: Record<string, string> = {};
@@ -82,9 +82,10 @@ export class RouteTree {
       const isLast = i === segments.length - 1;
 
       // try exact static match
-      const next = node.children.get(segment)
+      const next =
+        node.children.get(segment) ??
         // or param match
-        ?? node.paramChild;
+        node.paramChild;
 
       if (!next) {
         // wildcard match on last segment
@@ -113,7 +114,7 @@ export class RouteTree {
       const node = stack.pop()!;
       for (const route of node.methods.values()) routes.push(route);
       if (node.wildcard) routes.push(node.wildcard);
-      node.children.forEach(child => stack.push(child));
+      node.children.forEach((child) => stack.push(child));
       if (node.paramChild) stack.push(node.paramChild);
     }
 
@@ -121,6 +122,6 @@ export class RouteTree {
   }
 
   private parsePath(path: string): string[] {
-    return path.split('?')[0].split('/').filter(Boolean);
+    return path.split("?")[0].split("/").filter(Boolean);
   }
 }
