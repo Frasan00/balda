@@ -6,14 +6,15 @@ import type {
   ServerConnectInput,
   ServerRoute,
 } from "./server_types";
+import type { Request } from "../../server/request";
 import { executeMiddlewareChain } from "./server_utils";
 
 export class ServerBun implements ServerInterface {
-  declare port: number;
-  declare hostname: string;
-  declare host: string;
+  port: number;
+  hostname: string;
+  host: string;
+  routes: ServerRoute[];
   declare url: string;
-  declare routes: ServerRoute[];
   declare runtimeServer: ReturnType<typeof Bun.serve>;
 
   constructor(input?: ServerConnectInput) {
@@ -27,7 +28,7 @@ export class ServerBun implements ServerInterface {
     this.runtimeServer = Bun.serve({
       port: this.port,
       hostname: this.hostname,
-      fetch: async (req: Request) => {
+      fetch: async (req) => {
         const url = new URL(req.url);
         const match = router.findRoute(url.pathname, req.method as HttpMethod);
         if (!match) {
@@ -38,7 +39,7 @@ export class ServerBun implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
         }
 
@@ -48,13 +49,12 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           route.middlewares ?? [],
           route.handler,
-          req
+          req as Request,
         );
 
         return response.nativeResponse;
       },
     });
-
     this.url = this.runtimeServer.url.toString();
   }
 

@@ -1,17 +1,33 @@
 import { NativeRequest } from "../runtime/native_request";
 
 export class Request extends NativeRequest {
+  /**
+   * The parameters of the request.
+   */
   params: Record<string, string> = {};
 
-  get query(): Record<string, string> {
-    console.log('asdasdasdas', JSON.stringify(this.url));
-    const url = new URL(this.url);
-    const queryParams: Record<string, string> = {};
+  /**
+   * The query parameters of the request.
+   */
+  query: Record<string, string> = {};
 
-    for (const [key, value] of url.searchParams.entries()) {
-      queryParams[key] = value;
-    }
+  /**
+   * The raw body of the request. Only available for POST, PUT, PATCH and DELETE requests.
+   */
+  declare rawBody?: ArrayBuffer;
 
-    return queryParams;
+  /**
+   * The parsed body of the request.
+   */
+  override body: any;
+
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    super(input, init);
+
+    Object.defineProperty(this, "body", {
+      writable: true,
+      configurable: true,
+      value: undefined,
+    });
   }
 }

@@ -6,9 +6,12 @@ import type {
 import type { RunTimeType } from "../runtime/runtime";
 import type { Response } from "./response";
 import type { CorsOptions } from "../plugins/cors/cors_types";
+import type { JsonOptions } from "../plugins/json/json_options";
+import type { NextFunction } from "./next";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
+  json?: JsonOptions;
 };
 
 export interface ServerOptions {
@@ -22,6 +25,13 @@ export interface ServerOptions {
   plugins?: ServerPlugin;
 }
 
+export type ServerErrorHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  error: Error
+) => void | Promise<void>;
+
 export interface ServerInterface {
   isListening: boolean;
   url: string;
@@ -29,14 +39,7 @@ export interface ServerInterface {
   host: string;
   getServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
   useGlobalMiddleware: (middleware: ServerRouteMiddleware) => void;
-  setErrorHandler: (
-    errorHandler?: (
-      req: Request,
-      res: Response,
-      next: () => void,
-      error: Error
-    ) => void
-  ) => void;
+  setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
   listen: (cb?: ServerListenCallback) => Promise<void>;
   close: () => Promise<void>;
 }

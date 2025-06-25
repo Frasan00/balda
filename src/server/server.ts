@@ -9,14 +9,18 @@ import type {
 } from "../runtime/native_server/server_types";
 import { router } from "../runtime/router/router";
 import type { RunTimeType } from "../runtime/runtime";
-import type { Response } from "../server/response";
 import type {
+  ServerErrorHandler,
   ServerInterface,
   ServerOptions,
   ServerPlugin,
 } from "./server_types";
 import { cors } from "../plugins/cors/cors";
+import { json } from "../plugins/json/json";
 import type { CorsOptions } from "../plugins/cors/cors_types";
+import type { JsonOptions } from "../plugins/json/json_options";
+import { canHaveBody } from "src/runtime/native_server/server_utils";
+import { bodyParser } from "src/plugins/body_parser/body_parser";
 
 /**
  * The server class that is used to create and manage the server
@@ -35,7 +39,7 @@ export class Server implements ServerInterface {
   /**
    * The server connector for the current runtime
    */
-  private declare serverConnector: ServerConnector;
+  declare private serverConnector: ServerConnector;
 
   /**
    * The middlewares to be applied to all routes after the listener is bound
@@ -45,7 +49,7 @@ export class Server implements ServerInterface {
   /**
    * The options for the server
    */
-  private declare options: Required<ServerOptions>;
+  declare private options: Required<ServerOptions>;
 
   /**
    * The url of the server
@@ -91,6 +95,7 @@ export class Server implements ServerInterface {
       host: this.options.host,
     });
 
+    this.useGlobalMiddleware(bodyParser());
     this.applyPlugins(this.options.plugins);
 
     this.isListening = false;
@@ -283,19 +288,12 @@ export class Server implements ServerInterface {
    * Set the error handler for the server
    * @param errorHandler - The error handler to be applied to all routes
    */
-  setErrorHandler(
-    errorHandler?: (
-      req: Request,
-      res: Response,
-      next: () => void,
-      error: Error
-    ) => void
-  ): void {
+  setErrorHandler(errorHandler?: ServerErrorHandler): void {
     this.globalMiddlewares.unshift(async (req, res, next) => {
       try {
         await next();
       } catch (error) {
-        errorHandler?.(req, res, next, error as Error);
+        await errorHandler?.(req, res, next, error as Error);
       }
     });
   }
@@ -307,11 +305,12 @@ export class Server implements ServerInterface {
   async listen(cb?: ServerListenCallback): Promise<void> {
     if (this.isListening) {
       throw new Error(
-        "Server is already listening, you can't call listen multiple times"
+        "Server is already listening, you can't call `.listen()` multiple times"
       );
     }
 
     await this.importControllers();
+    router.loadRoutes();
     if (this.globalMiddlewares.length > 0) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
     }
@@ -376,6 +375,9 @@ export class Server implements ServerInterface {
       switch (pluginName as keyof ServerPlugin) {
         case "cors":
           this.useGlobalMiddleware(cors(pluginOptions as CorsOptions));
+          break;
+        case "json":
+          this.useGlobalMiddleware(json(pluginOptions as JsonOptions));
           break;
       }
     });

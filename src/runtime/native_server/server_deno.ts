@@ -38,7 +38,7 @@ export class ServerDeno implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
         }
 
@@ -48,7 +48,7 @@ export class ServerDeno implements ServerInterface {
         const res = await executeMiddlewareChain(
           route.middlewares ?? [],
           route.handler,
-          req
+          req,
         );
 
         return res.nativeResponse;

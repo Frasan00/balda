@@ -6,25 +6,23 @@ import {
 } from "node:http";
 import { routeNotFoundError } from "../../errors/errors_constants";
 import { router } from "../router/router";
+import { Request } from "../../server/request";
 import type { ServerInterface } from "./server_interface";
 import type { ServerConnectInput, ServerRoute } from "./server_types";
-import { executeMiddlewareChain } from "./server_utils";
+import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
 export class ServerNode implements ServerInterface {
-  declare port: number;
-  declare host: string;
-  declare url: string;
-  declare routes: ServerRoute[];
-  declare runtimeServer: HttpServer;
+  port: number;
+  host: string;
+  url: string;
+  routes: ServerRoute[];
+  runtimeServer: HttpServer;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
-  }
-
-  listen(): void {
     this.runtimeServer = createServer(
       async (req: IncomingMessage, httpResponse: ServerResponse) => {
         if (!req.url) {
@@ -38,6 +36,9 @@ export class ServerNode implements ServerInterface {
         const requestUrl = `http://${req.headers.host}${req.url}`;
         const request = new Request(requestUrl, {
           method: req.method,
+          body: canHaveBody(req.method)
+            ? await this.readRequestBody(req)
+            : undefined,
           headers: req.headers as Record<string, string>,
         });
 
@@ -56,8 +57,8 @@ export class ServerNode implements ServerInterface {
         }
 
         const url = new URL(requestUrl);
-        request.params = match.params;
         request.query = Object.fromEntries(url.searchParams.entries());
+        request.params = match.params;
         const route = match.route;
 
         const response = await executeMiddlewareChain(
@@ -71,19 +72,17 @@ export class ServerNode implements ServerInterface {
           Object.fromEntries(response.nativeResponse.headers.entries())
         );
 
-        const body = response.getBody();
+        const body = await response.getBody();
         httpResponse.end(body);
       }
     );
+  }
 
+  listen(): void {
     this.runtimeServer.listen(this.port, this.host);
   }
 
   async close(): Promise<void> {
-    if (!this.runtimeServer) {
-      throw new Error("Server is not listening or not initialized");
-    }
-
     return new Promise((resolve, reject) => {
       this.runtimeServer.close((err) => {
         if (err && "code" in err && err.code !== "ERR_SERVER_NOT_RUNNING") {
@@ -91,6 +90,23 @@ export class ServerNode implements ServerInterface {
         } else {
           resolve();
         }
+      });
+    });
+  }
+
+  private async readRequestBody(req: IncomingMessage): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
+
+      req.on("error", (err) => {
+        reject(err);
+      });
+
+      req.on("end", () => {
+        resolve(body);
       });
     });
   }

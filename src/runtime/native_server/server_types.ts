@@ -2,6 +2,7 @@ import type { Server as HttpServer } from "http";
 import type { Response } from "../../server/response";
 import type { Request } from "../../server/request";
 import type { RunTimeType } from "../runtime";
+import type { NextFunction } from "../../server/next";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -13,10 +14,10 @@ export type RuntimeServer =
 export type RuntimeServerMap<T extends RunTimeType> = T extends "bun"
   ? ReturnType<typeof Bun.serve>
   : T extends "node"
-  ? HttpServer
-  : T extends "deno"
-  ? ReturnType<typeof Deno.serve>
-  : never;
+    ? HttpServer
+    : T extends "deno"
+      ? ReturnType<typeof Deno.serve>
+      : never;
 
 export interface ServerConnectInput {
   /** The port to listen on, defaults to 80 */
@@ -30,11 +31,11 @@ export interface ServerConnectInput {
 export type ServerRouteMiddleware = (
   req: Request,
   res: Response,
-  next: () => void | Promise<void>
+  next: NextFunction,
 ) => void | Promise<void>;
 export type ServerRouteHandler = (
   req: Request,
-  res: Response
+  res: Response,
 ) => void | Promise<void>;
 
 export interface ServerRoute {

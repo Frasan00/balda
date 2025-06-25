@@ -1,3 +1,4 @@
+import type { Request } from "../../server/request";
 import { Response } from "../../server/response";
 import type { ServerRouteHandler, ServerRouteMiddleware } from "./server_types";
 
@@ -23,4 +24,12 @@ export const executeMiddlewareChain = async (
 
   await middleware(req, res, next);
   return res;
-}
+};
+
+export const canHaveBody = (method?: string) => {
+  if (!method) {
+    return true;
+  }
+
+  return ["post", "put", "patch", "delete"].includes(method.toLowerCase());
+};

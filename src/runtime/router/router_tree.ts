@@ -10,6 +10,7 @@ interface RouteNode {
   paramName?: string;
   methods: Map<HttpMethod, ServerRoute>;
   children: Map<string, RouteNode>;
+  paramChild?: RouteNode;
   wildcard?: ServerRoute;
   middlewares?: ServerRouteMiddleware[];
 }
@@ -28,47 +29,44 @@ export class RouteTree {
 
   addRoute(route: ServerRoute): void {
     const segments = this.parsePath(route.path);
-    let currentNode = this.root;
+    let node = this.root;
 
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
+    for (const segment of segments) {
+      if (segment === "*") {
+        node.wildcard = route;
+        return;
+      }
 
-      if (segment.startsWith(":")) {
-        const paramName = segment.slice(1);
-        const paramKey = `:${paramName}`;
-
-        if (!currentNode.children.has(paramKey)) {
-          currentNode.children.set(paramKey, {
+      if (segment.startsWith(':')) {
+        if (!node.paramChild) {
+          const paramName = segment.slice(1);
+          node.paramChild = {
             path: segment,
             isParam: true,
             paramName,
             methods: new Map(),
             children: new Map(),
             middlewares: route.middlewares,
-          });
+          };
         }
-        currentNode = currentNode.children.get(paramKey)!;
-        continue;
+        node = node.paramChild;
+      } else {
+        let child = node.children.get(segment);
+        if (!child) {
+          child = {
+            path: segment,
+            isParam: false,
+            methods: new Map(),
+            children: new Map(),
+            middlewares: route.middlewares,
+          };
+          node.children.set(segment, child);
+        }
+        node = child;
       }
-
-      if (segment === "*") {
-        currentNode.wildcard = route;
-        return;
-      }
-
-      if (!currentNode.children.has(segment)) {
-        currentNode.children.set(segment, {
-          path: segment,
-          isParam: false,
-          methods: new Map(),
-          children: new Map(),
-          middlewares: route.middlewares,
-        });
-      }
-      currentNode = currentNode.children.get(segment)!;
     }
 
-    currentNode.methods.set(route.method, route);
+    node.methods.set(route.method, route);
   }
 
   findRoute(
@@ -77,87 +75,52 @@ export class RouteTree {
   ): { route: ServerRoute; params: Record<string, string> } | null {
     const segments = this.parsePath(path);
     const params: Record<string, string> = {};
+    let node: RouteNode = this.root;
 
-    return this.findRouteRecursive(this.root, segments, 0, method, params);
-  }
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const isLast = i === segments.length - 1;
 
-  private findRouteRecursive(
-    node: RouteNode,
-    segments: string[],
-    index: number,
-    method: HttpMethod,
-    params: Record<string, string>
-  ): { route: ServerRoute; params: Record<string, string> } | null {
-    if (index >= segments.length) {
-      const route = node.methods.get(method);
-      return route ? { route, params } : null;
-    }
+      // try exact static match
+      const next = node.children.get(segment)
+        // or param match
+        ?? node.paramChild;
 
-    const segment = segments[index];
-    const isLast = index === segments.length - 1;
-
-    if (node.children.has(segment)) {
-      const result = this.findRouteRecursive(
-        node.children.get(segment)!,
-        segments,
-        index + 1,
-        method,
-        params
-      );
-
-      if (result) {
-        return result;
-      }
-    }
-
-    for (const [_key, childNode] of node.children) {
-      if (childNode.isParam) {
-        params[childNode.paramName!] = segment;
-        const result = this.findRouteRecursive(
-          childNode,
-          segments,
-          index + 1,
-          method,
-          params
-        );
-
-        if (result) {
-          return result;
+      if (!next) {
+        // wildcard match on last segment
+        if (isLast && node.wildcard && node.wildcard.method === method) {
+          return { route: node.wildcard, params };
         }
-
-        delete params[childNode.paramName!]; // Backtrack
+        return null;
       }
+
+      if (next.isParam && next.paramName) {
+        params[next.paramName] = segment;
+      }
+
+      node = next;
     }
 
-    if (isLast && node.wildcard && node.wildcard.method === method) {
-      return { route: node.wildcard, params };
-    }
-
-    return null;
-  }
-
-  private parsePath(path: string): string[] {
-    const pathWithoutQuery = path.split("?")[0];
-    return pathWithoutQuery.split("/").filter(Boolean);
+    const found = node.methods.get(method);
+    return found ? { route: found, params } : null;
   }
 
   getAllRoutes(): ServerRoute[] {
     const routes: ServerRoute[] = [];
-    this.collectRoutes(this.root, routes);
+    const stack: RouteNode[] = [this.root];
+
+    while (stack.length) {
+      const node = stack.pop()!;
+      for (const route of node.methods.values()) routes.push(route);
+      if (node.wildcard) routes.push(node.wildcard);
+      node.children.forEach(child => stack.push(child));
+      if (node.paramChild) stack.push(node.paramChild);
+    }
+
     return routes;
   }
 
-  private collectRoutes(node: RouteNode, routes: ServerRoute[]): void {
-    for (const route of node.methods.values()) {
-      routes.push(route);
-    }
-
-    if (node.wildcard) {
-      routes.push(node.wildcard);
-    }
-
-    for (const child of node.children.values()) {
-      this.collectRoutes(child, routes);
-    }
+  private parsePath(path: string): string[] {
+    return path.split('?')[0].split('/').filter(Boolean);
   }
 }

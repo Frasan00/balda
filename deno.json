@@ -3,6 +3,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
+  "importMap": "./import_map.json",
   "tasks": {
     "dev": "deno run --watch --unstable-sloppy-imports --allow-all src/index.ts"
   }

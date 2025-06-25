@@ -5,14 +5,17 @@ export * from "./decorators/handlers/patch";
 export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
+export * from "./server/next";
+export * from "./server/request";
+export * from "./server/response";
 export * from "./server/server";
 
-import { cors } from "./plugins/cors/cors";
 import { controller } from "./decorators/controller/controller";
 import { get } from "./decorators/handlers/get";
 import { middleware } from "./decorators/middleware/middleware";
 import { Response } from "./server/response";
 import { Request } from "./server/request";
+
 import { Server } from "./server/server";
 import { post } from "./decorators/handlers/post";
 
@@ -28,6 +31,9 @@ declare module "./server/server" {
       cors: {
         origin: "*",
       },
+      json: {
+        sizeLimit: 1000,
+      },
     },
   });
 
@@ -36,39 +42,46 @@ declare module "./server/server" {
   });
   server.test();
 
-  server.useGlobalMiddleware(async (req, res, next) => {
-    console.log("Global middleware");
-    await next();
-    console.log("Global middleware after");
-  });
+  // server.useGlobalMiddleware(async (req, res, next) => {
+  //   console.log("Global middleware");
+  //   await next();
+  //   console.log("Global middleware after");
+  // });
 
-  server.setErrorHandler(async (_req, res, _next, _error) => {
-    console.log("Error handler");
+  server.setErrorHandler(async (_req, res, _next, error) => {
+    console.error(error);
     res.status(500).text("Error");
   });
 
   @controller()
   class TestController {
-    @get("/test/:id")
-    @middleware(async (_req, _res, next) => {
-      console.log("Middleware before");
-      await next();
-      console.log("Middleware after");
-    })
-    test(req: Request, res: Response) {
-      req.query;
-      console.log(req.params);
-      console.log("Handler");
-      res.setHeader("X-Test", "test");
-      console.log(res.responseHeaders);
+    @get("/hello-world")
+    test(_req: Request, res: Response) {
       res.text("Hello, world!");
+    }
+
+    @get("/hard-to-find/:id")
+    hardToFind(req: Request, res: Response) {
+      console.log(req.params);
+      res.json({
+        message: "Hard to find!",
+      });
     }
 
     @post("/post")
     async testPost(req: Request, res: Response) {
+      console.log(req.body);
       console.log(req.query);
       res.ok({
         test: "test",
+      });
+    }
+
+    @get("*")
+    notFound(req: Request, res: Response) {
+      console.log(req.params);
+      res.json({
+        message: "Not found",
       });
     }
   }

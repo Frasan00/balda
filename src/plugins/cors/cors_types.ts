@@ -1,4 +1,11 @@
-export type CorsMethods = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "PATCH" | "HEAD";
+export type CorsMethods =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "OPTIONS"
+  | "PATCH"
+  | "HEAD";
 
 /**
  * Options for CORS middleware, similar to Express.js
@@ -7,7 +14,14 @@ export type CorsOptions = {
   /**
    * Configures the Access-Control-Allow-Origin CORS header, defaults to '*'
    */
-  origin?: string | RegExp | (string | RegExp)[] | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean | string) => void) => void);
+  origin?:
+    | string
+    | RegExp
+    | (string | RegExp)[]
+    | ((
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean | string) => void,
+      ) => void);
   /**
    * Configures the Access-Control-Allow-Methods CORS header. Defaults to 'GET,HEAD,PUT,PATCH,POST,DELETE'.
    */

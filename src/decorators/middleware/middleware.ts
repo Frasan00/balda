@@ -5,12 +5,12 @@ import type { ServerRouteMiddleware } from "../../runtime/native_server/server_t
  * Decorator to mark a middleware for a route or a controller class
  */
 export const middleware = (
-  middleware: ServerRouteMiddleware | ServerRouteMiddleware[]
+  middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
 ) => {
   return (
     target: any,
     propertyKey?: string,
-    descriptor?: PropertyDescriptor
+    descriptor?: PropertyDescriptor,
   ) => {
     // Class decorator usage
     if (typeof propertyKey === "undefined") {
@@ -26,8 +26,8 @@ export const middleware = (
       if (!middleware) {
         throw new Error(
           `Middleware ${String(
-            middleware
-          )} not found, are you sure you defined it before using it?`
+            middleware,
+          )} not found, are you sure you defined it before using it?`,
         );
       }
 

@@ -54,7 +54,7 @@ export class ServerConnector {
   }
 
   private getRuntimeServer(
-    serverOptions?: ServerConnectInput
+    serverOptions?: ServerConnectInput,
   ): ServerInterface {
     if (this.runtime.runtime === "bun") {
       return new ServerBun(serverOptions);
@@ -65,7 +65,7 @@ export class ServerConnector {
     }
 
     throw new Error(
-      "No server implementation found for runtime: " + this.runtime
+      "No server implementation found for runtime: " + this.runtime,
     );
   }
 }

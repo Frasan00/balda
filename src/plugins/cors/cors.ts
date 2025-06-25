@@ -1,6 +1,7 @@
-import type { CorsOptions } from "src/plugins/cors/cors_types";
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import type { Response } from "src/server/response";
+import type { CorsOptions } from "./cors_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
+import type { NextFunction } from "../../server/next";
+import type { Response } from "../../server/response";
 
 /**
  * CORS plugin
@@ -19,7 +20,7 @@ export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
     ...options,
   };
 
-  return (req: Request, res: Response, next: () => void) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     const requestOrigin = req.headers.get("origin") || "";
 
     if (req.method === "OPTIONS") {
@@ -27,7 +28,7 @@ export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
     }
 
     handleRegularRequest(req, res, opts, requestOrigin);
-    next();
+    await next();
   };
 };
 
@@ -39,7 +40,7 @@ function handlePreflightRequest(
   res: Response,
   opts: CorsOptions,
   requestOrigin: string,
-  next: () => void
+  next: NextFunction,
 ): void {
   const allowOrigin = determineOrigin(opts, requestOrigin);
 
@@ -70,7 +71,7 @@ function handleRegularRequest(
   _req: Request,
   res: Response,
   opts: CorsOptions,
-  requestOrigin: string
+  requestOrigin: string,
 ): void {
   const allowOrigin = determineOrigin(opts, requestOrigin);
   if (!allowOrigin) {
@@ -85,7 +86,7 @@ function handleRegularRequest(
  */
 function determineOrigin(
   opts: CorsOptions,
-  requestOrigin: string
+  requestOrigin: string,
 ): string | false {
   // String origin
   if (typeof opts.origin === "string") {
@@ -97,7 +98,7 @@ function determineOrigin(
     const matchedOrigin = opts.origin.find((origin) =>
       typeof origin === "string"
         ? origin === requestOrigin
-        : origin instanceof RegExp && origin.test(requestOrigin)
+        : origin instanceof RegExp && origin.test(requestOrigin),
     );
 
     return typeof matchedOrigin === "string" ? matchedOrigin : false;
@@ -120,7 +121,7 @@ function determineOrigin(
 function setCorsHeaders(
   res: Response,
   opts: CorsOptions,
-  allowOrigin: string
+  allowOrigin: string,
 ): void {
   res.setHeader("Access-Control-Allow-Origin", allowOrigin);
 

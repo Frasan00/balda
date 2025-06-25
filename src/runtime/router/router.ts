@@ -7,13 +7,14 @@ import { RouteTree } from "./router_tree";
 
 class Router {
   private routeTree: RouteTree;
+  definedRoutes: ServerRoute[] = [];
 
   constructor() {
     this.routeTree = new RouteTree();
   }
 
-  getRoutes(): ServerRoute[] {
-    return this.routeTree.getAllRoutes();
+  loadRoutes(): void {
+    this.definedRoutes = this.routeTree.getAllRoutes();
   }
 
   addOrUpdateRoute(route: ServerRoute): void {
@@ -22,7 +23,7 @@ class Router {
 
   findRoute(
     path: string,
-    method: HttpMethod
+    method: HttpMethod,
   ): {
     route: ServerRoute;
     params: Record<string, string>;
@@ -31,10 +32,9 @@ class Router {
   }
 
   applyGlobalMiddlewaresToAllRoutes(
-    globalMiddlewares: ServerRouteMiddleware[]
+    globalMiddlewares: ServerRouteMiddleware[],
   ): void {
-    const routes = this.getRoutes();
-    for (const route of routes) {
+    for (const route of this.definedRoutes) {
       const allMiddlewares = [
         ...globalMiddlewares,
         ...(route.middlewares || []),
