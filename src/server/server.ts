@@ -4,6 +4,7 @@ import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
+  ServerRouteHandler,
   ServerRouteMiddleware,
 } from "../runtime/native_server/server_types";
 import { router } from "../runtime/router/router";
@@ -59,6 +60,136 @@ export class Server implements ServerInterface {
    */
   get host(): string {
     return this.serverConnector.host;
+  }
+
+  /**
+   * Register a GET route for the server, useful for simple routes, use decorators for more complex scenarios
+   */
+  get(path: string, handler: ServerRouteHandler): void;
+  get(
+    path: string,
+    middlewares: ServerRouteMiddleware[],
+    handler: ServerRouteHandler
+  ): void;
+  get(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void {
+    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
+      middlewaresOrHandler,
+      maybeHandler
+    );
+
+    router.addOrUpdateRoute({
+      path,
+      method: "GET",
+      middlewares,
+      handler,
+    });
+  }
+
+  /**
+   * Register a POST route for the server, useful for simple routes, use decorators for more complex scenarios
+   */
+  post(path: string, handler: ServerRouteHandler): void;
+  post(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void;
+  post(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void {
+    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
+      middlewaresOrHandler,
+      maybeHandler
+    );
+
+    router.addOrUpdateRoute({
+      path,
+      method: "POST",
+      middlewares,
+      handler,
+    });
+  }
+
+  /**
+   * Register a PATCH route for the server, useful for simple routes, use decorators for more complex scenarios
+   */
+  patch(path: string, handler: ServerRouteHandler): void;
+  patch(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void {
+    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
+      middlewaresOrHandler,
+      maybeHandler
+    );
+
+    router.addOrUpdateRoute({
+      path,
+      method: "PATCH",
+      middlewares,
+      handler,
+    });
+  }
+
+  /**
+   * Register a PUT route for the server, useful for simple routes, use decorators for more complex scenarios
+   */
+  put(path: string, handler: ServerRouteHandler): void;
+  put(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void;
+  put(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void {
+    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
+      middlewaresOrHandler,
+      maybeHandler
+    );
+
+    router.addOrUpdateRoute({
+      path,
+      method: "PUT",
+      middlewares,
+      handler,
+    });
+  }
+
+  /**
+   * Register a DELETE route for the server, useful for simple routes, use decorators for more complex scenarios
+   */
+  delete(path: string, handler: ServerRouteHandler): void;
+  delete(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void;
+  delete(
+    path: string,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): void {
+    const { middlewares, handler } = this.extractMiddlewaresAndHandlerFromRouteRegistration(
+      middlewaresOrHandler,
+      maybeHandler
+    );
+
+    router.addOrUpdateRoute({
+      path,
+      method: "DELETE",
+      middlewares,
+      handler,
+    });
   }
 
   /**
@@ -202,5 +333,20 @@ export class Server implements ServerInterface {
         });
       })
     );
+  }
+
+  private extractMiddlewaresAndHandlerFromRouteRegistration(
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
+  ): { middlewares: ServerRouteMiddleware[]; handler: ServerRouteHandler } {
+    const middlewares =
+      typeof middlewaresOrHandler === "function" ? [] : middlewaresOrHandler;
+
+    const handler =
+      typeof middlewaresOrHandler === "function"
+        ? middlewaresOrHandler
+        : maybeHandler!;
+
+    return { middlewares, handler };
   }
 }

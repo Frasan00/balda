@@ -48,7 +48,10 @@ export class RouteTree {
           });
         }
         currentNode = currentNode.children.get(paramKey)!;
-      } else if (segment === "*") {
+        continue;
+      }
+
+      if (segment === "*") {
         currentNode.wildcard = route;
         return;
       }
@@ -107,7 +110,7 @@ export class RouteTree {
       }
     }
 
-    for (const [key, childNode] of node.children) {
+    for (const [_key, childNode] of node.children) {
       if (childNode.isParam) {
         params[childNode.paramName!] = segment;
         const result = this.findRouteRecursive(

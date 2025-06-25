@@ -1,9 +1,9 @@
 export * from "./decorators/controller/controller";
+export * from "./decorators/handlers/del";
 export * from "./decorators/handlers/get";
+export * from "./decorators/handlers/patch";
 export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
-export * from "./decorators/handlers/patch";
-export * from "./decorators/handlers/del";
 export * from "./decorators/middleware/middleware";
 export * from "./server/server";
 
@@ -35,7 +35,6 @@ declare module "./server/server" {
     console.log("Global middleware after");
   });
 
-
   server.setErrorHandler(async (_req, res, _next, _error) => {
     console.log("Error handler");
     res.status(500).text("Error");
@@ -43,13 +42,15 @@ declare module "./server/server" {
 
   @controller("/v1")
   class TestController {
-    @get("/test")
+    @get("/test/:id")
     @middleware(async (_req, _res, next) => {
       console.log("Middleware before");
       await next();
       console.log("Middleware after");
     })
     test(req: Request, res: Response) {
+      const params = req.params;
+      console.log(params);
       console.log("Handler");
       res.setHeader("X-Test", "test");
       console.log(res.responseHeaders);
