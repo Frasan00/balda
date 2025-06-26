@@ -1,8 +1,4 @@
-import type {
-  Server as HttpServer,
-  IncomingMessage,
-  ServerResponse,
-} from "http";
+import type { Server as HttpServer, IncomingMessage } from "http";
 import type { Logger } from "pino";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
@@ -68,14 +64,34 @@ export type ServerListenCallback = ({
 }) => void;
 
 /**
+ * Custom bun fetch call to be used as an hook inside Bun.serve method
+ */
+type CustomBunFetch = (
+  ...options: Parameters<Bun.ServeOptions["fetch"]>
+) => Promise<void> | void;
+
+/**
+ * Custom deno fetch call to be used as an hook inside Deno.serve method
+ */
+type CustomDenoFetch = (
+  ...options: Parameters<Parameters<typeof Deno.serve>[0]["handler"]>
+) => Promise<void> | void;
+
+type BunServeOptions = Bun.ServeFunctionOptions<unknown, any>;
+
+/**
  * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests
  */
 export type ServerTapOptionsBuilder<T extends RunTimeType> = T extends "node"
   ? (req: Omit<IncomingMessage, "url">) => Promise<void>
   : T extends "bun"
-    ? Omit<Bun.ServeOptions, "port" | "hostname">
+    ? Partial<Parameters<typeof Bun.serve>[0]> & {
+        fetch?: CustomBunFetch;
+      }
     : T extends "deno"
-      ? Parameters<typeof Deno.serve>[0]
+      ? Partial<Omit<Parameters<typeof Deno.serve>[0], "handler">> & {
+          handler?: CustomDenoFetch;
+        }
       : never;
 
 export type BunTapOptions = {

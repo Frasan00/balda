@@ -2,7 +2,6 @@ import { controller, get } from "../src";
 import { Request } from "../src/server/http/request";
 import { Response } from "../src/server/http/response";
 import { Server } from "../src/server/server";
-import { WebSocketServer } from "ws";
 
 @controller()
 class TestController {
@@ -13,11 +12,16 @@ class TestController {
 }
 
 (async () => {
-  const server = new Server();
-
-  const httpServer = server.getNodeServer();
-  console.log(httpServer);
-  const wss = new WebSocketServer({ server: httpServer });
+  const server = new Server({
+    tapOptions: {
+      type: "bun",
+      options: {
+        fetch: (req) => {
+          console.log('daje')
+        },
+      },
+    },
+  });
 
   server.listen(({ port, host, url, logger }) => {
     logger.info(

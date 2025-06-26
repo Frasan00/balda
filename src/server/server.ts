@@ -43,18 +43,6 @@ export class Server implements ServerInterface {
   private globalMiddlewares: ServerRouteMiddleware[] = [];
   private options: Required<ServerOptions>;
 
-  get url(): string {
-    return this.serverConnector.url;
-  }
-
-  get port(): number {
-    return this.serverConnector.port;
-  }
-
-  get host(): string {
-    return this.serverConnector.host;
-  }
-
   /**
    * The constructor for the server
    * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
@@ -72,6 +60,7 @@ export class Server implements ServerInterface {
       controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
       plugins: options?.plugins ?? {},
       logger: options?.logger ?? {},
+      tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
     };
 
     this.runtime = new RunTime();
@@ -80,7 +69,7 @@ export class Server implements ServerInterface {
       routes: [],
       port: this.options.port,
       host: this.options.host,
-      tapOptions: this.tapOptions,
+      tapOptions: this.options.tapOptions,
       runtime: this.runtime.type,
     });
 
@@ -90,6 +79,18 @@ export class Server implements ServerInterface {
     this.applyPlugins(this.options.plugins);
 
     this.isListening = false;
+  }
+
+  get url(): string {
+    return this.serverConnector.url;
+  }
+
+  get port(): number {
+    return this.serverConnector.port;
+  }
+
+  get host(): string {
+    return this.serverConnector.host;
   }
 
   get(path: string, handler: ServerRouteHandler): void;

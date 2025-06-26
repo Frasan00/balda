@@ -23,7 +23,7 @@ export class ServerNode implements ServerInterface {
   url: string;
   routes: ServerRoute[];
   tapOptions?: ServerTapOptions;
-  declare runtimeServer: HttpServer;
+  runtimeServer: HttpServer;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];

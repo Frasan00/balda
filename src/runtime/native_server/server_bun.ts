@@ -54,8 +54,9 @@ export class ServerBun implements ServerInterface {
 
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
+
         // User input handler
-        await fetch?.call(this.runtimeServer, req, server);
+        await fetch?.(req, server);
 
         const response = await executeMiddlewareChain(
           match.middleware,
@@ -65,7 +66,7 @@ export class ServerBun implements ServerInterface {
 
         return response.nativeResponse;
       },
-      ...rest,
+      ...rest as any,
     });
     this.url = this.runtimeServer.url.toString();
   }

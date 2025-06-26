@@ -28,6 +28,8 @@ export interface ServerOptions {
   plugins?: ServerPlugin;
   /** The logger to use, defaults to the global logger */
   logger?: Parameters<typeof createLogger>[0];
+  /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
+  tapOptions?: ServerTapOptions;
 }
 
 export type ServerErrorHandler = (
