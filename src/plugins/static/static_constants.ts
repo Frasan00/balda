@@ -1,0 +1,18 @@
+export const mimeTypes = new Map<string, string>([
+  ['.html', 'text/html'],
+  ['.css', 'text/css'],
+  ['.js', 'application/javascript'],
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.gif', 'image/gif'],
+  ['.svg', 'image/svg+xml'],
+  ['.json', 'application/json'],
+  ['.txt', 'text/plain'],
+  ['.ico', 'image/x-icon'],
+  ['.webp', 'image/webp'],
+  ['.mp4', 'video/mp4'],
+  ['.mp3', 'audio/mpeg'],
+  ['.wav', 'audio/wav'],
+  ['.ogg', 'audio/ogg'],
+  ['.webm', 'video/webm'],
+]);

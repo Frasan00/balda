@@ -8,7 +8,6 @@ import type {
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
-import type { RunTimeType } from "../runtime/runtime";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
 
@@ -65,6 +64,10 @@ export interface ServerInterface {
    * @warning Must be used before `listen` method
    */
   tapOptions?: ServerTapOptions;
+  /**
+   * The path to the temporary directory
+   */
+  tmpPath: string;
 
   /**
    * Adds a GET route to the server, useful for defining simple global routes, use decorators to define more complex routes

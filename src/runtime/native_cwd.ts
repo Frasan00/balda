@@ -10,10 +10,8 @@ class NativeCwd {
   async getCwd(): Promise<string> {
     switch (this.runtime.type) {
       case "node":
-        return process.cwd();
       case "bun":
-        const { $ } = await import("bun");
-        return $.cwd().toString();
+        return process.cwd();
       case "deno":
         return Deno.cwd();
       default:

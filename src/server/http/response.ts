@@ -87,37 +87,65 @@ export class Response {
   }
 
   /**
-   * Send a response with the given body, status defaults to 200
+   * Send a response with the given body, tries to determine the content type based on the body type, status defaults to 200
+   * @warning If cannot determine the content type, it will be sent as is
    */
   send(body: any): void {
-    if (typeof body === "object" && body !== null) {
-      return this.json(body);
+    if (body === null || body === undefined) {
+      return this.text("");
     }
 
     if (typeof body === "string") {
       return this.text(body);
     }
 
+    if (typeof body === "number" || typeof body === "boolean" || typeof body === "bigint") {
+      return this.text(String(body));
+    }
+
+    if (body instanceof Date) {
+      return this.text(body.toISOString());
+    }
+
+    if (body instanceof RegExp) {
+      return this.text(body.toString());
+    }
+
     if (typeof Buffer !== "undefined" && body instanceof Buffer) {
-      return this.binary(new Uint8Array(body));
+      return this.download(new Uint8Array(body));
     }
 
-    if (body instanceof ReadableStream) {
-      return this.stream(body);
+    if (body instanceof ArrayBuffer || body instanceof Uint8Array) {
+      return this.download(new Uint8Array(body));
     }
 
-    if (body instanceof File) {
-      return this.file(body);
+    if (typeof body === "object") {
+      try {
+        return this.json(body);
+      } catch (error) {
+        return this.text(String(body));
+      }
     }
 
-    if (body instanceof ArrayBuffer) {
-      return this.binary(new Uint8Array(body));
+    if (typeof body === "function") {
+      return this.text(body.toString());
     }
 
-    if (body instanceof Uint8Array) {
-      return this.binary(body);
+    if (typeof body === "symbol") {
+      return this.text(body.toString());
     }
 
+    this.body = body;
+    this.nativeResponse = new NativeResponse(this.body, {
+      status: this.responseStatus,
+      headers: this.responseHeaders,
+    });
+  }
+
+  /**
+   * Send a response with the given body without any content type or encoding (as is), status defaults to 200
+   */
+  raw(body: any): void {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
@@ -170,43 +198,15 @@ export class Response {
   }
 
   /**
-   * Send a response with the given binary data, status defaults to 200
+   * Send a response with the given binary with Content-Type of application/octet-stream header, status defaults to 200
    */
-  binary(body: Uint8Array): void {
+  download(body: Uint8Array): void {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
       headers: {
         ...this.responseHeaders,
         "Content-Type": "application/octet-stream",
-      },
-    });
-  }
-
-  /**
-   * Send a response with the given stream, status defaults to 200
-   */
-  stream(body: ReadableStream): void {
-    this.body = body;
-    this.nativeResponse = new NativeResponse(this.body, {
-      status: this.responseStatus,
-      headers: {
-        ...this.responseHeaders,
-        "Content-Type": "application/octet-stream",
-      },
-    });
-  }
-
-  /**
-   * Send a response with the given file, status defaults to 200
-   */
-  file(body: File): void {
-    this.body = body;
-    this.nativeResponse = new NativeResponse(this.body, {
-      status: this.responseStatus,
-      headers: {
-        "Content-Type": "application/octet-stream",
-        ...this.responseHeaders,
       },
     });
   }

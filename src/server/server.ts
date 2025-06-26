@@ -24,24 +24,26 @@ import type {
   ServerPlugin,
 } from "./server_types";
 import { nativeCwd } from "../runtime/native_cwd";
+import { tmpdir } from "node:os";
 
 /**
  * The server class that is used to create and manage the server
  */
 export class Server implements ServerInterface {
-  controllerImportBlacklistedPaths: string[] = [
-    "node_modules",
-    "dist",
-    ".config",
-  ];
   isListening: boolean;
   logger: Logger;
   tapOptions?: ServerTapOptions;
   runtime: RunTime;
+  readonly tmpPath: string = tmpdir();
 
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
   private options: Required<ServerOptions>;
+  private controllerImportBlacklistedPaths: string[] = [
+    "node_modules",
+    "dist",
+    ".config",
+  ];
 
   /**
    * The constructor for the server
@@ -52,6 +54,7 @@ export class Server implements ServerInterface {
    * @param options.controllerPatterns - The patterns to match for controllers, defaults to every .ts and .js file in the root directory
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
    * @param options.logger - The logger to use for the server, by default a default logger is used
+   * @param options.tapOptions - Options fetch to the runtime server before the server is up and running
    */
   constructor(options?: ServerOptions) {
     this.options = {

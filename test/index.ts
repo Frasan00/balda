@@ -1,3 +1,4 @@
+import { serveStatic } from "../src/plugins/static/static";
 import { controller, get } from "../src";
 import { Request } from "../src/server/http/request";
 import { Response } from "../src/server/http/response";

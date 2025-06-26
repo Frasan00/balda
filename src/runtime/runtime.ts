@@ -10,10 +10,10 @@ export class RunTime {
   private getRunTime(): RunTimeType {
     if (typeof Bun !== "undefined") {
       return "bun";
-    } else if (typeof process !== "undefined") {
-      return "node";
     } else if (typeof Deno !== "undefined") {
       return "deno";
+    } else if (typeof process !== "undefined") {
+      return "node";
     }
 
     throw new Error("No environment detected");
