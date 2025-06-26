@@ -34,6 +34,7 @@ export type ServerRouteMiddleware = (
   res: Response,
   next: NextFunction,
 ) => void | Promise<void>;
+
 export type ServerRouteHandler = (
   req: Request,
   res: Response,

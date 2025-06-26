@@ -17,6 +17,7 @@ import { Response } from "./server/http/response";
 
 import { post } from "./decorators/handlers/post";
 import { Server } from "./server/server";
+import { middleware } from "src/decorators/middleware/middleware";
 
 declare module "./server/server" {
   interface Server {
@@ -27,12 +28,12 @@ declare module "./server/server" {
 (async () => {
   const server = new Server({
     plugins: {
-      cors: {
-        origin: "*",
-      },
-      json: {
-        sizeLimit: 1000,
-      },
+      // cors: {
+      //   origin: "*",
+      // },
+      // json: {
+      //   sizeLimit: 1000,
+      // },
     },
   });
 
@@ -41,7 +42,7 @@ declare module "./server/server" {
   });
   server.test();
 
-  // server.useGlobalMiddleware(async (req, res, next) => {
+  // server.use(async (req, res, next) => {
   //   console.log("Global middleware");
   //   await next();
   //   console.log("Global middleware after");
@@ -68,6 +69,11 @@ declare module "./server/server" {
     }
 
     @post("/post")
+    @middleware(async (req, res, next) => {
+      console.log("Post middleware");
+      await next();
+      console.log("Post middleware after");
+    })
     async testPost(req: Request, res: Response) {
       const a = req.validate(
         (Type) =>
@@ -77,16 +83,19 @@ declare module "./server/server" {
           })
       );
 
+      console.log(req.body);
+      console.log(req.query);
+
       res.ok({
         test: "test",
       });
     }
 
-    @get("*")
+    @get("/*")
     notFound(req: Request, res: Response) {
       console.log(req.params);
       res.json({
-        message: "Not found",
+        message: "Not found daje",
       });
     }
   }

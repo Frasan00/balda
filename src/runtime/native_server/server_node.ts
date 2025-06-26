@@ -6,9 +6,9 @@ import {
 } from "node:http";
 import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
-import { router } from "../router/router";
+import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
-import type { ServerConnectInput, ServerRoute } from "./server_types";
+import type { HttpMethod, ServerConnectInput, ServerRoute } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
 export class ServerNode implements ServerInterface {
@@ -42,7 +42,7 @@ export class ServerNode implements ServerInterface {
           headers: req.headers as Record<string, string>,
         });
 
-        const match = router.findRoute(req.url!, req.method as any);
+        const match = router.find(req.method as HttpMethod, req.url!);
         if (!match) {
           httpResponse.writeHead(routeNotFoundError.status, {
             "Content-Type": "application/json",
@@ -59,11 +59,10 @@ export class ServerNode implements ServerInterface {
         const url = new URL(requestUrl);
         request.query = Object.fromEntries(url.searchParams.entries());
         request.params = match.params;
-        const route = match.route;
 
         const response = await executeMiddlewareChain(
-          route.middlewares ?? [],
-          route.handler,
+          match.middleware,
+          match.handler,
           request,
         );
 

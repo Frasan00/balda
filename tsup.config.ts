@@ -1,5 +1,7 @@
 import { defineConfig } from "tsup";
 
+const external = ["glob", "pino", "ajv", "ajv-formats", "pino-pretty"];
+
 export default defineConfig({
   entry: ["src/index.ts"],
   outDir: "lib",
@@ -7,4 +9,5 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
+  external,
 });

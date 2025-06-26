@@ -1,5 +1,11 @@
 import { glob } from "glob";
-import { PROTECTED_KEYS } from "./server_constants";
+import { type Logger } from "pino";
+import { createLogger } from "src/logger/logger";
+import { bodyParser } from "src/plugins/body_parser/body_parser";
+import { cors } from "../plugins/cors/cors";
+import type { CorsOptions } from "../plugins/cors/cors_types";
+import { json } from "../plugins/json/json";
+import type { JsonOptions } from "../plugins/json/json_options";
 import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
@@ -7,77 +13,38 @@ import type {
   ServerRouteHandler,
   ServerRouteMiddleware,
 } from "../runtime/native_server/server_types";
-import { router } from "../runtime/router/router";
 import type { RunTimeType } from "../runtime/runtime";
+import { router } from "./router/router";
+import { PROTECTED_KEYS } from "./server_constants";
 import type {
   ServerErrorHandler,
   ServerInterface,
   ServerOptions,
   ServerPlugin,
 } from "./server_types";
-import { cors } from "../plugins/cors/cors";
-import { json } from "../plugins/json/json";
-import type { CorsOptions } from "../plugins/cors/cors_types";
-import type { JsonOptions } from "../plugins/json/json_options";
-import { bodyParser } from "src/plugins/body_parser/body_parser";
-import { type Logger } from "pino";
-import { createLogger } from "src/logger/logger";
 
 /**
  * The server class that is used to create and manage the server
  */
 export class Server implements ServerInterface {
-  /**
-   * Whether the server is listening for requests
-   */
-  isListening: boolean;
-
-  /**
-   * The logger for the server
-   */
-  logger: Logger;
-
-  /**
-   * The paths that are blacklisted from being imported as controllers
-   */
   controllerImportBlacklistedPaths: string[] = [
     "node_modules",
     "dist",
     ".config",
   ];
-
-  /**
-   * The server connector for the current runtime
-   */
+  isListening: boolean;
+  logger: Logger;
   declare private serverConnector: ServerConnector;
-
-  /**
-   * The middlewares to be applied to all routes after the listener is bound
-   */
   private globalMiddlewares: ServerRouteMiddleware[] = [];
-
-  /**
-   * The options for the server
-   */
   declare private options: Required<ServerOptions>;
-
-  /**
-   * The url of the server
-   */
   get url(): string {
     return this.serverConnector.url;
   }
 
-  /**
-   * The port of the server
-   */
   get port(): number {
     return this.serverConnector.port;
   }
 
-  /**
-   * The host of the server
-   */
   get host(): string {
     return this.serverConnector.host;
   }
@@ -108,38 +75,30 @@ export class Server implements ServerInterface {
 
     this.logger = createLogger(this.options.logger);
 
-    this.useGlobalMiddleware(bodyParser());
+    this.use(bodyParser());
     this.applyPlugins(this.options.plugins);
 
     this.isListening = false;
   }
 
-  /**
-   * Register a GET route for the server, useful for simple routes, use decorators for more complex scenarios
-   */
   get(path: string, handler: ServerRouteHandler): void;
   get(
     path: string,
     middlewares: ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: ServerRouteHandler
   ): void;
   get(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler,
+        maybeHandler
       );
 
-    router.addOrUpdateRoute({
-      path,
-      method: "GET",
-      middlewares,
-      handler,
-    });
+    router.addOrUpdate("GET", path, middlewares, handler);
   }
 
   /**
@@ -149,25 +108,20 @@ export class Server implements ServerInterface {
   post(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void;
   post(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler,
+        maybeHandler
       );
 
-    router.addOrUpdateRoute({
-      path,
-      method: "POST",
-      middlewares,
-      handler,
-    });
+    router.addOrUpdate("POST", path, middlewares, handler);
   }
 
   /**
@@ -177,20 +131,15 @@ export class Server implements ServerInterface {
   patch(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler,
+        maybeHandler
       );
 
-    router.addOrUpdateRoute({
-      path,
-      method: "PATCH",
-      middlewares,
-      handler,
-    });
+    router.addOrUpdate("PATCH", path, middlewares, handler);
   }
 
   /**
@@ -200,25 +149,20 @@ export class Server implements ServerInterface {
   put(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void;
   put(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler,
+        maybeHandler
       );
 
-    router.addOrUpdateRoute({
-      path,
-      method: "PUT",
-      middlewares,
-      handler,
-    });
+    router.addOrUpdate("PUT", path, middlewares, handler);
   }
 
   /**
@@ -228,25 +172,20 @@ export class Server implements ServerInterface {
   delete(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void;
   delete(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler,
+        maybeHandler
       );
 
-    router.addOrUpdateRoute({
-      path,
-      method: "DELETE",
-      middlewares,
-      handler,
-    });
+    router.addOrUpdate("DELETE", path, middlewares, handler);
   }
 
   /**
@@ -272,13 +211,13 @@ export class Server implements ServerInterface {
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
-        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`,
+        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`
       );
     }
 
     if (PROTECTED_KEYS.includes(key)) {
       throw new Error(
-        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`,
+        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`
       );
     }
 
@@ -293,7 +232,7 @@ export class Server implements ServerInterface {
   /**
    * Add a global middleware to the router that will be applied to all routes. Will be applied in the order they are added.
    */
-  useGlobalMiddleware(middleware: ServerRouteMiddleware): void {
+  use(middleware: ServerRouteMiddleware): void {
     this.globalMiddlewares.push(middleware);
   }
 
@@ -318,12 +257,11 @@ export class Server implements ServerInterface {
   async listen(cb?: ServerListenCallback): Promise<void> {
     if (this.isListening) {
       throw new Error(
-        "Server is already listening, you can't call `.listen()` multiple times",
+        "Server is already listening, you can't call `.listen()` multiple times"
       );
     }
 
     await this.importControllers();
-    router.loadRoutes();
     if (this.globalMiddlewares.length > 0) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
     }
@@ -355,24 +293,24 @@ export class Server implements ServerInterface {
     controllerPaths = controllerPaths.filter(
       (path) =>
         !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
-          path.includes(blacklistedPath),
-        ),
+          path.includes(blacklistedPath)
+        )
     );
 
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
         await import(controllerPath).catch((err) => {
           this.logger.error(
-            `Error importing controller ${controllerPath}: ${err}`,
+            `Error importing controller ${controllerPath}: ${err}`
           );
         });
-      }),
+      })
     );
   }
 
   private extractMiddlewaresAndHandlerFromRouteRegistration(
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler
   ): { middlewares: ServerRouteMiddleware[]; handler: ServerRouteHandler } {
     const middlewares =
       typeof middlewaresOrHandler === "function" ? [] : middlewaresOrHandler;
@@ -389,10 +327,10 @@ export class Server implements ServerInterface {
     Object.entries(plugins).forEach(([pluginName, pluginOptions]) => {
       switch (pluginName as keyof ServerPlugin) {
         case "cors":
-          this.useGlobalMiddleware(cors(pluginOptions as CorsOptions));
+          this.use(cors(pluginOptions as CorsOptions));
           break;
         case "json":
-          this.useGlobalMiddleware(json(pluginOptions as JsonOptions));
+          this.use(json(pluginOptions as JsonOptions));
           break;
       }
     });

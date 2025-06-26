@@ -1,6 +1,6 @@
 import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
-import { router } from "../router/router";
+import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
   HttpMethod,
@@ -32,7 +32,7 @@ export class ServerDeno implements ServerInterface {
         Request.enrichRequest(req as Request);
 
         const url = new URL(req.url);
-        const match = router.findRoute(url.pathname, req.method as HttpMethod);
+        const match = router.find(req.method as HttpMethod, url.pathname);
         if (!match) {
           return new Response(
             JSON.stringify({
@@ -47,10 +47,9 @@ export class ServerDeno implements ServerInterface {
 
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
-        const route = match.route;
         const res = await executeMiddlewareChain(
-          route.middlewares ?? [],
-          route.handler,
+          match.middleware,
+          match.handler,
           req as Request
         );
 

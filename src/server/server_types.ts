@@ -33,19 +33,49 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error,
+  error: Error
 ) => void | Promise<void>;
 
 export interface ServerInterface {
+  /**
+   * Whether the server is listening for requests
+   */
   isListening: boolean;
+  /**
+   * The logger for the server
+   */
   logger: Logger;
+  /**
+   * The url of the server
+   */
   url: string;
+  /**
+   * The port of the server
+   */
   port: number;
+  /**
+   * The host of the server
+   */
   host: string;
+  /**
+   * The server connector for the current runtime, this is used to listen for incoming requests
+   */
   getServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
-  useGlobalMiddleware: (middleware: ServerRouteMiddleware) => void;
+  /**
+   * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
+   */
+  use: (middleware: ServerRouteMiddleware) => void;
+  /**
+   * The error handler for the server to be called when an error occurs in an incoming request
+   */
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
+  /**
+   * The function to listen for incoming requests, routes are registered when this function is called
+   */
   listen: (cb?: ServerListenCallback) => Promise<void>;
+  /**
+   * The function to close the server
+   */
   close: () => Promise<void>;
 }
 

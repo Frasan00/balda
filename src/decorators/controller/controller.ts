@@ -1,6 +1,7 @@
+import type { HttpMethod } from "src/runtime/native_server/server_types";
 import { join } from "node:path";
 import { MetadataStore } from "../../metadata_store";
-import { router } from "../../runtime/router/router";
+import { router } from "../../server/router/router";
 
 /**
  * Decorator to mark a class as a controller
@@ -20,12 +21,12 @@ export const controller = (path?: string) => {
 
       // Prepend class-level middlewares before route-level
       const allMiddlewares = [...classMiddlewares, ...(meta.middlewares || [])];
-      router.addOrUpdateRoute({
-        path: fullPath,
-        method: meta.route.method as any,
-        handler,
-        middlewares: allMiddlewares,
-      });
+      router.addOrUpdate(
+        meta.route.method as HttpMethod,
+        fullPath,
+        allMiddlewares,
+        handler
+      );
     }
 
     MetadataStore.clear(target.prototype);
