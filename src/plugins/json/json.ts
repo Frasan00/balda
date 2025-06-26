@@ -1,9 +1,9 @@
-import { invalidJsonError } from "src/errors/errors_constants";
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import { canHaveBody } from "src/runtime/native_server/server_utils";
-import type { NextFunction } from "src/server/http/next";
-import type { Request } from "src/server/http/request";
-import type { Response } from "src/server/http/response";
+import { invalidJsonError } from "../../errors/errors_constants";
+import { canHaveBody } from "../../runtime/native_server/server_utils";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
+import type { NextFunction } from "../../server/http/next";
+import type { Request } from "../../server/http/request";
+import type { Response } from "../../server/http/response";
 import type { JsonOptions } from "./json_options";
 
 /**

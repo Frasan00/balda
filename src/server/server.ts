@@ -1,7 +1,7 @@
 import { glob } from "glob";
 import { type Logger } from "pino";
-import { createLogger } from "src/logger/logger";
-import { bodyParser } from "src/plugins/body_parser/body_parser";
+import { createLogger } from "../logger/logger";
+import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import { json } from "../plugins/json/json";
@@ -14,7 +14,7 @@ import type {
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
-import type { RunTimeType } from "../runtime/runtime";
+import { RunTime } from "../runtime/runtime";
 import { router } from "./router/router";
 import { PROTECTED_KEYS } from "./server_constants";
 import type {
@@ -23,6 +23,7 @@ import type {
   ServerOptions,
   ServerPlugin,
 } from "./server_types";
+import { nativeCwd } from "../runtime/native_cwd";
 
 /**
  * The server class that is used to create and manage the server
@@ -36,9 +37,12 @@ export class Server implements ServerInterface {
   isListening: boolean;
   logger: Logger;
   tapOptions?: ServerTapOptions;
-  declare private serverConnector: ServerConnector;
+  runtime: RunTime;
+
+  private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
-  declare private options: Required<ServerOptions>;
+  private options: Required<ServerOptions>;
+
   get url(): string {
     return this.serverConnector.url;
   }
@@ -59,6 +63,7 @@ export class Server implements ServerInterface {
    * @param options.host - The hostname to listen on, defaults to 0.0.0.0
    * @param options.controllerPatterns - The patterns to match for controllers, defaults to every .ts and .js file in the root directory
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
+   * @param options.logger - The logger to use for the server, by default a default logger is used
    */
   constructor(options?: ServerOptions) {
     this.options = {
@@ -69,11 +74,14 @@ export class Server implements ServerInterface {
       logger: options?.logger ?? {},
     };
 
+    this.runtime = new RunTime();
+
     this.serverConnector = new ServerConnector({
       routes: [],
       port: this.options.port,
       host: this.options.host,
       tapOptions: this.tapOptions,
+      runtime: this.runtime.type,
     });
 
     this.logger = createLogger(this.options.logger);
@@ -179,26 +187,17 @@ export class Server implements ServerInterface {
     router.addOrUpdate("DELETE", path, middlewares, handler);
   }
 
-  /**
-   * Get the server for the given runtime, you can specify the runtime to get the server for for better type safety, if not specified it will default to "node"
-   * @example getServer("node") returns HttpServer
-   * @example getServer("bun") returns ReturnType<typeof Bun.serve>
-   * @example getServer("deno") returns ReturnType<typeof Deno.serve>
-   * @param runtime - The runtime to get the server for
-   * @returns The server for the given runtime
-   */
-  getRuntimeServer<T extends RunTimeType>(runtime?: T): RuntimeServerMap<T> {
-    return this.serverConnector.getServer(runtime ?? ("node" as T));
+  getNodeServer(): RuntimeServerMap<"node"> {
+    // TODO: BaldaError implementation
+    if (this.runtime.type !== "node") {
+      throw new Error(
+        "Server is not using node runtime, you can't call `.getNodeServer()`"
+      );
+    }
+
+    return this.serverConnector.getServer("node");
   }
 
-  /**
-   * Embed the given key into the server instance, this is useful for embedding the server with custom properties, you can extend the server with your own properties to type it
-   * @param key - The key to embed
-   * @param value - The value to embed
-   * @warning This method is not type safe, so you need to be careful when using it, already defined properties will be overridden
-   * @warning There are some keys that are protected and cannot be embedded, you can find the list of protected keys in the PROTECTED_KEYS constant
-   * @throws An error if the key is protected
-   */
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
@@ -220,17 +219,10 @@ export class Server implements ServerInterface {
     });
   }
 
-  /**
-   * Add a global middleware to the router that will be applied to all routes. Will be applied in the order they are added.
-   */
   use(middleware: ServerRouteMiddleware): void {
     this.globalMiddlewares.push(middleware);
   }
 
-  /**
-   * Set the error handler for the server
-   * @param errorHandler - The error handler to be applied to all routes
-   */
   setErrorHandler(errorHandler?: ServerErrorHandler): void {
     this.globalMiddlewares.unshift(async (req, res, next) => {
       try {
@@ -241,10 +233,6 @@ export class Server implements ServerInterface {
     });
   }
 
-  /**
-   * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
-   * This method will also register the routes defined in the controllers
-   */
   async listen(cb?: ServerListenCallback): Promise<void> {
     if (this.isListening) {
       throw new Error(
@@ -267,9 +255,6 @@ export class Server implements ServerInterface {
     });
   }
 
-  /**
-   * Closes the server and frees the port
-   */
   async close(): Promise<void> {
     await this.serverConnector.close();
     this.isListening = false;
@@ -278,7 +263,7 @@ export class Server implements ServerInterface {
   private async importControllers(): Promise<void> {
     const controllerPatterns = this.options.controllerPatterns;
     let controllerPaths = await glob(controllerPatterns.join(","), {
-      cwd: process.cwd(),
+      cwd: await nativeCwd.getCwd(),
     });
 
     controllerPaths = controllerPaths.filter(

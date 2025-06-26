@@ -1,5 +1,5 @@
 import { type Static, type TSchema, Type } from "@sinclair/typebox";
-import { validateSchema } from "src/validator/validator";
+import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
 
 export class Request extends NativeRequest {

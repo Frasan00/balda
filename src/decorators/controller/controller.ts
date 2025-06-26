@@ -1,5 +1,5 @@
-import type { HttpMethod } from "src/runtime/native_server/server_types";
 import { join } from "node:path";
+import type { HttpMethod } from "../../runtime/native_server/server_types";
 import { MetadataStore } from "../../metadata_store";
 import { router } from "../../server/router/router";
 

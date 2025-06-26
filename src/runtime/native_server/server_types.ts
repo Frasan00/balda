@@ -16,13 +16,9 @@ export type RuntimeServer =
   | ReturnType<typeof Bun.serve>
   | ReturnType<typeof Deno.serve>;
 
-export type RuntimeServerMap<T extends RunTimeType> = T extends "bun"
-  ? ReturnType<typeof Bun.serve>
-  : T extends "node"
-    ? HttpServer
-    : T extends "deno"
-      ? ReturnType<typeof Deno.serve>
-      : never;
+export type RuntimeServerMap<T extends RunTimeType> = T extends "node"
+  ? HttpServer
+  : never;
 
 export interface ServerConnectInput {
   /** The port to listen on, defaults to 80 */
@@ -33,6 +29,8 @@ export interface ServerConnectInput {
   routes: ServerRoute[];
   /** The options for the server tap function */
   tapOptions?: ServerTapOptions;
+  /** The runtime to use for the server */
+  runtime: RunTimeType;
 }
 
 export type ServerRouteMiddleware = (

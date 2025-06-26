@@ -5,7 +5,6 @@ import type { JsonOptions } from "../plugins/json/json_options";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
-  ServerRouteHandler,
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
@@ -91,12 +90,30 @@ export interface ServerInterface {
   delete: (...args: any[]) => void;
 
   /**
-   * The server connector for the current runtime, this is used to listen for incoming requests
+   * Get the node server instance, you must be using node runtime to use this method
+   * @throws if the runtime is not node
    */
-  getRuntimeServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
+  getNodeServer: () => RuntimeServerMap<"node">;
 
   /**
-   * Embeds a value into the server, this is used to embed values into the server for use in the server
+   * Embed the given key into the server instance, this is useful for embedding the server with custom properties, you can extend the server with your own properties to type it
+   * @param key - The key to embed
+   * @param value - The value to embed
+   * @warning This method is not type safe, so you need to be careful when using it, already defined properties will be overridden
+   * @warning There are some keys that are protected and cannot be embedded, you can find the list of protected keys in the PROTECTED_KEYS constant
+   * @throws An error if the key is protected
+   * @example
+   * ```ts
+   * // For better type safety, you can declare a module for the server interface
+   * declare module "balda" {
+   *   interface ServerInterface {
+   *     myCustomProperty: string;
+   *   }
+   * }
+   *
+   * server.embed("myCustomProperty", "myCustomValue");
+   * console.log(server.myCustomProperty); // Type safe if ServerInterface is extended
+   * ```
    */
   embed: (key: string, value: any) => void;
 
@@ -105,15 +122,17 @@ export interface ServerInterface {
    */
   use: (middleware: ServerRouteMiddleware) => void;
   /**
-   * The error handler for the server to be called when an error occurs in an incoming request
+   * Set the error handler for the server
+   * @param errorHandler - The error handler to be applied to all routes
    */
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
   /**
-   * The function to listen for incoming requests, routes are registered when this function is called
+   * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
+   * This method will also register the routes defined in the controllers
    */
   listen: (cb?: ServerListenCallback) => Promise<void>;
   /**
-   * The function to close the server
+   * Closes the server and frees the port
    */
   close: () => Promise<void>;
 }

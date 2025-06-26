@@ -7,11 +7,13 @@
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/",
-    "dev:bun": "bun run --watch src/index.ts",
+    "dev": "tsx watch test/index.ts",
+    "dev:bun": "bun run --watch test/index.ts",
     "dev:deno": "deno task dev",
+
     "build": "tsup",
     "build:prod": "tsup --minify",
+
     "format": "prettier --write \"**/*.ts\""
   },
   "devDependencies": {

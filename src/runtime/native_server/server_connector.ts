@@ -13,10 +13,8 @@ export class ServerConnector {
   declare routes: ServerRoute[];
 
   private server: ServerInterface;
-  private runtime: RunTime;
 
   constructor(serverOptions?: ServerConnectInput) {
-    this.runtime = new RunTime();
     this.server = this.getRuntimeServer(serverOptions);
     this.routes = this.server.routes;
   }
@@ -56,16 +54,15 @@ export class ServerConnector {
   private getRuntimeServer(
     serverOptions?: ServerConnectInput,
   ): ServerInterface {
-    if (this.runtime.runtime === "bun") {
+    if (serverOptions?.runtime === "bun") {
       return new ServerBun(serverOptions);
-    } else if (this.runtime.runtime === "node") {
+    } else if (serverOptions?.runtime === "node") {
       return new ServerNode(serverOptions);
-    } else if (this.runtime.runtime === "deno") {
+    } else if (serverOptions?.runtime === "deno") {
       return new ServerDeno(serverOptions);
     }
 
-    throw new Error(
-      "No server implementation found for runtime: " + this.runtime,
-    );
+    // TODO: BaldaError implementation
+    throw new Error("No server implementation found for runtime: " + serverOptions?.runtime);
   }
 }

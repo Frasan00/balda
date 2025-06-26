@@ -1,10 +1,10 @@
 export type RunTimeType = "bun" | "node" | "deno";
 
 export class RunTime {
-  runtime: RunTimeType;
+  type: RunTimeType;
 
   constructor() {
-    this.runtime = this.getRunTime();
+    this.type = this.getRunTime();
   }
 
   private getRunTime(): RunTimeType {

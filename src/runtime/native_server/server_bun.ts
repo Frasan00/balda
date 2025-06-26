@@ -29,8 +29,8 @@ export class ServerBun implements ServerInterface {
   }
 
   listen(): void {
-    const { options } = this.tapOptions as BunTapOptions;
-    const { fetch, ...rest } = options as BunTapOptions["options"];
+    const tapOptions = this.tapOptions?.options as BunTapOptions["options"] | undefined;
+    const { fetch, ...rest } = tapOptions ?? {};
 
     this.runtimeServer = Bun.serve({
       port: this.port,

@@ -13,3 +13,7 @@ node_modules/
 .prettierignore
 native/
 deno.json
+lib_test/
+docker/
+deno.json
+import_map.json

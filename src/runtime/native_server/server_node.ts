@@ -22,8 +22,8 @@ export class ServerNode implements ServerInterface {
   host: string;
   url: string;
   routes: ServerRoute[];
-  runtimeServer: HttpServer;
   tapOptions?: ServerTapOptions;
+  declare runtimeServer: HttpServer;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
@@ -31,15 +31,16 @@ export class ServerNode implements ServerInterface {
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
-    const { options } = this.tapOptions as NodeTapOptions;
-
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
         httpResponse: ServerResponse
       ): Promise<void> => {
         // User input handler
-        await options?.(req);
+        if (this.tapOptions) {
+          const { options } = this.tapOptions as NodeTapOptions;
+          await options?.(req);
+        }
 
         const requestUrl = `http://${req.headers.host}${req.url}`;
 

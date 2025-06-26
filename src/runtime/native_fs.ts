@@ -8,7 +8,7 @@ class NativeFs {
   }
 
   async readFile(path: string): Promise<Buffer> {
-    switch (this.runtime.runtime) {
+    switch (this.runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         return await fs.readFile(path);
@@ -22,7 +22,7 @@ class NativeFs {
   }
 
   async writeFile(path: string, data: Buffer): Promise<void> {
-    switch (this.runtime.runtime) {
+    switch (this.runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         await fs.writeFile(path, data);
