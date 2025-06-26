@@ -12,6 +12,7 @@ import type {
   ServerListenCallback,
   ServerRouteHandler,
   ServerRouteMiddleware,
+  ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import type { RunTimeType } from "../runtime/runtime";
 import { router } from "./router/router";
@@ -77,7 +78,6 @@ export class Server implements ServerInterface {
 
     this.use(bodyParser());
     this.applyPlugins(this.options.plugins);
-
     this.isListening = false;
   }
 
@@ -85,104 +85,92 @@ export class Server implements ServerInterface {
   get(
     path: string,
     middlewares: ServerRouteMiddleware[],
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   get(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("GET", path, middlewares, handler);
   }
 
-  /**
-   * Register a POST route for the server, useful for simple routes, use decorators for more complex scenarios
-   */
   post(path: string, handler: ServerRouteHandler): void;
   post(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void;
   post(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("POST", path, middlewares, handler);
   }
 
-  /**
-   * Register a PATCH route for the server, useful for simple routes, use decorators for more complex scenarios
-   */
   patch(path: string, handler: ServerRouteHandler): void;
   patch(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("PATCH", path, middlewares, handler);
   }
 
-  /**
-   * Register a PUT route for the server, useful for simple routes, use decorators for more complex scenarios
-   */
   put(path: string, handler: ServerRouteHandler): void;
   put(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void;
   put(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("PUT", path, middlewares, handler);
   }
 
-  /**
-   * Register a DELETE route for the server, useful for simple routes, use decorators for more complex scenarios
-   */
   delete(path: string, handler: ServerRouteHandler): void;
   delete(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void;
   delete(
     path: string,
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
       this.extractMiddlewaresAndHandlerFromRouteRegistration(
         middlewaresOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("DELETE", path, middlewares, handler);
@@ -196,7 +184,7 @@ export class Server implements ServerInterface {
    * @param runtime - The runtime to get the server for
    * @returns The server for the given runtime
    */
-  getServer<T extends RunTimeType>(runtime?: T): RuntimeServerMap<T> {
+  getRuntimeServer<T extends RunTimeType>(runtime?: T): RuntimeServerMap<T> {
     return this.serverConnector.getServer(runtime ?? ("node" as T));
   }
 
@@ -211,13 +199,13 @@ export class Server implements ServerInterface {
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
-        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`
+        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`,
       );
     }
 
     if (PROTECTED_KEYS.includes(key)) {
       throw new Error(
-        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`
+        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`,
       );
     }
 
@@ -257,7 +245,7 @@ export class Server implements ServerInterface {
   async listen(cb?: ServerListenCallback): Promise<void> {
     if (this.isListening) {
       throw new Error(
-        "Server is already listening, you can't call `.listen()` multiple times"
+        "Server is already listening, you can't call `.listen()` multiple times",
       );
     }
 
@@ -276,6 +264,11 @@ export class Server implements ServerInterface {
     });
   }
 
+  tap?: <T extends RunTimeType>(
+    runtime?: T,
+    options?: ServerTapOptions<T>,
+  ) => RuntimeServerMap<T>;
+
   /**
    * Closes the server and frees the port
    */
@@ -293,24 +286,24 @@ export class Server implements ServerInterface {
     controllerPaths = controllerPaths.filter(
       (path) =>
         !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
-          path.includes(blacklistedPath)
-        )
+          path.includes(blacklistedPath),
+        ),
     );
 
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
         await import(controllerPath).catch((err) => {
           this.logger.error(
-            `Error importing controller ${controllerPath}: ${err}`
+            `Error importing controller ${controllerPath}: ${err}`,
           );
         });
-      })
+      }),
     );
   }
 
   private extractMiddlewaresAndHandlerFromRouteRegistration(
     middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): { middlewares: ServerRouteMiddleware[]; handler: ServerRouteHandler } {
     const middlewares =
       typeof middlewaresOrHandler === "function" ? [] : middlewaresOrHandler;

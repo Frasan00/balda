@@ -17,7 +17,7 @@ export class Request extends NativeRequest {
   static enrichRequest(request: Request): Request {
     request.validate = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false
+      safe: boolean = false,
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -28,7 +28,7 @@ export class Request extends NativeRequest {
 
     request.validateQuery = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false
+      safe: boolean = false,
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -39,7 +39,7 @@ export class Request extends NativeRequest {
 
     request.validateAll = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false
+      safe: boolean = false,
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -51,7 +51,7 @@ export class Request extends NativeRequest {
           body: request.body,
           query: request.query,
         },
-        safe
+        safe,
       );
     };
 
@@ -85,7 +85,7 @@ export class Request extends NativeRequest {
    */
   validate<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false
+    safe: boolean = false,
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -99,7 +99,7 @@ export class Request extends NativeRequest {
    */
   validateQuery<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false
+    safe: boolean = false,
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -113,7 +113,7 @@ export class Request extends NativeRequest {
    */
   validateAll<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false
+    safe: boolean = false,
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -125,7 +125,7 @@ export class Request extends NativeRequest {
         body: this.body,
         query: this.query,
       },
-      safe
+      safe,
     );
   }
 }

@@ -75,12 +75,11 @@ declare module "./server/server" {
       console.log("Post middleware after");
     })
     async testPost(req: Request, res: Response) {
-      const a = req.validate(
-        (Type) =>
-          Type.Object({
-            name: Type.String(),
-            age: Type.Number(),
-          })
+      const a = req.validate((Type) =>
+        Type.Object({
+          name: Type.String(),
+          age: Type.Number(),
+        }),
       );
 
       console.log(req.body);
@@ -102,9 +101,11 @@ declare module "./server/server" {
 
   server.listen(({ port, host, url, logger }) => {
     logger.info(
-      `Server is listening on ${url} on port ${port} on host ${host}`
+      `Server is listening on ${url} on port ${port} on host ${host}`,
     );
   });
+
+  server.getRuntimeServer("bun");
 
   // await server.close();
   // console.log(server.isListening);

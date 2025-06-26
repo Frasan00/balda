@@ -6,6 +6,7 @@ import type {
   RuntimeServerMap,
   ServerListenCallback,
   ServerRouteMiddleware,
+  ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import type { RunTimeType } from "../runtime/runtime";
 import type { NextFunction } from "./http/next";
@@ -33,7 +34,7 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error
+  error: Error,
 ) => void | Promise<void>;
 
 export interface ServerInterface {
@@ -57,10 +58,18 @@ export interface ServerInterface {
    * The host of the server
    */
   host: string;
+  // TODO add remaining methods
+  /**
+   * Called before server is listening, this is used to tap into the server connector for the current runtime and modify it before it is used to listen for incoming requests
+   */
+  tap?: <T extends RunTimeType>(
+    runtime?: T,
+    options?: ServerTapOptions<T>,
+  ) => RuntimeServerMap<T>;
   /**
    * The server connector for the current runtime, this is used to listen for incoming requests
    */
-  getServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
+  getRuntimeServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
    */

@@ -6,6 +6,7 @@ import type {
   HttpMethod,
   ServerConnectInput,
   ServerRoute,
+  ServerTapOptions,
 } from "./server_types";
 import { executeMiddlewareChain } from "./server_utils";
 
@@ -14,6 +15,7 @@ export class ServerBun implements ServerInterface {
   hostname: string;
   host: string;
   routes: ServerRoute[];
+  tapOptions: ServerTapOptions<"bun">;
   declare url: string;
   declare runtimeServer: ReturnType<typeof Bun.serve>;
 
@@ -22,13 +24,15 @@ export class ServerBun implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
+    this.tapOptions = (input?.tapOptions as ServerTapOptions<"bun">) ?? {};
   }
 
   listen(): void {
+    const { fetch, ...rest } = this.tapOptions as Bun.ServeOptions;
     this.runtimeServer = Bun.serve({
       port: this.port,
       hostname: this.hostname,
-      fetch: async (req) => {
+      fetch: async (req, server) => {
         Request.enrichRequest(req as Request);
 
         const url = new URL(req.url);
@@ -47,6 +51,9 @@ export class ServerBun implements ServerInterface {
 
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
+        // User input handler
+        await fetch.call(this.runtimeServer, req, server);
+
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
@@ -55,6 +62,7 @@ export class ServerBun implements ServerInterface {
 
         return response.nativeResponse;
       },
+      ...rest,
     });
     this.url = this.runtimeServer.url.toString();
   }

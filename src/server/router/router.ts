@@ -40,7 +40,7 @@ export class Router {
     method: HttpMethod,
     path: string,
     middleware: ServerRouteMiddleware[],
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void {
     method = method.toUpperCase() as HttpMethod;
 
@@ -87,7 +87,7 @@ export class Router {
 
     // upsert in registry
     const idx = this.routes.findIndex(
-      (r) => r.method === method && r.path === path
+      (r) => r.method === method && r.path === path,
     );
     if (idx !== -1) {
       this.routes[idx].middleware = middleware;
@@ -100,7 +100,7 @@ export class Router {
 
   find(
     method: string,
-    rawPath: string
+    rawPath: string,
   ): {
     middleware: ServerRouteMiddleware[];
     handler: ServerRouteHandler;
@@ -148,14 +148,14 @@ export class Router {
   }
 
   applyGlobalMiddlewaresToAllRoutes(
-    middlewares: ServerRouteMiddleware[]
+    middlewares: ServerRouteMiddleware[],
   ): void {
     for (const route of this.routes) {
       this.addOrUpdate(
         route.method as HttpMethod,
         route.path,
         [...middlewares, ...(route.middleware || [])],
-        route.handler
+        route.handler,
       );
     }
   }

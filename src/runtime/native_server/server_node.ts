@@ -8,7 +8,12 @@ import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
-import type { HttpMethod, ServerConnectInput, ServerRoute } from "./server_types";
+import type {
+  HttpMethod,
+  ServerConnectInput,
+  ServerRoute,
+  ServerTapOptions,
+} from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
 export class ServerNode implements ServerInterface {
@@ -17,23 +22,23 @@ export class ServerNode implements ServerInterface {
   url: string;
   routes: ServerRoute[];
   runtimeServer: HttpServer;
+  tapOptions: ServerTapOptions<"node">;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
+    this.tapOptions = (input?.tapOptions as ServerTapOptions<"node">) ?? {};
     this.runtimeServer = createServer(
-      async (req: IncomingMessage, httpResponse: ServerResponse) => {
-        if (!req.url) {
-          httpResponse.writeHead(400, { "Content-Type": "application/json" });
-          httpResponse.end(
-            JSON.stringify({ error: "Invalid request: missing URL" }),
-          );
-          return;
-        }
-
+      async (
+        req: IncomingMessage,
+        httpResponse: ServerResponse
+      ): Promise<void> => {
+        // User input handler
+        await this.tapOptions(req);
         const requestUrl = `http://${req.headers.host}${req.url}`;
+
         const request = new Request(requestUrl, {
           method: req.method,
           body: canHaveBody(req.method)
@@ -51,7 +56,7 @@ export class ServerNode implements ServerInterface {
           httpResponse.end(
             JSON.stringify({
               error: routeNotFoundError.error,
-            }),
+            })
           );
           return;
         }
@@ -63,17 +68,17 @@ export class ServerNode implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          request,
+          request
         );
 
         httpResponse.writeHead(
           response.nativeResponse.status,
-          Object.fromEntries(response.nativeResponse.headers.entries()),
+          Object.fromEntries(response.nativeResponse.headers.entries())
         );
 
         const body = await response.getBody();
         httpResponse.end(body);
-      },
+      }
     );
   }
 

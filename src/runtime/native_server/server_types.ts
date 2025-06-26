@@ -1,4 +1,8 @@
-import type { Server as HttpServer } from "http";
+import type {
+  Server as HttpServer,
+  IncomingMessage,
+  ServerResponse,
+} from "http";
 import type { Logger } from "pino";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
@@ -27,6 +31,8 @@ export interface ServerConnectInput {
   host: string;
   /** The server routes with their corresponding handler */
   routes: ServerRoute[];
+  /** The options for the server tap function */
+  tapOptions?: ServerTapOptions<RunTimeType>;
 }
 
 export type ServerRouteMiddleware = (
@@ -62,3 +68,14 @@ export type ServerListenCallback = ({
   url: string;
   logger: Logger;
 }) => void;
+
+/**
+ * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests
+ */
+export type ServerTapOptions<T extends RunTimeType> = T extends "node"
+  ? (req: Omit<IncomingMessage, "url">) => Promise<void>
+  : T extends "bun"
+    ? Omit<Bun.ServeOptions, "port" | "hostname">
+    : T extends "deno"
+      ? Parameters<typeof Deno.serve>[0]
+      : never;

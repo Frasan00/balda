@@ -25,7 +25,7 @@ export const controller = (path?: string) => {
         meta.route.method as HttpMethod,
         fullPath,
         allMiddlewares,
-        handler
+        handler,
       );
     }
 
