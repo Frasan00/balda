@@ -17,14 +17,14 @@ export class ServerDeno implements ServerInterface {
   declare url: string;
   declare routes: ServerRoute[];
   declare runtimeServer: ReturnType<typeof Deno.serve>;
-  declare tapOptions: ServerTapOptions<"deno">;
+  declare tapOptions?: ServerTapOptions<"deno">;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.tapOptions = (input?.tapOptions as ServerTapOptions<"deno">) ?? {};
+    this.tapOptions = (input?.tapOptions as ServerTapOptions<"deno">);
   }
 
   listen(): void {
@@ -55,7 +55,7 @@ export class ServerDeno implements ServerInterface {
         req.query = Object.fromEntries(url.searchParams.entries());
 
         // User input handler
-        await handler(req, info);
+        await handler?.(req, info);
 
         const res = await executeMiddlewareChain(
           match.middleware,

@@ -15,7 +15,7 @@ export class ServerBun implements ServerInterface {
   hostname: string;
   host: string;
   routes: ServerRoute[];
-  tapOptions: ServerTapOptions<"bun">;
+  tapOptions?: ServerTapOptions<"bun">;
   declare url: string;
   declare runtimeServer: ReturnType<typeof Bun.serve>;
 
@@ -24,7 +24,7 @@ export class ServerBun implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.tapOptions = (input?.tapOptions as ServerTapOptions<"bun">) ?? {};
+    this.tapOptions = input?.tapOptions as ServerTapOptions<"bun">;
   }
 
   listen(): void {
@@ -45,19 +45,19 @@ export class ServerBun implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
 
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
         // User input handler
-        await fetch.call(this.runtimeServer, req, server);
+        await fetch?.call(this.runtimeServer, req, server);
 
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          req as Request,
+          req as Request
         );
 
         return response.nativeResponse;

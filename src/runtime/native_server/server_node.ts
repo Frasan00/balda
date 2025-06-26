@@ -22,21 +22,21 @@ export class ServerNode implements ServerInterface {
   url: string;
   routes: ServerRoute[];
   runtimeServer: HttpServer;
-  tapOptions: ServerTapOptions<"node">;
+  tapOptions?: ServerTapOptions<"node">;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
-    this.tapOptions = (input?.tapOptions as ServerTapOptions<"node">) ?? {};
+    this.tapOptions = (input?.tapOptions as ServerTapOptions<"node">);
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
         httpResponse: ServerResponse
       ): Promise<void> => {
         // User input handler
-        await this.tapOptions(req);
+        await this.tapOptions?.(req);
         const requestUrl = `http://${req.headers.host}${req.url}`;
 
         const request = new Request(requestUrl, {
