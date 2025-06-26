@@ -4,7 +4,8 @@ import { MetadataStore } from "../../metadata_store";
 import { router } from "../../server/router/router";
 
 /**
- * Decorator to mark a class as a controller
+ * Decorator to mark a class as a controller, routes defined in the controller will be registered at import time when calling the `listen` method.
+ * You can customize the path pattern for controller imports in the server options `controllerPatterns`
  */
 export const controller = (path?: string) => {
   return (target: any) => {
@@ -26,6 +27,7 @@ export const controller = (path?: string) => {
         fullPath,
         allMiddlewares,
         handler,
+        meta.documentation,
       );
     }
 

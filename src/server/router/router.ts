@@ -6,6 +6,7 @@ import {
 } from "../../runtime/native_server/server_types";
 import type { Request } from "../http/request";
 import type { Response } from "../http/response";
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -41,6 +42,7 @@ export class Router {
     path: string,
     middleware: ServerRouteMiddleware[],
     handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
   ): void {
     method = method.toUpperCase() as HttpMethod;
 
@@ -95,7 +97,7 @@ export class Router {
       return;
     }
 
-    this.routes.push({ method, path, middleware, handler });
+    this.routes.push({ method, path, middleware, handler, swaggerOptions });
   }
 
   find(

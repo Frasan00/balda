@@ -1,17 +1,21 @@
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import { MetadataStore } from "../../metadata_store";
 
 /**
  * Decorator to mark an handler for a PATCH request
  */
-export const patch = (path: string) => {
+export const patch = (path: string, options?: SwaggerRouteOptions) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: { path, method: "PATCH" } };
     }
 
-    meta.path = path;
-    meta.method = "PATCH";
+    if (options) {
+      meta.documentation = options;
+    }
+
+    meta.route = { path, method: "PATCH" };
     MetadataStore.set(target, propertyKey, meta);
     return descriptor;
   };

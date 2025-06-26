@@ -1,13 +1,18 @@
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import { MetadataStore } from "../../metadata_store";
 
 /**
  * Decorator to mark an handler for a GET request
  */
-export const get = (path: string) => {
+export const get = (path: string, options?: SwaggerRouteOptions) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: { path, method: "GET" } };
+    }
+
+    if (options) {
+      meta.documentation = options;
     }
 
     meta.route = { path, method: "GET" };

@@ -25,6 +25,7 @@ import type {
 } from "./server_types";
 import { nativeCwd } from "../runtime/native_cwd";
 import { tmpdir } from "node:os";
+import { serveStatic } from "src/plugins/static/static";
 
 /**
  * The server class that is used to create and manage the server
@@ -96,7 +97,7 @@ export class Server implements ServerInterface {
     return this.serverConnector.host;
   }
 
-  get(path: string, handler: ServerRouteHandler): void;
+  get(path: string, handler: ServerRouteHandler, ): void;
   get(
     path: string,
     middlewares: ServerRouteMiddleware[],
@@ -311,6 +312,9 @@ export class Server implements ServerInterface {
           break;
         case "json":
           this.use(json(pluginOptions as JsonOptions));
+          break;
+        case "static":
+          this.use(serveStatic(pluginOptions as string));
           break;
       }
     });

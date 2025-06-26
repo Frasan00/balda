@@ -14,6 +14,7 @@ import type { Response } from "./http/response";
 export type ServerPlugin = {
   cors?: CorsOptions;
   json?: JsonOptions;
+  static?: string;
 };
 
 export interface ServerOptions {
@@ -133,7 +134,6 @@ export interface ServerInterface {
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
-   * This method will also register the routes defined in the controllers
    */
   listen: (cb?: ServerListenCallback) => Promise<void>;
   /**
@@ -141,7 +141,3 @@ export interface ServerInterface {
    */
   close: () => Promise<void>;
 }
-
-export type MiddlewareRegistry = {
-  [K in string]: ServerRouteMiddleware;
-};
