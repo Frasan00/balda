@@ -56,7 +56,7 @@ export class ServerBun implements ServerInterface {
         req.query = Object.fromEntries(url.searchParams.entries());
 
         // User input handler
-        await fetch?.(req, server);
+        await fetch?.call(this, req, server);
 
         const response = await executeMiddlewareChain(
           match.middleware,

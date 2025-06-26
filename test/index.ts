@@ -12,16 +12,7 @@ class TestController {
 }
 
 (async () => {
-  const server = new Server({
-    tapOptions: {
-      type: "bun",
-      options: {
-        fetch: (req) => {
-          console.log('daje')
-        },
-      },
-    },
-  });
+  const server = new Server();
 
   server.listen(({ port, host, url, logger }) => {
     logger.info(
