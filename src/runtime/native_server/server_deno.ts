@@ -3,6 +3,7 @@ import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
+  DenoTapOptions,
   HttpMethod,
   ServerConnectInput,
   ServerRoute,
@@ -17,20 +18,20 @@ export class ServerDeno implements ServerInterface {
   declare url: string;
   declare routes: ServerRoute[];
   declare runtimeServer: ReturnType<typeof Deno.serve>;
-  declare tapOptions?: ServerTapOptions<"deno">;
+  declare tapOptions?: ServerTapOptions;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.tapOptions = (input?.tapOptions as ServerTapOptions<"deno">);
+    this.tapOptions = input?.tapOptions;
   }
 
   listen(): void {
-    const { handler, ...rest } = this.tapOptions as Parameters<
-      typeof Deno.serve
-    >[0];
+    const { options } = this.tapOptions as DenoTapOptions;
+    const { handler, ...rest } = options as DenoTapOptions["options"];
+
     this.runtimeServer = Deno.serve({
       port: this.port,
       hostname: this.hostname,
@@ -47,7 +48,7 @@ export class ServerDeno implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
 
@@ -60,7 +61,7 @@ export class ServerDeno implements ServerInterface {
         const res = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          req as Request,
+          req as Request
         );
 
         return res.nativeResponse;

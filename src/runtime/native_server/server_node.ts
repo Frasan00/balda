@@ -10,6 +10,7 @@ import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
   HttpMethod,
+  NodeTapOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
@@ -22,21 +23,24 @@ export class ServerNode implements ServerInterface {
   url: string;
   routes: ServerRoute[];
   runtimeServer: HttpServer;
-  tapOptions?: ServerTapOptions<"node">;
+  tapOptions?: ServerTapOptions;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
-    this.tapOptions = (input?.tapOptions as ServerTapOptions<"node">);
+    this.tapOptions = input?.tapOptions;
+    const { options } = this.tapOptions as NodeTapOptions;
+
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
         httpResponse: ServerResponse
       ): Promise<void> => {
         // User input handler
-        await this.tapOptions?.(req);
+        await options?.(req);
+
         const requestUrl = `http://${req.headers.host}${req.url}`;
 
         const request = new Request(requestUrl, {

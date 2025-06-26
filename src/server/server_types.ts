@@ -5,6 +5,7 @@ import type { JsonOptions } from "../plugins/json/json_options";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
+  ServerRouteHandler,
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
@@ -34,7 +35,7 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error,
+  error: Error
 ) => void | Promise<void>;
 
 export interface ServerInterface {
@@ -58,18 +59,47 @@ export interface ServerInterface {
    * The host of the server
    */
   host: string;
-  // TODO add remaining methods
   /**
-   * Called before server is listening, this is used to tap into the server connector for the current runtime and modify it before it is used to listen for incoming requests
+   * Settings applied before server is listening, this is used to tap into the server connector for the current runtime and modify it before it is used to listen for incoming requests
+   * @warning Must be used before `listen` method
    */
-  tap?: <T extends RunTimeType>(
-    runtime?: T,
-    options?: ServerTapOptions<T>,
-  ) => RuntimeServerMap<T>;
+  tapOptions?: ServerTapOptions;
+
+  /**
+   * Adds a GET route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   */
+  get: (...args: any[]) => void;
+
+  /**
+   * Adds a POST route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   */
+  post: (...args: any[]) => void;
+
+  /**
+   * Adds a PUT route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   */
+  put: (...args: any[]) => void;
+
+  /**
+   * Adds a PATCH route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   */
+  patch: (...args: any[]) => void;
+
+  /**
+   * Adds a DELETE route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   */
+  delete: (...args: any[]) => void;
+
   /**
    * The server connector for the current runtime, this is used to listen for incoming requests
    */
   getRuntimeServer: <T extends RunTimeType>(runtime?: T) => RuntimeServerMap<T>;
+
+  /**
+   * Embeds a value into the server, this is used to embed values into the server for use in the server
+   */
+  embed: (key: string, value: any) => void;
+
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
    */

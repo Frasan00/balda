@@ -3,6 +3,7 @@ import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
+  BunTapOptions,
   HttpMethod,
   ServerConnectInput,
   ServerRoute,
@@ -15,7 +16,7 @@ export class ServerBun implements ServerInterface {
   hostname: string;
   host: string;
   routes: ServerRoute[];
-  tapOptions?: ServerTapOptions<"bun">;
+  tapOptions?: ServerTapOptions;
   declare url: string;
   declare runtimeServer: ReturnType<typeof Bun.serve>;
 
@@ -24,11 +25,13 @@ export class ServerBun implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.tapOptions = input?.tapOptions as ServerTapOptions<"bun">;
+    this.tapOptions = input?.tapOptions;
   }
 
   listen(): void {
-    const { fetch, ...rest } = this.tapOptions as Bun.ServeOptions;
+    const { options } = this.tapOptions as BunTapOptions;
+    const { fetch, ...rest } = options as BunTapOptions["options"];
+
     this.runtimeServer = Bun.serve({
       port: this.port,
       hostname: this.hostname,

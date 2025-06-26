@@ -79,7 +79,7 @@ declare module "./server/server" {
         Type.Object({
           name: Type.String(),
           age: Type.Number(),
-        }),
+        })
       );
 
       console.log(req.body);
@@ -101,7 +101,7 @@ declare module "./server/server" {
 
   server.listen(({ port, host, url, logger }) => {
     logger.info(
-      `Server is listening on ${url} on port ${port} on host ${host}`,
+      `Server is listening on ${url} on port ${port} on host ${host}`
     );
   });
 

@@ -32,18 +32,18 @@ export interface ServerConnectInput {
   /** The server routes with their corresponding handler */
   routes: ServerRoute[];
   /** The options for the server tap function */
-  tapOptions?: ServerTapOptions<RunTimeType>;
+  tapOptions?: ServerTapOptions;
 }
 
 export type ServerRouteMiddleware = (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => void | Promise<void>;
 
 export type ServerRouteHandler = (
   req: Request,
-  res: Response,
+  res: Response
 ) => void | Promise<void>;
 
 export interface ServerRoute {
@@ -72,10 +72,27 @@ export type ServerListenCallback = ({
 /**
  * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests
  */
-export type ServerTapOptions<T extends RunTimeType> = T extends "node"
+export type ServerTapOptionsBuilder<T extends RunTimeType> = T extends "node"
   ? (req: Omit<IncomingMessage, "url">) => Promise<void>
   : T extends "bun"
     ? Omit<Bun.ServeOptions, "port" | "hostname">
     : T extends "deno"
       ? Parameters<typeof Deno.serve>[0]
       : never;
+
+export type BunTapOptions = {
+  type: "bun";
+  options: ServerTapOptionsBuilder<"bun">;
+};
+
+export type NodeTapOptions = {
+  type: "node";
+  options: ServerTapOptionsBuilder<"node">;
+};
+
+export type DenoTapOptions = {
+  type: "deno";
+  options: ServerTapOptionsBuilder<"deno">;
+};
+
+export type ServerTapOptions = BunTapOptions | NodeTapOptions | DenoTapOptions;
