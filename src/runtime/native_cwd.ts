@@ -7,7 +7,7 @@ class NativeCwd {
     this.runtime = new RunTime();
   }
 
-  async getCwd(): Promise<string> {
+  getCwd(): string {
     switch (this.runtime.type) {
       case "node":
       case "bun":

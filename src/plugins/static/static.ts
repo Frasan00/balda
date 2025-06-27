@@ -33,7 +33,7 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
   try {
     const wildcardPath = req.params["*"] || "";
     const filePath = join(path, wildcardPath);
-    const resolvedPath = resolve(await nativeCwd.getCwd(), filePath);
+    const resolvedPath = resolve(nativeCwd.getCwd(), filePath);
 
     const stats = await nativeFs.stat(resolvedPath);
     if (!stats.isFile) {

@@ -70,6 +70,23 @@ class NativeFs {
         };
     }
   }
+
+  async unlink(path: string): Promise<void> {
+    switch (this.runtime.type) {
+      case "node":
+        const fs = await import("fs/promises");
+        await fs.unlink(path);
+        break;
+      case "bun":
+        await Bun.file(path).delete();
+        break;
+      case "deno":
+        await Deno.remove(path);
+        break;
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
 }
 
 export const nativeFs = new NativeFs();

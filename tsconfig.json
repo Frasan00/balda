@@ -10,7 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./lib",
-    "types": ["node", "deno", "bun-types"],
+    "types": ["node", "deno", "bun-types", "bun"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "baseUrl": ".",

@@ -10,11 +10,13 @@ import type {
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
+import { FilePluginOptions } from "src/plugins/file/file_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
   json?: JsonOptions;
   static?: string;
+  fileParser?: FilePluginOptions;
 };
 
 export interface ServerOptions {
@@ -22,7 +24,7 @@ export interface ServerOptions {
   port?: number;
   /** The hostname to listen on, defaults to 0.0.0.0 */
   host?: string;
-  /** Controller patterns to match, defaults to "**" which means all controllers defined in the root path will be matched */
+  /** Controller patterns to match, defaults to "**" which means all files defined in the current working directory will be matched, you can set logger level to debug to see the controllers that are being imported or on error to see the errors during the import process */
   controllerPatterns?: string[];
   /** Basic plugins to apply to the server, by default no plugins are applied */
   plugins?: ServerPlugin;
@@ -65,10 +67,16 @@ export interface ServerInterface {
    * @warning Must be used before `listen` method
    */
   tapOptions?: ServerTapOptions;
+
   /**
-   * The path to the temporary directory
+   * The path to the temporary directory, you can append a path to the temporary directory to get a new path.
+   * It uses the current working directory of the runtime to get the base path.
+   * @example
+   * ```ts
+   * server.tmpPath("my-app"); // -> ${cwd}/tmp/my-app
+   * ```
    */
-  tmpPath: string;
+  tmpDir: (append?: string) => string;
 
   /**
    * Adds a GET route to the server, useful for defining simple global routes, use decorators to define more complex routes

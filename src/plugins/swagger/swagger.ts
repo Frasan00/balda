@@ -2,12 +2,12 @@ import { TSchema } from "@sinclair/typebox/type";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
-} from "src/plugins/swagger/swagger_types";
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import type { NextFunction } from "src/server/http/next";
-import type { Request } from "src/server/http/request";
-import type { Response } from "src/server/http/response";
-import { router } from "src/server/router/router";
+} from "../../plugins/swagger/swagger_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
+import type { NextFunction } from "../../server/http/next";
+import type { Request } from "../../server/http/request";
+import type { Response } from "../../server/http/response";
+import { router } from "../../server/router/router";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json

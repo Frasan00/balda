@@ -24,8 +24,10 @@ import type {
   ServerPlugin,
 } from "./server_types";
 import { nativeCwd } from "../runtime/native_cwd";
-import { tmpdir } from "node:os";
-import { serveStatic } from "src/plugins/static/static";
+import { serveStatic } from "../plugins/static/static";
+import { fileParser } from "../plugins/file/file";
+import type { FilePluginOptions } from "../plugins/file/file_types";
+import { join, resolve } from "node:path";
 
 /**
  * The server class that is used to create and manage the server
@@ -35,7 +37,6 @@ export class Server implements ServerInterface {
   logger: Logger;
   tapOptions?: ServerTapOptions;
   runtime: RunTime;
-  readonly tmpPath: string = tmpdir();
 
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
@@ -97,7 +98,16 @@ export class Server implements ServerInterface {
     return this.serverConnector.host;
   }
 
-  get(path: string, handler: ServerRouteHandler, ): void;
+  tmpDir(append?: string): string {
+    const baseTmpDir = "tmp";
+    if (append) {
+      return join(baseTmpDir, append);
+    }
+
+    return join(nativeCwd.getCwd(), baseTmpDir);
+  }
+
+  get(path: string, handler: ServerRouteHandler): void;
   get(
     path: string,
     middlewares: ServerRouteMiddleware[],
@@ -268,7 +278,7 @@ export class Server implements ServerInterface {
   private async importControllers(): Promise<void> {
     const controllerPatterns = this.options.controllerPatterns;
     let controllerPaths = await glob(controllerPatterns.join(","), {
-      cwd: await nativeCwd.getCwd(),
+      cwd: nativeCwd.getCwd(),
     });
 
     controllerPaths = controllerPaths.filter(
@@ -280,6 +290,7 @@ export class Server implements ServerInterface {
 
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
+        this.logger.debug(`Importing controller ${controllerPath}`);
         await import(controllerPath).catch((err) => {
           this.logger.error(
             `Error importing controller ${controllerPath}: ${err}`
@@ -315,6 +326,9 @@ export class Server implements ServerInterface {
           break;
         case "static":
           this.use(serveStatic(pluginOptions as string));
+          break;
+        case "fileParser":
+          this.use(fileParser(pluginOptions as FilePluginOptions));
           break;
       }
     });

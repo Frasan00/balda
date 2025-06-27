@@ -1,4 +1,5 @@
 import { type Static, type TSchema, Type } from "@sinclair/typebox";
+import type { FormFile } from "src/plugins/file/file_types";
 import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
 
@@ -17,7 +18,7 @@ export class Request extends NativeRequest {
   static enrichRequest(request: Request): Request {
     request.validate = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -28,7 +29,7 @@ export class Request extends NativeRequest {
 
     request.validateQuery = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -39,7 +40,7 @@ export class Request extends NativeRequest {
 
     request.validateAll = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -51,12 +52,31 @@ export class Request extends NativeRequest {
           body: request.body,
           query: request.query,
         },
-        safe,
+        safe
       );
     };
 
+    request.file = (fieldName: string) => {
+      return request.files.find((file) => file.formName === fieldName) ?? null;
+    };
+
+    request.files = [];
+
     return request;
   }
+
+  /**
+   * The file of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
+   * @warning In case of multiple files, the first file will be attached to the request.
+   */
+  file: (fieldName: string) => FormFile | null = (fieldName: string) => {
+    return this.files.find((file) => file.formName === fieldName) ?? null;
+  };
+
+  /**
+   * The files of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
+   */
+  files: FormFile[] = [];
 
   /**
    * The parameters of the request.
@@ -85,7 +105,7 @@ export class Request extends NativeRequest {
    */
   validate<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -99,7 +119,7 @@ export class Request extends NativeRequest {
    */
   validateQuery<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -113,7 +133,7 @@ export class Request extends NativeRequest {
    */
   validateAll<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -125,7 +145,7 @@ export class Request extends NativeRequest {
         body: this.body,
         query: this.query,
       },
-      safe,
+      safe
     );
   }
 }
