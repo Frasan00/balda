@@ -2,7 +2,7 @@ import { type Static, type TSchema, Type } from "@sinclair/typebox";
 import type { FormFile } from "src/plugins/file/file_types";
 import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 export class Request extends NativeRequest {
   static fromRequest(request: Request | NativeRequest): Request {
