@@ -34,7 +34,7 @@ export class ServerNode implements ServerInterface {
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
-        httpResponse: ServerResponse,
+        httpResponse: ServerResponse
       ): Promise<void> => {
         // User input handler
         if (this.tapOptions) {
@@ -52,6 +52,13 @@ export class ServerNode implements ServerInterface {
           headers: req.headers as Record<string, string>,
         });
 
+        let forwardedFor = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwardedFor)) {
+          forwardedFor = forwardedFor[0];
+        }
+
+        request.ip = forwardedFor ?? req.socket.remoteAddress;
+
         const match = router.find(req.method as HttpMethod, req.url!);
         if (!match) {
           httpResponse.writeHead(routeNotFoundError.status, {
@@ -61,7 +68,7 @@ export class ServerNode implements ServerInterface {
           httpResponse.end(
             JSON.stringify({
               error: routeNotFoundError.error,
-            }),
+            })
           );
           return;
         }
@@ -73,17 +80,17 @@ export class ServerNode implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          request,
+          request
         );
 
         httpResponse.writeHead(
           response.nativeResponse.status,
-          Object.fromEntries(response.nativeResponse.headers.entries()),
+          Object.fromEntries(response.nativeResponse.headers.entries())
         );
 
         const body = await response.getBody();
         httpResponse.end(body);
-      },
+      }
     );
   }
 

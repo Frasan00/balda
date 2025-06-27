@@ -1,8 +1,8 @@
-import { Static, type TSchema } from "@sinclair/typebox";
+import { type Static, type TSchema } from "@sinclair/typebox";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 
-const ajv = addFormats(new Ajv({}), [
+const ajv = addFormats(new Ajv(), [
   "date-time",
   "time",
   "date",

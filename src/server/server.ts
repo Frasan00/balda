@@ -32,7 +32,7 @@ import type { HelmetOptions } from "../plugins/helmet/helmet_types";
 import { swagger } from "../plugins/swagger/swagger";
 import { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import { cookie } from "src/plugins/cookie/cookie";
-import { nativeGlob } from "src/runtime/native_glob";
+import { glob } from "glob";
 
 /**
  * The server class that is used to create and manage the server
@@ -287,7 +287,9 @@ export class Server implements ServerInterface {
     const controllerPatterns = this.options.controllerPatterns;
     let controllerPaths = await Promise.all(
       controllerPatterns.map(async (pattern) => {
-        return nativeGlob.glob(pattern);
+        return glob(pattern, {
+          cwd: nativeCwd.getCwd(),
+        });
       }),
     ).then((paths) => paths.flat());
 

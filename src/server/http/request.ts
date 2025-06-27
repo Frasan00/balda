@@ -91,6 +91,12 @@ export class Request extends NativeRequest {
   };
 
   /**
+   * The ip address of the request.
+   * Tries to get the ip address from the `x-forwarded-for` header. If not available, it will use the remote address from the request.
+   */
+  ip?: string;
+
+  /**
    * The files of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
    */
   files: FormFile[] = [];

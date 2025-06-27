@@ -10,6 +10,7 @@ const server = new Server({
 });
 
 server.get("/hello-world", (_req, res) => {
+  console.log(_req.ip);
   res.text("Hello, world!");
 });
 

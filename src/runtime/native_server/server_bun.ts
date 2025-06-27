@@ -50,12 +50,15 @@ export class ServerBun implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
 
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
+        (req as any).ip =
+          req.headers.get("x-forwarded-for")?.split(",")[0] ??
+          server.requestIP(req)?.address;
 
         // User input handler
         await fetch?.call(this, req, server);
@@ -63,7 +66,7 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          req as Request,
+          req as Request
         );
 
         return response.nativeResponse;
