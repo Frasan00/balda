@@ -1,10 +1,10 @@
 import type { Server as HttpServer, IncomingMessage } from "http";
-import type { Logger } from "pino";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
 import type { swagger as SwaggerPlugin } from "../../plugins/swagger/swagger";
+import type { createLogger } from "../../logger/logger";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -62,7 +62,7 @@ export type ServerListenCallback = ({
   port: number;
   host: string;
   url: string;
-  logger: Logger;
+  logger: ReturnType<typeof createLogger>;
   swagger: typeof SwaggerPlugin;
 }) => void;
 

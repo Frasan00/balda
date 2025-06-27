@@ -1,4 +1,3 @@
-import type { Logger } from "pino";
 import type { createLogger } from "../logger/logger";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
@@ -13,6 +12,7 @@ import type { Response } from "./http/response";
 import { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import type { LogOptions } from "src/plugins/log/log_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -21,6 +21,7 @@ export type ServerPlugin = {
   fileParser?: FilePluginOptions;
   helmet?: HelmetOptions;
   cookie?: CookieMiddlewareOptions;
+  log?: LogOptions;
 };
 
 export interface ServerOptions {
@@ -53,7 +54,7 @@ export interface ServerInterface {
   /**
    * The logger for the server
    */
-  logger: Logger;
+  logger: ReturnType<typeof createLogger>;
   /**
    * The url of the server
    */

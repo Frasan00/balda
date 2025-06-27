@@ -4,6 +4,7 @@ import {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
+import { Readable } from "node:stream";
 import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
@@ -42,23 +43,6 @@ export class ServerNode implements ServerInterface {
           await options?.(req);
         }
 
-        const requestUrl = `http://${req.headers.host}${req.url}`;
-
-        const request = new Request(requestUrl, {
-          method: req.method,
-          body: canHaveBody(req.method)
-            ? await this.readRequestBody(req)
-            : undefined,
-          headers: req.headers as Record<string, string>,
-        });
-
-        let forwardedFor = req.headers["x-forwarded-for"];
-        if (Array.isArray(forwardedFor)) {
-          forwardedFor = forwardedFor[0];
-        }
-
-        request.ip = forwardedFor ?? req.socket.remoteAddress;
-
         const match = router.find(req.method as HttpMethod, req.url!);
         if (!match) {
           httpResponse.writeHead(routeNotFoundError.status, {
@@ -73,6 +57,21 @@ export class ServerNode implements ServerInterface {
           return;
         }
 
+        const requestUrl = `http://${req.headers.host}${req.url}`;
+        const request = new Request(requestUrl, {
+          method: req.method,
+          body: canHaveBody(req.method)
+            ? await this.readRequestBody(req)
+            : undefined,
+          headers: req.headers as Record<string, string>,
+        });
+
+        let forwardedFor = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwardedFor)) {
+          forwardedFor = forwardedFor[0];
+        }
+
+        request.ip = forwardedFor ?? req.socket.remoteAddress;
         const url = new URL(requestUrl);
         request.query = Object.fromEntries(url.searchParams.entries());
         request.params = match.params;
@@ -84,12 +83,16 @@ export class ServerNode implements ServerInterface {
         );
 
         httpResponse.writeHead(
-          response.nativeResponse.status,
-          Object.fromEntries(response.nativeResponse.headers.entries())
+          response.responseStatus,
+          response.responseHeaders
         );
 
         const body = await response.getBody();
-        httpResponse.end(body);
+        if (body instanceof Readable) {
+          body.pipe(httpResponse);
+        } else {
+          httpResponse.end(body);
+        }
       }
     );
   }
@@ -112,17 +115,13 @@ export class ServerNode implements ServerInterface {
 
   private async readRequestBody(req: IncomingMessage): Promise<string> {
     return new Promise((resolve, reject) => {
-      let body = "";
+      const chunks: Buffer[] = [];
       req.on("data", (chunk) => {
-        body += chunk;
+        chunks.push(Buffer.from(chunk));
       });
-
-      req.on("error", (err) => {
-        reject(err);
-      });
-
+      req.on("error", reject);
       req.on("end", () => {
-        resolve(body);
+        resolve(Buffer.concat(chunks).toString());
       });
     });
   }

@@ -36,8 +36,6 @@ export class ServerDeno implements ServerInterface {
       port: this.port,
       hostname: this.hostname,
       handler: async (req, info) => {
-        Request.enrichRequest(req as Request);
-
         const url = new URL(req.url);
         const match = router.find(req.method as HttpMethod, url.pathname);
         if (!match) {
@@ -52,6 +50,7 @@ export class ServerDeno implements ServerInterface {
           );
         }
 
+        Request.enrichRequest(req as Request);
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
         (req as any).ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? info.remoteAddr?.hostname;

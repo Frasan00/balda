@@ -81,9 +81,6 @@ export class Response {
   status(status: number): this;
   status(status: ResponseStatus | number): this {
     this.responseStatus = status as ResponseStatus;
-    this.nativeResponse = new NativeResponse(this.body, {
-      status: this.responseStatus,
-    });
     return this;
   }
 

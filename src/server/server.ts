@@ -1,10 +1,22 @@
-import { type Logger } from "pino";
+import { glob } from "glob";
+import { join } from "node:path";
+import { cookie } from "src/plugins/cookie/cookie";
+import { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import { log } from "src/plugins/log/log";
+import { LogOptions } from "src/plugins/log/log_types";
 import { createLogger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
 import type { CorsOptions } from "../plugins/cors/cors_types";
+import { fileParser } from "../plugins/file/file";
+import type { FilePluginOptions } from "../plugins/file/file_types";
+import { helmet } from "../plugins/helmet/helmet";
+import type { HelmetOptions } from "../plugins/helmet/helmet_types";
 import { json } from "../plugins/json/json";
 import type { JsonOptions } from "../plugins/json/json_options";
+import { serveStatic } from "../plugins/static/static";
+import { swagger } from "../plugins/swagger/swagger";
+import { nativeCwd } from "../runtime/native_cwd";
 import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
@@ -22,24 +34,13 @@ import type {
   ServerOptions,
   ServerPlugin,
 } from "./server_types";
-import { nativeCwd } from "../runtime/native_cwd";
-import { serveStatic } from "../plugins/static/static";
-import { fileParser } from "../plugins/file/file";
-import type { FilePluginOptions } from "../plugins/file/file_types";
-import { join } from "node:path";
-import { helmet } from "../plugins/helmet/helmet";
-import type { HelmetOptions } from "../plugins/helmet/helmet_types";
-import { swagger } from "../plugins/swagger/swagger";
-import { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
-import { cookie } from "src/plugins/cookie/cookie";
-import { glob } from "glob";
 
 /**
  * The server class that is used to create and manage the server
  */
 export class Server implements ServerInterface {
   isListening: boolean;
-  logger: Logger;
+  logger: ReturnType<typeof createLogger>;
   tapOptions?: ServerTapOptions;
   runtime: RunTime;
 
@@ -113,14 +114,11 @@ export class Server implements ServerInterface {
   }
 
   get(path: string, handler: ServerRouteHandler): void;
+  get(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
+  get(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
   get(
     path: string,
-    middlewares: ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
-  ): void;
-  get(
-    path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
@@ -133,14 +131,11 @@ export class Server implements ServerInterface {
   }
 
   post(path: string, handler: ServerRouteHandler): void;
+  post(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
+  post(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
   post(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
-  ): void;
-  post(
-    path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
@@ -153,9 +148,11 @@ export class Server implements ServerInterface {
   }
 
   patch(path: string, handler: ServerRouteHandler): void;
+  patch(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
+  patch(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
   patch(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
@@ -168,14 +165,11 @@ export class Server implements ServerInterface {
   }
 
   put(path: string, handler: ServerRouteHandler): void;
+  put(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
+  put(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
   put(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
-  ): void;
-  put(
-    path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
@@ -188,14 +182,11 @@ export class Server implements ServerInterface {
   }
 
   delete(path: string, handler: ServerRouteHandler): void;
+  delete(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
+  delete(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
   delete(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
-  ): void;
-  delete(
-    path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler } =
@@ -211,7 +202,7 @@ export class Server implements ServerInterface {
     // TODO: BaldaError implementation
     if (this.runtime.type !== "node") {
       throw new Error(
-        "Server is not using node runtime, you can't call `.getNodeServer()`",
+        "Server is not using node runtime, you can't call `.getNodeServer()`"
       );
     }
 
@@ -221,13 +212,13 @@ export class Server implements ServerInterface {
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
-        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`,
+        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`
       );
     }
 
     if (PROTECTED_KEYS.includes(key)) {
       throw new Error(
-        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`,
+        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`
       );
     }
 
@@ -256,7 +247,7 @@ export class Server implements ServerInterface {
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {
       throw new Error(
-        "Server is already listening, you can't call `.listen()` multiple times",
+        "Server is already listening, you can't call `.listen()` multiple times"
       );
     }
 
@@ -290,15 +281,15 @@ export class Server implements ServerInterface {
         return glob(pattern, {
           cwd: nativeCwd.getCwd(),
         });
-      }),
+      })
     ).then((paths) => paths.flat());
 
     controllerPaths = controllerPaths.flat();
     controllerPaths = controllerPaths.filter(
       (path) =>
         !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
-          path.includes(blacklistedPath),
-        ),
+          path.includes(blacklistedPath)
+        )
     );
 
     await Promise.all(
@@ -306,26 +297,32 @@ export class Server implements ServerInterface {
         this.logger.debug(`Importing controller ${controllerPath}`);
         await import(controllerPath).catch((err) => {
           this.logger.error(
-            `Error importing controller ${controllerPath}: ${err}`,
+            `Error importing controller ${controllerPath}: ${err}`
           );
         });
-      }),
+      })
     );
   }
 
   private extractMiddlewaresAndHandlerFromRouteRegistration(
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteHandler,
+    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): { middlewares: ServerRouteMiddleware[]; handler: ServerRouteHandler } {
-    const middlewares =
-      typeof middlewaresOrHandler === "function" ? [] : middlewaresOrHandler;
-
-    const handler =
-      typeof middlewaresOrHandler === "function"
-        ? middlewaresOrHandler
-        : maybeHandler!;
-
-    return { middlewares, handler };
+    if (typeof middlewaresOrHandler === "function") {
+      if (maybeHandler) {
+        // Single middleware
+        return { middlewares: [middlewaresOrHandler as ServerRouteMiddleware], handler: maybeHandler };
+      } else {
+        // Handler only
+        return { middlewares: [], handler: middlewaresOrHandler as ServerRouteHandler };
+      }
+    }
+    // Array of middlewares
+    if (Array.isArray(middlewaresOrHandler)) {
+      return { middlewares: middlewaresOrHandler, handler: maybeHandler! };
+    }
+    // Fallback (should not occur)
+    return { middlewares: [], handler: middlewaresOrHandler as ServerRouteHandler };
   }
 
   private applyPlugins(plugins: ServerPlugin): void {
@@ -348,6 +345,9 @@ export class Server implements ServerInterface {
           break;
         case "cookie":
           this.use(cookie(pluginOptions as CookieMiddlewareOptions));
+          break;
+        case "log":
+          this.use(log(pluginOptions as LogOptions));
           break;
         default:
           this.logger.warn(`Unknown plugin ${pluginName}`);
