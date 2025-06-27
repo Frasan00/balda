@@ -63,6 +63,8 @@ export class ServerConnector {
     }
 
     // TODO: BaldaError implementation
-    throw new Error("No server implementation found for runtime: " + serverOptions?.runtime);
+    throw new Error(
+      "No server implementation found for runtime: " + serverOptions?.runtime,
+    );
   }
 }

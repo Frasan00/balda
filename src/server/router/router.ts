@@ -24,6 +24,9 @@ class Node {
   }
 }
 
+/**
+ * Singleton that handles the routing of requests to the appropriate handler(s).
+ */
 export class Router {
   private trees: Map<string, Node>;
   private routes: Route[];

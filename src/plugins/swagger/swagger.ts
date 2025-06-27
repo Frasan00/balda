@@ -25,7 +25,7 @@ import { router } from "../../server/router/router";
  * ```
  */
 export const swagger = (
-  globalOptions?: SwaggerGlobalOptions
+  globalOptions?: SwaggerGlobalOptions,
 ): ServerRouteMiddleware => {
   globalOptions = {
     path: "/docs",
@@ -83,7 +83,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         swaggerOptions.query.properties
       ) {
         for (const [name, schema] of Object.entries(
-          swaggerOptions.query.properties
+          swaggerOptions.query.properties,
         )) {
           parameters.push({
             name,
@@ -98,7 +98,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
     if (swaggerOptions && (swaggerOptions as any).params) {
       parameters = parameters.concat(
-        extractPathParams(route.path, (swaggerOptions as any).params)
+        extractPathParams(route.path, (swaggerOptions as any).params),
       );
     } else {
       parameters = parameters.concat(extractPathParams(route.path));
@@ -123,7 +123,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     operation.responses = {};
     if (swaggerOptions?.responses) {
       for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.responses
+        swaggerOptions.responses,
       )) {
         operation.responses[statusCode] = {
           description: `Response for ${statusCode}`,
@@ -137,7 +137,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
     if (swaggerOptions?.errors) {
       for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.errors
+        swaggerOptions.errors,
       )) {
         operation.responses[statusCode] = {
           description: `Error response for ${statusCode}`,
@@ -211,7 +211,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
 
 function generateSwaggerUI(
   specUrl: string,
-  globalOptions: SwaggerGlobalOptions
+  globalOptions: SwaggerGlobalOptions,
 ) {
   return `
 <!DOCTYPE html>
@@ -254,7 +254,7 @@ function generateSwaggerUI(
  * This is a shallow conversion, as TypeBox is already mostly JSON Schema compatible
  */
 function typeboxToOpenAPI(
-  schema: TSchema
+  schema: TSchema,
 ): Omit<TSchema, "$id" | "$schema"> | undefined {
   if (!schema) {
     return undefined;

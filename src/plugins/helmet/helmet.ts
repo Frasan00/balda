@@ -39,12 +39,19 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     }
     // Strict-Transport-Security
     if (opts.hsts) {
-      let hstsRaw: Partial<{ maxAge: number; includeSubDomains: boolean; preload: boolean }> = {};
+      let hstsRaw: Partial<{
+        maxAge: number;
+        includeSubDomains: boolean;
+        preload: boolean;
+      }> = {};
       if (typeof opts.hsts === "object") {
         hstsRaw = opts.hsts;
       }
       const maxAge = hstsRaw.maxAge !== undefined ? hstsRaw.maxAge : 15552000;
-      const includeSubDomains = hstsRaw.includeSubDomains !== undefined ? hstsRaw.includeSubDomains : true;
+      const includeSubDomains =
+        hstsRaw.includeSubDomains !== undefined
+          ? hstsRaw.includeSubDomains
+          : true;
       const preload = hstsRaw.preload !== undefined ? hstsRaw.preload : false;
       let hstsValue = `max-age=${maxAge}`;
       if (includeSubDomains !== false) {
@@ -73,7 +80,10 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     }
     // Cross-Origin-Resource-Policy
     if (opts.crossOriginResourcePolicy) {
-      res.setHeader("Cross-Origin-Resource-Policy", opts.crossOriginResourcePolicy);
+      res.setHeader(
+        "Cross-Origin-Resource-Policy",
+        opts.crossOriginResourcePolicy,
+      );
     }
     // Cross-Origin-Opener-Policy
     if (opts.crossOriginOpenerPolicy) {
@@ -81,7 +91,10 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     }
     // Cross-Origin-Embedder-Policy
     if (opts.crossOriginEmbedderPolicy) {
-      res.setHeader("Cross-Origin-Embedder-Policy", opts.crossOriginEmbedderPolicy);
+      res.setHeader(
+        "Cross-Origin-Embedder-Policy",
+        opts.crossOriginEmbedderPolicy,
+      );
     }
     // Content-Security-Policy
     if (opts.contentSecurityPolicy) {

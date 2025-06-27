@@ -29,7 +29,9 @@ export class ServerBun implements ServerInterface {
   }
 
   listen(): void {
-    const tapOptions = this.tapOptions?.options as BunTapOptions["options"] | undefined;
+    const tapOptions = this.tapOptions?.options as
+      | BunTapOptions["options"]
+      | undefined;
     const { fetch, ...rest } = tapOptions ?? {};
 
     this.runtimeServer = Bun.serve({
@@ -48,7 +50,7 @@ export class ServerBun implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
         }
 
@@ -61,12 +63,12 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          req as Request
+          req as Request,
         );
 
         return response.nativeResponse;
       },
-      ...rest as any,
+      ...(rest as any),
     });
     this.url = this.runtimeServer.url.toString();
   }

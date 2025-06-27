@@ -19,6 +19,6 @@
       "test/*": ["test/*"]
     }
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "test/**/*", "trash/commands", "trash/cli.ts"],
   "exclude": ["node_modules", "lib"]
 }

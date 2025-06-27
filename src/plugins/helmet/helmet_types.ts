@@ -4,7 +4,9 @@
 export interface HelmetOptions {
   dnsPrefetchControl?: boolean;
   frameguard?: boolean | { action: "DENY" | "SAMEORIGIN" | string };
-  hsts?: boolean | { maxAge?: number; includeSubDomains?: boolean; preload?: boolean };
+  hsts?:
+    | boolean
+    | { maxAge?: number; includeSubDomains?: boolean; preload?: boolean };
   contentTypeOptions?: boolean;
   ieNoOpen?: boolean;
   xssFilter?: boolean;

@@ -29,7 +29,7 @@ export type CookieOptions = {
   /**
    * SameSite attribute for the cookie
    */
-  sameSite?: 'Strict' | 'Lax' | 'None';
+  sameSite?: "Strict" | "Lax" | "None";
   /**
    * Whether the cookie should be signed
    */
@@ -37,7 +37,7 @@ export type CookieOptions = {
   /**
    * Priority for the cookie
    */
-  priority?: 'Low' | 'Medium' | 'High';
+  priority?: "Low" | "Medium" | "High";
 };
 
 /**

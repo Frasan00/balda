@@ -9,7 +9,7 @@ import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types";
  * @param options Cookie middleware options
  */
 export const cookie = (
-  options?: CookieMiddlewareOptions
+  options?: CookieMiddlewareOptions,
 ): ServerRouteMiddleware => {
   const opts: Required<CookieMiddlewareOptions> = {
     secret: options?.secret ?? "",
@@ -46,7 +46,7 @@ export const cookie = (
     res.cookie = (
       name: string,
       value: string,
-      cookieOptions?: CookieOptions
+      cookieOptions?: CookieOptions,
     ) => {
       setCookie(res, name, value, { ...opts.defaults, ...cookieOptions }, opts);
     };
@@ -87,7 +87,7 @@ function setCookie(
   name: string,
   value: string,
   options: CookieOptions,
-  middlewareOptions: Required<CookieMiddlewareOptions>
+  middlewareOptions: Required<CookieMiddlewareOptions>,
 ): void {
   let cookieValue = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
 
@@ -150,7 +150,7 @@ function setCookie(
 function clearCookie(
   res: Response,
   name: string,
-  options: CookieOptions
+  options: CookieOptions,
 ): void {
   const clearOptions: CookieOptions = {
     ...options,

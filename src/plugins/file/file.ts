@@ -19,7 +19,7 @@ import type { Response } from "../../server/http/response";
  *  - Can be used both as a global middleware to check all incoming requests for files and as a route middleware to check only the files for a specific route
  */
 export const fileParser = (
-  options?: FilePluginOptions
+  options?: FilePluginOptions,
 ): ServerRouteMiddleware => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const tmpPaths: string[] = [];
@@ -50,7 +50,7 @@ export const fileParser = (
       const indexOfSub = (
         haystack: Uint8Array,
         needle: Uint8Array,
-        from: number = 0
+        from: number = 0,
       ): number => {
         outer: for (let i = from; i <= haystack.length - needle.length; i++) {
           for (let j = 0; j < needle.length; j++) {

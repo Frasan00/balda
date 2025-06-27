@@ -2,7 +2,7 @@ import { swagger } from "../src/plugins/swagger/swagger";
 import { Server } from "../src/server/server";
 
 const server = new Server({
-  controllerPatterns: ["./test/controllers/*.{ts,js}"],
+  controllerPatterns: ["./test/controllers/**/*.{ts,js}"],
   logger: {
     level: "debug",
   },

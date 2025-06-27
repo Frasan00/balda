@@ -71,21 +71,26 @@ export type SwaggerRouteOptions = {
   deprecated?: boolean;
 };
 
-export type Security = 'apiKey' | 'none' | 'bearer' | 'oauth2' | 'openIdConnect'
+export type Security =
+  | "apiKey"
+  | "none"
+  | "bearer"
+  | "oauth2"
+  | "openIdConnect";
 
 export type OAuth2Flows = {
   implicit?: OAuth2Flow;
   authorizationCode?: OAuth2Flow;
   clientCredentials?: OAuth2Flow;
   password?: OAuth2Flow;
-}
+};
 
 export type OAuth2Flow = {
   authorizationUrl?: string;
   tokenUrl?: string;
   refreshUrl?: string;
   scopes: Record<string, string>;
-}
+};
 
 export type OpenIDConnectConfig = {
   issuer: string;
@@ -104,7 +109,7 @@ export type OpenIDConnectConfig = {
   idTokenSigningAlgValuesSupported?: string[];
   claimsSupported?: string[];
   codeChallengeMethodsSupported?: string[];
-}
+};
 
 export type SecurityScheme = {
   type: "apiKey" | "http" | "oauth2" | "openIdConnect" | "mutualTLS";
@@ -115,4 +120,4 @@ export type SecurityScheme = {
   bearerFormat?: string;
   flows?: OAuth2Flows;
   openIdConnectUrl?: string;
-}
+};

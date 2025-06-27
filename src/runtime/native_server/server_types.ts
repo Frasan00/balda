@@ -33,12 +33,12 @@ export interface ServerConnectInput {
 export type ServerRouteMiddleware = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => void | Promise<void>;
 
 export type ServerRouteHandler = (
   req: Request,
-  res: Response
+  res: Response,
 ) => void | Promise<void>;
 
 export interface ServerRoute {
