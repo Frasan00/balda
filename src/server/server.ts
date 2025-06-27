@@ -30,6 +30,7 @@ import type { FilePluginOptions } from "../plugins/file/file_types";
 import { join } from "node:path";
 import { helmet } from "../plugins/helmet/helmet";
 import type { HelmetOptions } from "../plugins/helmet/helmet_types";
+import { swagger } from "../plugins/swagger/swagger";
 
 /**
  * The server class that is used to create and manage the server
@@ -265,11 +266,13 @@ export class Server implements ServerInterface {
 
         this.serverConnector.listen();
         this.isListening = true;
+
         cb?.({
           port: this.port,
           host: this.host,
           url: this.url,
           logger: this.logger,
+          swagger: swagger,
         });
       });
   }

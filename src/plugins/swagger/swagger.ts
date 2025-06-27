@@ -15,10 +15,10 @@ import { router } from "../../server/router/router";
  * @warning The json specification is always available at /${globalOptions.path}/json
  * @example
  * ```ts
- * import { Server, swagger } from "balda";
+ * import { Server } from "balda";
  *
  * const server = new Server();
- * server.listen(({ port, host, url, logger }) => {
+ * server.listen(({ url, logger, swagger }) => {
  *   server.use(swagger()); // Always call this in the listen callback to ensure the routes defined with decorators are added to the router
  *   logger.info(`Server is listening on ${url}`);
  * });

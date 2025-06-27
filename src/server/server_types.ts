@@ -144,6 +144,7 @@ export interface ServerInterface {
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
+   * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
    */
   listen: (cb?: ServerListenCallback) => void;
   /**
