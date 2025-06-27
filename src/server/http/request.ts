@@ -111,6 +111,11 @@ export class Request extends NativeRequest {
   declare rawBody?: ArrayBuffer;
 
   /**
+   * The id of the request.
+   */
+  id: string = this.generateRequestId();
+
+  /**
    * The parsed body of the request.
    */
   override body: any;
@@ -164,5 +169,9 @@ export class Request extends NativeRequest {
       },
       safe
     );
+  }
+
+  private generateRequestId() {
+    return Math.random().toString(36).substring(2, 36);
   }
 }
