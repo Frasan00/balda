@@ -16,6 +16,7 @@ import type { Response } from "../../server/http/response";
  *  - Validates each file against the given `FilePluginOptions` (currently only size limit).
  *  - Stores every uploaded file in a runtime-agnostic temporary directory and exposes them via `req.files` & `req.file`.
  *  - Cleans the temporary files both after successful handler execution and when an unhandled error bubbles up.
+ *  - Can be used both as a global middleware to check all incoming requests for files and as a route middleware to check only the files for a specific route
  */
 export const fileParser = (
   options?: FilePluginOptions

@@ -250,26 +250,28 @@ export class Server implements ServerInterface {
     });
   }
 
-  async listen(cb?: ServerListenCallback): Promise<void> {
+  listen(cb?: ServerListenCallback): void {
     if (this.isListening) {
       throw new Error(
         "Server is already listening, you can't call `.listen()` multiple times"
       );
     }
 
-    await this.importControllers();
-    if (this.globalMiddlewares.length > 0) {
-      router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
-    }
+    this.importControllers()
+      .then(() => {
+        if (this.globalMiddlewares.length) {
+          router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
+        }
 
-    this.serverConnector.listen();
-    this.isListening = true;
-    cb?.({
-      port: this.port,
-      host: this.host,
-      url: this.url,
-      logger: this.logger,
-    });
+        this.serverConnector.listen();
+        this.isListening = true;
+        cb?.({
+          port: this.port,
+          host: this.host,
+          url: this.url,
+          logger: this.logger,
+        });
+      });
   }
 
   async close(): Promise<void> {

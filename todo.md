@@ -4,5 +4,6 @@ Features to implement
 - validation ajv + type box - to do better
 - documentation - fix security not showing up
 - base middlewares (file, helmet) - to test better
+- file type in typebox and ajv
 - named middlewares ?
 

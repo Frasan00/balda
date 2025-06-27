@@ -67,7 +67,6 @@ export class Request extends NativeRequest {
 
   /**
    * The file of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
-   * @warning In case of multiple files, the first file will be attached to the request.
    */
   file: (fieldName: string) => FormFile | null = (fieldName: string) => {
     return this.files.find((file) => file.formName === fieldName) ?? null;

@@ -145,7 +145,7 @@ export interface ServerInterface {
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    */
-  listen: (cb?: ServerListenCallback) => Promise<void>;
+  listen: (cb?: ServerListenCallback) => void;
   /**
    * Closes the server and frees the port
    */

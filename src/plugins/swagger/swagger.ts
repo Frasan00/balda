@@ -11,8 +11,18 @@ import { router } from "../../server/router/router";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json
+ * @warning SHOULD be called in the listen callback of the `server.listen` method or it will not work since routes from controller based routes are not added to the router until the listen method is called
  * @warning The json specification is always available at /${globalOptions.path}/json
- * @warning MUST be called after the listen method of the server or it will not work since routes from controller based routes are not added to the router until the listen method is called
+ * @example
+ * ```ts
+ * import { Server, swagger } from "balda";
+ *
+ * const server = new Server();
+ * server.listen(({ port, host, url, logger }) => {
+ *   server.use(swagger()); // Always call this in the listen callback to ensure the routes defined with decorators are added to the router
+ *   logger.info(`Server is listening on ${url}`);
+ * });
+ * ```
  */
 export const swagger = (
   globalOptions?: SwaggerGlobalOptions
