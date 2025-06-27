@@ -27,7 +27,9 @@ import { nativeCwd } from "../runtime/native_cwd";
 import { serveStatic } from "../plugins/static/static";
 import { fileParser } from "../plugins/file/file";
 import type { FilePluginOptions } from "../plugins/file/file_types";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { helmet } from "../plugins/helmet/helmet";
+import type { HelmetOptions } from "../plugins/helmet/helmet_types";
 
 /**
  * The server class that is used to create and manage the server
@@ -329,6 +331,12 @@ export class Server implements ServerInterface {
           break;
         case "fileParser":
           this.use(fileParser(pluginOptions as FilePluginOptions));
+          break;
+        case "helmet":
+          this.use(helmet(pluginOptions as HelmetOptions));
+          break;
+        default:
+          this.logger.warn(`Unknown plugin ${pluginName}`);
           break;
       }
     });

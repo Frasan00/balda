@@ -5,7 +5,7 @@ import { Server } from "../src/server/server";
   const server = new Server({
     controllerPatterns: ["./test/controllers/*.{ts,js}"],
     logger: {
-      level: 'debug',
+      level: "debug",
     },
   });
 

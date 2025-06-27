@@ -11,12 +11,14 @@ import type {
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
 import { FilePluginOptions } from "src/plugins/file/file_types";
+import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
   json?: JsonOptions;
   static?: string;
   fileParser?: FilePluginOptions;
+  helmet?: HelmetOptions;
 };
 
 export interface ServerOptions {

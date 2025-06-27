@@ -4,7 +4,7 @@
     "emitDecoratorMetadata": true
   },
   "tasks": {
-    "dev": "deno run --watch --unstable-sloppy-imports --allow-all test/index.ts",
-    "test": "deno run --unstable-sloppy-imports --allow-all test/index.ts"
+    "dev": "deno run --watch --unstable-sloppy-imports --allow-all --import-map import_map.json test/index.ts",
+    "test": "deno run --unstable-sloppy-imports --allow-all --import-map import_map.json test/index.ts"
   }
 }
