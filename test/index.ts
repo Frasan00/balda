@@ -6,6 +6,7 @@ const server = new Server({
   logger: {
     level: "debug",
   },
+  plugins: {},
 });
 
 server.get("/hello-world", (_req, res) => {

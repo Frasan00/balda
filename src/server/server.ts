@@ -31,6 +31,8 @@ import { join } from "node:path";
 import { helmet } from "../plugins/helmet/helmet";
 import type { HelmetOptions } from "../plugins/helmet/helmet_types";
 import { swagger } from "../plugins/swagger/swagger";
+import { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import { cookie } from "src/plugins/cookie/cookie";
 
 /**
  * The server class that is used to create and manage the server
@@ -339,6 +341,9 @@ export class Server implements ServerInterface {
           break;
         case "helmet":
           this.use(helmet(pluginOptions as HelmetOptions));
+          break;
+        case "cookie":
+          this.use(cookie(pluginOptions as CookieMiddlewareOptions));
           break;
         default:
           this.logger.warn(`Unknown plugin ${pluginName}`);

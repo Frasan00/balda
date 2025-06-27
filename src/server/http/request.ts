@@ -60,6 +60,12 @@ export class Request extends NativeRequest {
       return request.files.find((file) => file.formName === fieldName) ?? null;
     };
 
+    request.cookies = {};
+
+    request.cookie = (name: string) => {
+      return request.cookies[name];
+    };
+
     request.files = [];
 
     return request;
@@ -70,6 +76,18 @@ export class Request extends NativeRequest {
    */
   file: (fieldName: string) => FormFile | null = (fieldName: string) => {
     return this.files.find((file) => file.formName === fieldName) ?? null;
+  };
+
+  /**
+   * The cookies of the request. Only available if the cookie middleware is used.
+   */
+  cookies: Record<string, string> = {};
+
+  /**
+   * The cookie of the request. Only available if the cookie middleware is used.
+   */
+  cookie: (name: string) => string | undefined = (name: string) => {
+    return this.cookies[name];
   };
 
   /**

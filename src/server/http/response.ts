@@ -1,3 +1,4 @@
+import { CookieOptions } from "src/plugins/cookie/cookie_types";
 import { NativeResponse } from "../../runtime/native_response";
 
 export type ResponseStatus =
@@ -99,7 +100,11 @@ export class Response {
       return this.text(body);
     }
 
-    if (typeof body === "number" || typeof body === "boolean" || typeof body === "bigint") {
+    if (
+      typeof body === "number" ||
+      typeof body === "boolean" ||
+      typeof body === "bigint"
+    ) {
       return this.text(String(body));
     }
 
@@ -420,6 +425,16 @@ export class Response {
   httpVersionNotSupported(body: any): void {
     this.status(505).send(body);
   }
+
+  /**
+   * Set a cookie for the response, does nothing if the cookie middleware is not registered
+   */
+  cookie(_name: string, _value: string, _options?: CookieOptions): void {}
+
+  /**
+   * Clear a cookie for the response, does nothing if the cookie middleware is not registered
+   */
+  clearCookie(_name: string, _options?: CookieOptions): void {}
 
   /**
    * Get the body of the response

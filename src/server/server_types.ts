@@ -12,6 +12,7 @@ import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
 import { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
+import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -19,6 +20,7 @@ export type ServerPlugin = {
   static?: string;
   fileParser?: FilePluginOptions;
   helmet?: HelmetOptions;
+  cookie?: CookieMiddlewareOptions;
 };
 
 export interface ServerOptions {
