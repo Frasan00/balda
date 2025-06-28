@@ -6,6 +6,7 @@ export * from "./decorators/handlers/patch";
 export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
+export * from "./decorators/validation/validate";
 
 // Server
 export * from "./server/http/next";
