@@ -13,6 +13,7 @@ import { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import type { LogOptions } from "src/plugins/log/log_types";
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -43,7 +44,7 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error,
+  error: Error
 ) => void | Promise<void>;
 
 export interface ServerInterface {
@@ -115,14 +116,13 @@ export interface ServerInterface {
   getNodeServer: () => RuntimeServerMap<"node">;
 
   /**
-   * Embed the given key into the server instance, this is useful for embedding the server with custom properties, you can extend the server with your own properties to type it
+   * Embed the given key into the server instance, this is useful for embedding the server with custom context inside the server instance, you can extend the server with your own properties to type it
    * @param key - The key to embed
    * @param value - The value to embed
-   * @warning This method is not type safe, so you need to be careful when using it, already defined properties will be overridden
    * @warning There are some keys that are protected and cannot be embedded, you can find the list of protected keys in the PROTECTED_KEYS constant
-   * @throws An error if the key is protected
+   * @throws An error if the key is already defined in the server instance or if the key is protected
    * @example
-   * ```ts
+   * ```typescript
    * // For better type safety, you can declare a module for the server interface
    * declare module "balda" {
    *   interface ServerInterface {
@@ -155,3 +155,8 @@ export interface ServerInterface {
    */
   close: () => Promise<void>;
 }
+
+export type StandardMethodOptions = {
+  middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
+  swagger?: SwaggerRouteOptions;
+};

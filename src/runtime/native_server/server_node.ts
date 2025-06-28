@@ -84,7 +84,7 @@ export class ServerNode implements ServerInterface {
 
         httpResponse.writeHead(
           response.responseStatus,
-          response.responseHeaders
+          response.headers
         );
 
         const body = await response.getBody();

@@ -137,7 +137,7 @@ function setCookie(
   }
 
   // Set the Set-Cookie header
-  const existingCookies = res.responseHeaders["set-cookie"] || "";
+  const existingCookies = res.headers["set-cookie"] || "";
   const newCookies = existingCookies
     ? `${existingCookies}, ${cookieValue}`
     : cookieValue;

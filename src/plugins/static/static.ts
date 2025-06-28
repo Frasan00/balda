@@ -8,6 +8,7 @@ import { router } from "../../server/router/router";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
+import { nativeFile } from "src/runtime/native_file";
 
 /**
  * Creates a static file serving middleware and registers all routes for the given path (path + "/*")
@@ -42,14 +43,13 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
 
     const contentType = getContentType(extname(resolvedPath));
     res.setHeader("Content-Type", contentType);
-
-    const fileContent = await nativeFs.readFile(resolvedPath);
+    const fileContent = await nativeFile.file(resolvedPath);
     res.raw(fileContent);
   } catch (error) {
     return res.notFound(routeNotFoundError.error);
   }
 }
 
-function getContentType(ext: string) {
+export function getContentType(ext: string) {
   return mimeTypes.get(ext) || "application/octet-stream";
 }

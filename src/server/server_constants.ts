@@ -3,6 +3,7 @@ export const PROTECTED_KEYS = [
   "url",
   "port",
   "host",
+  "routes",
   "embed",
   "constructor",
   "get",
@@ -19,4 +20,6 @@ export const PROTECTED_KEYS = [
   "close",
   "tapOptions",
   "startUpOptions",
+  "tmpDir",
+  "logger",
 ];

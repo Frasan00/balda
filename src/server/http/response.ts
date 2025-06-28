@@ -1,43 +1,7 @@
 import { CookieOptions } from "src/plugins/cookie/cookie_types";
 import { NativeResponse } from "../../runtime/native_response";
-
-export type ResponseStatus =
-  // 2xx Success
-  | 200 // OK
-  | 201 // Created
-  | 202 // Accepted
-  | 204 // No Content
-  | 206 // Partial Content
-
-  // 3xx Redirection
-  | 301 // Moved Permanently
-  | 302 // Found (Temporary Redirect)
-  | 303 // See Other
-  | 304 // Not Modified
-  | 307 // Temporary Redirect
-  | 308 // Permanent Redirect
-
-  // 4xx Client Errors
-  | 400 // Bad Request
-  | 401 // Unauthorized
-  | 403 // Forbidden
-  | 404 // Not Found
-  | 405 // Method Not Allowed
-  | 406 // Not Acceptable
-  | 409 // Conflict
-  | 410 // Gone
-  | 413 // Payload Too Large
-  | 415 // Unsupported Media Type
-  | 422 // Unprocessable Entity
-  | 429 // Too Many Requests
-
-  // 5xx Server Errors
-  | 500 // Internal Server Error
-  | 501 // Not Implemented
-  | 502 // Bad Gateway
-  | 503 // Service Unavailable
-  | 504 // Gateway Timeout
-  | 505; // HTTP Version Not Supported;
+import { nativeFile } from "src/runtime/native_file";
+import { getContentType } from "src/plugins/static/static";
 
 export class Response {
   /**
@@ -48,39 +12,37 @@ export class Response {
   /**
    * The status of the response
    */
-  responseStatus: ResponseStatus;
+  responseStatus: number;
 
   /**
    * The headers of the response
    */
-  responseHeaders: Record<string, string>;
+  headers: Record<string, string>;
 
   /**
    * The body of the response
    */
   private body: any;
 
-  constructor(status: ResponseStatus = 200) {
+  constructor(status: number = 200) {
     this.responseStatus = status;
     this.nativeResponse = new NativeResponse();
-    this.responseHeaders = {};
+    this.headers = {};
   }
 
   /**
    * Set a header for the response
    */
   setHeader(key: string, value: string): this {
-    this.responseHeaders[key] = value;
+    this.headers[key] = value;
     return this;
   }
 
   /**
    * Set the status of the response, status defaults to 200
    */
-  status(status: ResponseStatus): this;
-  status(status: number): this;
-  status(status: ResponseStatus | number): this {
-    this.responseStatus = status as ResponseStatus;
+  status(status: number): this {
+    this.responseStatus = status;
     return this;
   }
 
@@ -121,7 +83,7 @@ export class Response {
       return this.download(new Uint8Array(body));
     }
 
-    if (typeof body === "object") {
+    if (typeof body === "object" && body !== null) {
       try {
         return this.json(body);
       } catch (error) {
@@ -140,7 +102,7 @@ export class Response {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: this.responseHeaders,
+      headers: this.headers,
     });
   }
 
@@ -151,7 +113,7 @@ export class Response {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: this.responseHeaders,
+      headers: this.headers,
     });
   }
 
@@ -162,7 +124,7 @@ export class Response {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.responseHeaders, "Content-Type": "text/plain" },
+      headers: { ...this.headers, "Content-Type": "text/plain" },
     });
   }
 
@@ -171,9 +133,9 @@ export class Response {
    */
   json<T extends Record<string, unknown>>(body: T): void {
     this.body = JSON.stringify(body);
-    this.nativeResponse = new NativeResponse(this.body, {
+    this.nativeResponse = NativeResponse.json(this.body, {
       status: this.responseStatus,
-      headers: { ...this.responseHeaders, "Content-Type": "application/json" },
+      headers: { ...this.headers, "Content-Type": "application/json" },
     });
   }
 
@@ -184,7 +146,7 @@ export class Response {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.responseHeaders, "Content-Type": "text/html" },
+      headers: { ...this.headers, "Content-Type": "text/html" },
     });
   }
 
@@ -195,7 +157,7 @@ export class Response {
     this.body = body;
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.responseHeaders, "Content-Type": "application/xml" },
+      headers: { ...this.headers, "Content-Type": "application/xml" },
     });
   }
 
@@ -207,8 +169,23 @@ export class Response {
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
       headers: {
-        ...this.responseHeaders,
+        ...this.headers,
         "Content-Type": "application/octet-stream",
+      },
+    });
+  }
+
+  /**
+   * Send a response with the given file, status defaults to 200
+   */
+  file(pathToFile: string): void {
+    const mimeType = getContentType(pathToFile);
+    const file = nativeFile.file(pathToFile);
+    this.nativeResponse = new NativeResponse(file, {
+      status: this.responseStatus,
+      headers: {
+        ...this.headers,
+        "Content-Type": mimeType,
       },
     });
   }
@@ -216,21 +193,25 @@ export class Response {
   /**
    * 2XX Success
    */
-  ok(body: any): void {
+
+  /**
+   * 200 OK
+   */
+  ok(body?: any): void {
     this.status(200).send(body);
   }
 
   /**
    * 201 Created
    */
-  created(body: any): void {
+  created(body?: any): void {
     this.status(201).send(body);
   }
 
   /**
    * 202 Accepted
    */
-  accepted(body: any): void {
+  accepted(body?: any): void {
     this.status(202).send(body);
   }
 
@@ -244,13 +225,21 @@ export class Response {
   /**
    * 206 Partial Content
    */
-  partialContent(body: any): void {
+  partialContent(body?: any): void {
     this.status(206).send(body);
   }
 
   /**
    * 3XX Redirection
    */
+
+  /**
+   * 300 Multiple Choices
+   */
+  multipleChoices(url: string): void {
+    this.status(300).setHeader("Location", url);
+  }
+
   redirect(url: string): void {
     this.status(302).setHeader("Location", url);
   }
@@ -300,126 +289,130 @@ export class Response {
   /**
    * 4XX Client Errors
    */
-  badRequest(body: any): void {
+
+  /**
+   * 400 Bad Request
+   */
+  badRequest(body?: any): void {
     this.status(400).send(body);
   }
 
   /**
    * 401 Unauthorized
    */
-  unauthorized(body: any): void {
+  unauthorized(body?: any): void {
     this.status(401).send(body);
   }
 
   /**
    * 403 Forbidden
    */
-  forbidden(body: any): void {
+  forbidden(body?: any): void {
     this.status(403).send(body);
   }
 
   /**
    * 404 Not Found
    */
-  notFound(body: any): void {
+  notFound(body?: any): void {
     this.status(404).send(body);
   }
 
   /**
    * 405 Method Not Allowed
    */
-  methodNotAllowed(body: any): void {
+  methodNotAllowed(body?: any): void {
     this.status(405).send(body);
   }
 
   /**
    * 406 Not Acceptable
    */
-  notAcceptable(body: any): void {
+  notAcceptable(body?: any): void {
     this.status(406).send(body);
   }
 
   /**
    * 409 Conflict
    */
-  conflict(body: any): void {
+  conflict(body?: any): void {
     this.status(409).send(body);
   }
 
   /**
    * 410 Gone
    */
-  gone(body: any): void {
+  gone(body?: any): void {
     this.status(410).send(body);
   }
 
   /**
    * 413 Payload Too Large
    */
-  payloadTooLarge(body: any): void {
+  payloadTooLarge(body?: any): void {
     this.status(413).send(body);
   }
 
   /**
    * 415 Unsupported Media Type
    */
-  unsupportedMediaType(body: any): void {
+  unsupportedMediaType(body?: any): void {
     this.status(415).send(body);
   }
 
   /**
    * 422 Unprocessable Entity
    */
-  unprocessableEntity(body: any): void {
+  unprocessableEntity(body?: any): void {
     this.status(422).send(body);
   }
 
   /**
    * 429 Too Many Requests
    */
-  tooManyRequests(body: any): void {
+  tooManyRequests(body?: any): void {
     this.status(429).send(body);
   }
 
   /**
    * 5XX Server Errors
    */
-  internalServerError(body: any): void {
+  internalServerError(body?: any): void {
     this.status(500).send(body);
   }
 
   /**
    * 501 Not Implemented
    */
-  notImplemented(body: any): void {
+  notImplemented(body?: any): void {
     this.status(501).send(body);
   }
 
   /**
    * 502 Bad Gateway
    */
-  badGateway(body: any): void {
+  badGateway(body?: any): void {
     this.status(502).send(body);
   }
 
   /**
    * 503 Service Unavailable
    */
-  serviceUnavailable(body: any): void {
+  serviceUnavailable(body?: any): void {
     this.status(503).send(body);
   }
 
   /**
    * 504 Gateway Timeout
    */
-  gatewayTimeout(body: any): void {
+  gatewayTimeout(body?: any): void {
     this.status(504).send(body);
   }
 
   /**
    * 505 HTTP Version Not Supported
    */
-  httpVersionNotSupported(body: any): void {
+  httpVersionNotSupported(body?: any): void {
     this.status(505).send(body);
   }
 

@@ -1,4 +1,3 @@
-import { log } from "src/plugins/log/log";
 import { swagger } from "../src/plugins/swagger/swagger";
 import { Server } from "../src/server/server";
 
@@ -7,7 +6,9 @@ const server = new Server({
   logger: {
     level: "debug",
   },
-  plugins: {},
+  plugins: {
+    static: "public",
+  },
 });
 
 server.get("/hello-world", (_req, res) => {

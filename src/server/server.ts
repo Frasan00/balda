@@ -1,9 +1,10 @@
 import { glob } from "glob";
 import { join } from "node:path";
 import { cookie } from "src/plugins/cookie/cookie";
-import { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import { log } from "src/plugins/log/log";
-import { LogOptions } from "src/plugins/log/log_types";
+import type { LogOptions } from "src/plugins/log/log_types";
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import { createLogger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
@@ -33,6 +34,7 @@ import type {
   ServerInterface,
   ServerOptions,
   ServerPlugin,
+  StandardMethodOptions,
 } from "./server_types";
 
 /**
@@ -114,88 +116,83 @@ export class Server implements ServerInterface {
   }
 
   get(path: string, handler: ServerRouteHandler): void;
-  get(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
-  get(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
+  get(path: string, options: StandardMethodOptions, handler: ServerRouteHandler): void;
   get(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
-    const { middlewares, handler } =
-      this.extractMiddlewaresAndHandlerFromRouteRegistration(
-        middlewaresOrHandler,
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("GET", path, middlewares, handler);
+    router.addOrUpdate("GET", path, middlewares, handler, swaggerOptions);
   }
 
   post(path: string, handler: ServerRouteHandler): void;
-  post(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
-  post(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
+  post(path: string, options: StandardMethodOptions, handler: ServerRouteHandler): void;
   post(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
-    const { middlewares, handler } =
-      this.extractMiddlewaresAndHandlerFromRouteRegistration(
-        middlewaresOrHandler,
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("POST", path, middlewares, handler);
+    router.addOrUpdate("POST", path, middlewares, handler, swaggerOptions);
   }
 
   patch(path: string, handler: ServerRouteHandler): void;
-  patch(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
-  patch(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
+  patch(path: string, options: StandardMethodOptions, handler: ServerRouteHandler): void;
   patch(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
-    const { middlewares, handler } =
-      this.extractMiddlewaresAndHandlerFromRouteRegistration(
-        middlewaresOrHandler,
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("PATCH", path, middlewares, handler);
+    router.addOrUpdate("PATCH", path, middlewares, handler, swaggerOptions);
   }
 
   put(path: string, handler: ServerRouteHandler): void;
-  put(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
-  put(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
+  put(path: string, options: StandardMethodOptions, handler: ServerRouteHandler): void;
   put(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
-    const { middlewares, handler } =
-      this.extractMiddlewaresAndHandlerFromRouteRegistration(
-        middlewaresOrHandler,
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("PUT", path, middlewares, handler);
+    router.addOrUpdate("PUT", path, middlewares, handler, swaggerOptions);
   }
 
   delete(path: string, handler: ServerRouteHandler): void;
-  delete(path: string, middleware: ServerRouteMiddleware, handler: ServerRouteHandler): void;
-  delete(path: string, middlewares: ServerRouteMiddleware[], handler: ServerRouteHandler): void;
+  delete(path: string, options: StandardMethodOptions, handler: ServerRouteHandler): void;
   delete(
     path: string,
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): void {
-    const { middlewares, handler } =
-      this.extractMiddlewaresAndHandlerFromRouteRegistration(
-        middlewaresOrHandler,
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("DELETE", path, middlewares, handler);
+    router.addOrUpdate("DELETE", path, middlewares, handler, swaggerOptions);
   }
 
   getNodeServer(): RuntimeServerMap<"node"> {
@@ -304,25 +301,34 @@ export class Server implements ServerInterface {
     );
   }
 
-  private extractMiddlewaresAndHandlerFromRouteRegistration(
-    middlewaresOrHandler: ServerRouteMiddleware[] | ServerRouteMiddleware | ServerRouteHandler,
+  private extractOptionsAndHandlerFromRouteRegistration(
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
-  ): { middlewares: ServerRouteMiddleware[]; handler: ServerRouteHandler } {
-    if (typeof middlewaresOrHandler === "function") {
-      if (maybeHandler) {
-        // Single middleware
-        return { middlewares: [middlewaresOrHandler as ServerRouteMiddleware], handler: maybeHandler };
-      } else {
-        // Handler only
-        return { middlewares: [], handler: middlewaresOrHandler as ServerRouteHandler };
-      }
+  ): {
+    middlewares: ServerRouteMiddleware[];
+    handler: ServerRouteHandler;
+    swaggerOptions?: SwaggerRouteOptions;
+  } {
+    if (typeof optionsOrHandler === "function") {
+      // Handler only
+      return {
+        middlewares: [],
+        handler: optionsOrHandler as ServerRouteHandler,
+        swaggerOptions: undefined
+      };
     }
-    // Array of middlewares
-    if (Array.isArray(middlewaresOrHandler)) {
-      return { middlewares: middlewaresOrHandler, handler: maybeHandler! };
-    }
-    // Fallback (should not occur)
-    return { middlewares: [], handler: middlewaresOrHandler as ServerRouteHandler };
+
+    // StandardMethodOptions
+    const options = optionsOrHandler as StandardMethodOptions;
+    const middlewares = Array.isArray(options.middlewares)
+      ? options.middlewares
+      : options.middlewares ? [options.middlewares] : [];
+
+    return {
+      middlewares,
+      handler: maybeHandler!,
+      swaggerOptions: options.swagger
+    };
   }
 
   private applyPlugins(plugins: ServerPlugin): void {
