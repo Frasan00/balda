@@ -48,7 +48,7 @@ export class ServerBun implements ServerInterface {
             {
               status: routeNotFoundError.status,
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
         }
 
@@ -65,7 +65,7 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          req as Request
+          req as Request,
         );
 
         return response.nativeResponse;

@@ -12,7 +12,10 @@ import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
  * @swagger If swagger is enabled, the default service name for all routes defined in the controller will be the controller name.
  * @swagger For naming commodity, the default service name will remove the "Controller" suffix if it exists. e.g. "UserController" -> "User"
  */
-export const controller = (path?: string, swaggerOptions?: SwaggerRouteOptions) => {
+export const controller = (
+  path?: string,
+  swaggerOptions?: SwaggerRouteOptions,
+) => {
   return (target: any) => {
     const classMeta = MetadataStore.get(target.prototype, "__class__");
     const classMiddlewares = classMeta?.middlewares || [];
@@ -39,7 +42,7 @@ export const controller = (path?: string, swaggerOptions?: SwaggerRouteOptions) 
           ...swaggerOptions,
           // route options
           ...meta.documentation,
-        }
+        },
       );
     }
 

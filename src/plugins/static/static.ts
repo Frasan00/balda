@@ -18,7 +18,7 @@ import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
  */
 export const serveStatic = (
   path: string = "public",
-  swaggerOptions?: SwaggerRouteOptions
+  swaggerOptions?: SwaggerRouteOptions,
 ): ServerRouteMiddleware => {
   // Static files handler
   router.addOrUpdate(
@@ -31,7 +31,7 @@ export const serveStatic = (
     {
       service: "StaticFiles",
       ...swaggerOptions,
-    }
+    },
   );
 
   return async (_req: Request, _res: Response, next: NextFunction) => {

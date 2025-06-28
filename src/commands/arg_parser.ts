@@ -8,7 +8,9 @@ export type FlagSchema = Record<string, string | number | boolean>;
  * Parses a single flag argument
  * Supports formats: -f, --flag, -f=value, --flag=value, -f value, --flag value
  */
-const parseFlag = (arg: string): { name: string; value: string | number | boolean } | null => {
+const parseFlag = (
+  arg: string,
+): { name: string; value: string | number | boolean } | null => {
   if (!arg || arg === "-" || arg === "--") {
     return null;
   }
@@ -110,7 +112,11 @@ export const findSimilarCommands = (
     return "";
   }
 
-  if (!availableCommands || !Array.isArray(availableCommands) || availableCommands.length === 0) {
+  if (
+    !availableCommands ||
+    !Array.isArray(availableCommands) ||
+    availableCommands.length === 0
+  ) {
     return "";
   }
 
@@ -123,12 +129,16 @@ export const findSimilarCommands = (
       return true;
     }
 
-    if (normalizedCommand.includes(searchTerm) || searchTerm.includes(normalizedCommand)) {
+    if (
+      normalizedCommand.includes(searchTerm) ||
+      searchTerm.includes(normalizedCommand)
+    ) {
       return true;
     }
 
     const distance = levenshteinDistance(normalizedCommand, searchTerm);
-    const maxDistance = Math.max(searchTerm.length, normalizedCommand.length) * 0.4; // 40% threshold
+    const maxDistance =
+      Math.max(searchTerm.length, normalizedCommand.length) * 0.4; // 40% threshold
 
     return distance <= maxDistance;
   });
@@ -138,7 +148,9 @@ export const findSimilarCommands = (
   }
 
   const topSuggestions = similarCommands.slice(0, 3);
-  const suggestions = topSuggestions.map(cmd => `\x1b[36m${cmd}\x1b[0m`).join(", ");
+  const suggestions = topSuggestions
+    .map((cmd) => `\x1b[36m${cmd}\x1b[0m`)
+    .join(", ");
   return `\x1b[31m✗\x1b[0m Command \x1b[33m${notFoundCommand}\x1b[0m not found\n\x1b[32m💡\x1b[0m Did you mean: ${suggestions}?`;
 };
 

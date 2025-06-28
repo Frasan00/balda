@@ -3,10 +3,10 @@ export type FlagType = "boolean" | "string" | "number";
 export type InferFlagType<T extends FlagType> = T extends "boolean"
   ? boolean
   : T extends "string"
-  ? string
-  : T extends "number"
-  ? number
-  : never;
+    ? string
+    : T extends "number"
+      ? number
+      : never;
 
 export type ArgOptions = {
   /**

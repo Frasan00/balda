@@ -10,12 +10,7 @@ const SearchSchema = Type.Object({
 
 @controller("/basic")
 export class BasicController {
-  @get("/", {
-    query: SearchSchema,
-    responses: {
-      200: SearchSchema,
-    },
-  })
+  @get("/")
   @validate.query(SearchSchema)
   async get(_req: Request, res: Response, query: Static<typeof SearchSchema>) {
     const { search } = query;

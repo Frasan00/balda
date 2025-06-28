@@ -58,17 +58,17 @@ export class CommandRegistry {
       const command = await import(commandFile)
         .then((module) => {
           if (module.default) {
-          return module.default;
-        }
+            return module.default;
+          }
 
-        return module;
-      })
-      .catch((error) => {
-        CommandRegistry.logger.error(
-          `Error loading command ${commandFile}: ${error}`
-        );
-        return null;
-      });
+          return module;
+        })
+        .catch((error) => {
+          CommandRegistry.logger.error(
+            `Error loading command ${commandFile}: ${error}`,
+          );
+          return null;
+        });
 
       if (command) {
         this.commands.set(command.name, command);

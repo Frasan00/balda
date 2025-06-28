@@ -12,6 +12,7 @@ export const post = (path: string, options?: SwaggerRouteOptions) => {
     }
 
     meta.documentation = {
+      ...(meta.documentation || {}),
       name: propertyKey,
       ...options,
     };

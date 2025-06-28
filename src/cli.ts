@@ -16,7 +16,7 @@ export const cli = async () => {
       `No command provided, available commands: ${commandRegistry
         .getCommands()
         .map((command) => command.name)
-        .join(", ")}`
+        .join(", ")}`,
     );
     nativeExit.exit(1);
     return;
@@ -27,8 +27,8 @@ export const cli = async () => {
     console.error(
       findSimilarCommands(
         commandName,
-        commandRegistry.getCommands().map((command) => command.name)
-      ) || `Command ${commandName} not found`
+        commandRegistry.getCommands().map((command) => command.name),
+      ) || `Command ${commandName} not found`,
     );
 
     nativeExit.exit(1);
@@ -55,12 +55,12 @@ if (typeof process !== "undefined") {
         process.exit(1);
       });
     })
-      .catch(() => {
-        CommandRegistry.logger.error(
-          `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: npm install -D ts-node`
-        );
-        process.exit(1);
-      });
+    .catch(() => {
+      CommandRegistry.logger.error(
+        `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: npm install -D ts-node`,
+      );
+      process.exit(1);
+    });
 } else {
   cli().catch((err) => {
     CommandRegistry.logger.error(err);

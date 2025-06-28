@@ -24,7 +24,7 @@ server.get(
   },
   (_req, res) => {
     res.text("Hello, world!");
-  }
+  },
 );
 
 server.listen(({ port, host, url, logger }) => {
@@ -34,7 +34,7 @@ server.listen(({ port, host, url, logger }) => {
       description: "Test API",
       version: "1.0.0",
       servers: ["http://localhost"],
-    })
+    }),
   );
   logger.info(`Server is listening on ${url} on port ${port} on host ${host}`);
 });

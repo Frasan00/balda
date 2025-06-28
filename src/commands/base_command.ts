@@ -44,7 +44,7 @@ export abstract class Command {
    */
   static handle(): Promise<void> {
     throw new Error(
-      `Handle method not implemented in command class ${this.name}`
+      `Handle method not implemented in command class ${this.name}`,
     );
   }
 
@@ -54,7 +54,7 @@ export abstract class Command {
   static readonly handleHelpFlag = (flags: FlagSchema) => {
     const helpFlags = ["-h", "--help", "-?", "--usage"];
     const hasHelpFlag = Object.keys(flags).some((flag) =>
-      helpFlags.includes(flag)
+      helpFlags.includes(flag),
     );
 
     if (!hasHelpFlag) {
@@ -132,7 +132,7 @@ export abstract class Command {
 
       if (args.length > 0) {
         lines.push(
-          `  ${colors.info}Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`
+          `  ${colors.info}Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`,
         );
       }
 
@@ -140,12 +140,12 @@ export abstract class Command {
         .filter(([key]) => !["-h", "--help", "-?", "--usage"].includes(key))
         .map(
           ([key, value]) =>
-            `${colors.flag}${key}${colors.reset}=${colors.code}${value}${colors.reset}`
+            `${colors.flag}${key}${colors.reset}=${colors.code}${value}${colors.reset}`,
         );
 
       if (currentFlags.length > 0) {
         lines.push(
-          `  ${colors.info}Flags:${colors.reset} ${currentFlags.join(" ")}`
+          `  ${colors.info}Flags:${colors.reset} ${currentFlags.join(" ")}`,
         );
       }
 
@@ -160,16 +160,16 @@ export abstract class Command {
     ) {
       lines.push(`${colors.subtitle}Examples:${colors.reset}`);
       lines.push(
-        `  ${colors.code}${name} --help${colors.reset}     Show this help`
+        `  ${colors.code}${name} --help${colors.reset}     Show this help`,
       );
       lines.push(
-        `  ${colors.code}${name} -v${colors.reset}         Show version (if supported)`
+        `  ${colors.code}${name} -v${colors.reset}         Show version (if supported)`,
       );
       lines.push("");
     }
 
     lines.push(
-      `${colors.info}For more information, visit the documentation${colors.reset}`
+      `${colors.info}For more information, visit the documentation${colors.reset}`,
     );
 
     return lines.join("\n");

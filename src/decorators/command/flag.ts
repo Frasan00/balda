@@ -1,4 +1,7 @@
-import { getCalledCommandName, parseCliArgsAndFlags } from "src/commands/arg_parser";
+import {
+  getCalledCommandName,
+  parseCliArgsAndFlags,
+} from "src/commands/arg_parser";
 import type { Command } from "src/commands/base_command";
 import type {
   FlagOptions,
@@ -17,7 +20,10 @@ export const flag = <T extends FlagType>(options: FlagOptions<T>) => {
   return (target: any, propertyKey: string) => {
     const currentCommandName = getCalledCommandName();
     // If the called command is not the same as the command class, skip the decorator
-    if (currentCommandName && currentCommandName !== (target as typeof Command).name) {
+    if (
+      currentCommandName &&
+      currentCommandName !== (target as typeof Command).name
+    ) {
       return;
     }
 
@@ -28,11 +34,14 @@ export const flag = <T extends FlagType>(options: FlagOptions<T>) => {
     const flagAliases = options.aliases || [];
     const allFlagVariants = [primaryFlagName, ...flagAliases];
     const normalizedFlagVariants = allFlagVariants.map(stripFlagPrefixes);
-    const resolvedFlagValue = normalizedFlagVariants.find((flag) => availableFlagNames.includes(flag)) || options.defaultValue;
+    const resolvedFlagValue =
+      normalizedFlagVariants.find((flag) =>
+        availableFlagNames.includes(flag),
+      ) || options.defaultValue;
 
     if (options.required && !resolvedFlagValue) {
       throw new Error(
-        `Flag "${primaryFlagName}" is required for command "${(target as typeof Command).name}"`
+        `Flag "${primaryFlagName}" is required for command "${(target as typeof Command).name}"`,
       );
     }
 

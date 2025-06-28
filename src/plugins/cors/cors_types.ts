@@ -14,10 +14,7 @@ export type CorsOptions = {
   /**
    * Configures the Access-Control-Allow-Origin CORS header, defaults to '*'
    */
-  origin?:
-    | string
-    | RegExp
-    | (string | RegExp)[];
+  origin?: string | RegExp | (string | RegExp)[];
   /**
    * Configures the Access-Control-Allow-Methods CORS header. Defaults to 'GET,HEAD,PUT,PATCH,POST,DELETE'.
    */

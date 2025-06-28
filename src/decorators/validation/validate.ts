@@ -1,5 +1,6 @@
 import type { TSchema } from "@sinclair/typebox";
 import { ValidationError } from "ajv";
+import { MetadataStore } from "../../metadata_store";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 
@@ -31,6 +32,7 @@ export interface ValidationOptions {
 /**
  * Decorator to validate request data using TypeBox schemas.
  * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
+ * Using this decorator will also update the Swagger documentation with the validated schemas and will override the existing schemas.
  * @param options - Validation options including body, query, or all schemas
  * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
  * @example
@@ -49,7 +51,7 @@ export interface ValidationOptions {
  * @controller("/users")
  * export class UserController {
  *   @post("/")
- *   @validate({ body: PayloadSchema })
+ *   @validate.body(PayloadSchema) // This will also update the Swagger documentation with the validated schemas and will override the existing schemas.
  *   async createUser(req: Request, res: Response, payload: Static<typeof PayloadSchema>) {
  *     // payload is now validated and typed
  *     const { name, email } = payload;
@@ -58,14 +60,33 @@ export interface ValidationOptions {
  * ```
  */
 const validateDecorator = (
-  options: ValidationOptions & { customError?: CustomValidationError }
+  options: ValidationOptions & { customError?: CustomValidationError },
 ) => {
   return (
     _target: any,
     _propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) => {
     const originalMethod = descriptor.value;
+
+    let meta = MetadataStore.get(_target, _propertyKey);
+    if (!meta) {
+      meta = { middlewares: [], route: {} };
+    }
+
+    if (!meta.documentation) {
+      meta.documentation = {};
+    }
+
+    if (options.body) {
+      meta.documentation.requestBody = options.body;
+    }
+
+    if (options.query) {
+      meta.documentation.query = options.query;
+    }
+
+    MetadataStore.set(_target, _propertyKey, meta);
 
     descriptor.value = async function (...args: any[]) {
       const req = args[0] as Request;
@@ -124,7 +145,10 @@ const validateDecorator = (
  * @param schema - The TypeBox schema to validate the query parameters against
  * @returns The decorator function
  */
-validateDecorator.query = (schema: TSchema, customError?: CustomValidationError) => {
+validateDecorator.query = (
+  schema: TSchema,
+  customError?: CustomValidationError,
+) => {
   return validateDecorator({ query: schema, customError });
 };
 
@@ -133,7 +157,10 @@ validateDecorator.query = (schema: TSchema, customError?: CustomValidationError)
  * @param schema - The TypeBox schema to validate the request body against
  * @returns The decorator function
  */
-validateDecorator.body = (schema: TSchema, customError?: CustomValidationError) => {
+validateDecorator.body = (
+  schema: TSchema,
+  customError?: CustomValidationError,
+) => {
   return validateDecorator({ body: schema, customError });
 };
 
@@ -142,7 +169,10 @@ validateDecorator.body = (schema: TSchema, customError?: CustomValidationError) 
  * @param schema - The TypeBox schema to validate both the request body and query parameters against
  * @returns The decorator function
  */
-validateDecorator.all = (schema: TSchema, customError?: CustomValidationError) => {
+validateDecorator.all = (
+  schema: TSchema,
+  customError?: CustomValidationError,
+) => {
   return validateDecorator({ all: schema, customError });
 };
 

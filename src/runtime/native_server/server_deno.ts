@@ -53,7 +53,9 @@ export class ServerDeno implements ServerInterface {
         Request.enrichRequest(req as Request);
         req.params = match.params;
         req.query = Object.fromEntries(url.searchParams.entries());
-        (req as any).ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? info.remoteAddr?.hostname;
+        (req as any).ip =
+          req.headers.get("x-forwarded-for")?.split(",")[0] ??
+          info.remoteAddr?.hostname;
 
         // User input handler
         await handler?.(req, info);

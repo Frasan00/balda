@@ -12,6 +12,7 @@ export const patch = (path: string, options?: SwaggerRouteOptions) => {
     }
 
     meta.documentation = {
+      ...(meta.documentation || {}),
       name: propertyKey,
       ...options,
     };

@@ -12,9 +12,10 @@ export const get = (path: string, options?: SwaggerRouteOptions) => {
     }
 
     meta.documentation = {
+      ...(meta.documentation || {}),
       name: propertyKey,
       ...options,
-    } as SwaggerRouteOptions;
+    };
 
     meta.route = { path, method: "GET" };
     MetadataStore.set(target, propertyKey, meta);

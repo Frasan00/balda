@@ -30,7 +30,7 @@ export const arg = (options: ArgOptions) => {
     let argValue = args.length ? args.shift() : options.defaultValue;
     if (options.required && !argValue) {
       throw new Error(
-        `Argument ${argName} is required for command "${(target as typeof Command).name}"`
+        `Argument ${argName} is required for command "${(target as typeof Command).name}"`,
       );
     }
 
