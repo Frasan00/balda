@@ -44,23 +44,19 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  try {
-    const wildcardPath = req.params["*"] || "";
-    const filePath = join(path, wildcardPath);
-    const resolvedPath = resolve(nativeCwd.getCwd(), filePath);
+  const wildcardPath = req.params["*"] || "";
+  const filePath = join(path, wildcardPath);
+  const resolvedPath = resolve(nativeCwd.getCwd(), filePath);
 
-    const stats = await nativeFs.stat(resolvedPath);
-    if (!stats.isFile) {
-      return res.notFound(routeNotFoundError.error);
-    }
-
-    const contentType = getContentType(extname(resolvedPath));
-    res.setHeader("Content-Type", contentType);
-    const fileContent = await nativeFile.file(resolvedPath);
-    res.raw(fileContent);
-  } catch (error) {
+  const stats = await nativeFs.stat(resolvedPath);
+  if (!stats.isFile) {
     return res.notFound(routeNotFoundError.error);
   }
+
+  const contentType = getContentType(extname(resolvedPath));
+  res.setHeader("Content-Type", contentType);
+  const fileContent = await nativeFile.file(resolvedPath);
+  res.raw(fileContent);
 }
 
 export function getContentType(ext: string) {

@@ -44,10 +44,8 @@ function handlePreflightRequest(
   next: NextFunction,
 ): void {
   const allowOrigin = determineOrigin(opts, requestOrigin);
-
   if (!allowOrigin) {
-    res.status(403);
-    res.send("CORS origin not allowed");
+    res.forbidden("CORS origin not allowed");
     return;
   }
 
@@ -103,14 +101,6 @@ function determineOrigin(
     );
 
     return typeof matchedOrigin === "string" ? matchedOrigin : false;
-  }
-
-  if (typeof opts.origin === "function") {
-    try {
-      return "*";
-    } catch {
-      return false;
-    }
   }
 
   return "*";

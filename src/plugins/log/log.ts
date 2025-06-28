@@ -7,7 +7,7 @@ import type { Response } from "src/server/http/response";
 
 /**
  * Logs the request and response of the handler, can be set both on a specific route or on a global middleware.
- * @warning Only json objects and strings are logged from the request and response, other types are not logged.
+ * @warning Only json objects and strings are logged from the request and response.
  */
 export const log = (options?: LogOptions): ServerRouteMiddleware => {
   const logger = createLogger({
