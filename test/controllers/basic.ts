@@ -2,7 +2,7 @@ import { validate } from "src/decorators/validation/validate";
 import { controller, get } from "../../src/index";
 import { Request } from "../../src/server/http/request";
 import { Response } from "../../src/server/http/response";
-import { Static, Type } from "@sinclair/typebox";
+import { type Static, Type } from "@sinclair/typebox";
 
 const SearchSchema = Type.Object({
   search: Type.String(),

@@ -43,7 +43,7 @@ export const swagger = (
   const spec = generateOpenAPISpec(globalOptions);
   const uiPath = `${globalOptions.path}`;
   const jsonPath = `${uiPath}/json`;
-  const uiContent = generateSwaggerUI(jsonPath, globalOptions);
+  const uiContent = generateRedocUI(jsonPath, globalOptions);
 
   router.addOrUpdate("GET", uiPath, [], (_req, res) => {
     res.html(uiContent);
@@ -187,7 +187,6 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     paths[route.path][method] = operation;
   }
 
-  // Compose OpenAPI root object
   return {
     openapi: "3.0.0",
     info: {
@@ -209,44 +208,26 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   };
 }
 
-function generateSwaggerUI(
-  specUrl: string,
-  globalOptions: SwaggerGlobalOptions,
-) {
+function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
   return `
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="https://fastly.jsdelivr.net/npm/@redocly/openapi-cli@1.0.2/dist/assets/favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="${globalOptions.description}" />
+<html>
+  <head>
     <title>${globalOptions.title}</title>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
-</head>
-<body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js" crossorigin></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js" crossorigin></script>
-    <script>
-        window.onload = () => {
-            const ui = SwaggerUIBundle({
-                url: '${specUrl}',
-                dom_id: '#swagger-ui',
-                deepLinking: true,
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIStandalonePreset
-                ],
-                plugins: [
-                    SwaggerUIBundle.plugins.DownloadUrl
-                ],
-                layout: "StandaloneLayout"
-            });
-        };
-    </script>
-</body>
-</html>`;
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="${globalOptions.description}" />
+    <link rel="icon" type="image/png" href="https://redocly.github.io/redoc/favicon.ico">
+    <style>
+      body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <redoc spec-url="${specUrl}"></redoc>
+    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+  </body>
+</html>
+  `;
 }
 
 /**

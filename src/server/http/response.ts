@@ -133,7 +133,7 @@ export class Response {
    */
   json<T extends Record<string, unknown>>(body: T): void {
     this.body = JSON.stringify(body);
-    this.nativeResponse = NativeResponse.json(this.body, {
+    this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
       headers: { ...this.headers, "Content-Type": "application/json" },
     });
