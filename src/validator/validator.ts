@@ -1,5 +1,5 @@
 import { type Static, type TSchema } from "@sinclair/typebox";
-import Ajv from "ajv";
+import Ajv, { ValidationError } from "ajv";
 import addFormats from "ajv-formats";
 
 const ajv = addFormats(new Ajv(), [
@@ -27,17 +27,16 @@ const ajv = addFormats(new Ajv(), [
 export const validateSchema = <T extends TSchema>(
   inputSchema: T,
   data: Record<string, unknown>,
-  safe: boolean = false,
+  safe: boolean = false
 ): Static<T> => {
-  const compiledSchema = ajv.compile(inputSchema);
-  const result = compiledSchema(data);
-  if (!result) {
+  const validate = ajv.compile(inputSchema);
+  if (!validate(data)) {
     if (safe) {
       return data;
     }
 
-    throw new Error(ajv.errorsText());
+    throw new ValidationError(validate.errors || []);
   }
 
-  return data as Static<T>;
+  return data;
 };
