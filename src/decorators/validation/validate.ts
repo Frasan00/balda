@@ -1,7 +1,7 @@
 import type { TSchema } from "@sinclair/typebox";
+import { ValidationError } from "ajv";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
-import { ValidationError } from "ajv";
 
 export interface CustomValidationError {
   status?: number;
@@ -29,19 +29,30 @@ export interface ValidationOptions {
 }
 
 /**
- * Decorator to validate request data using TypeBox schemas
+ * Decorator to validate request data using TypeBox schemas.
+ * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
  * @param options - Validation options including body, query, or all schemas
  * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
  * @example
  * ```ts
+ * import { validate } from "src/decorators/validation/validate";
+ * import { controller, post } from "src/decorators/handlers/post";
+ * import { Request } from "src/server/http/request";
+ * import { Response } from "src/server/http/response";
+ * import { Type } from "@sinclair/typebox";
+ *
+ * const PayloadSchema = Type.Object({
+ *   name: Type.String(),
+ *   email: Type.String(),
+ * });
+ *
  * @controller("/users")
  * export class UserController {
  *   @post("/")
- *   @validate({ body: UserSchema })
- *   async createUser(req: Request, res: Response) {
- *     // req.body is now validated and typed
- *     const user = req.body; // TypeScript knows this is User type
- *     // ... rest of handler
+ *   @validate({ body: PayloadSchema })
+ *   async createUser(req: Request, res: Response, payload: Static<typeof PayloadSchema>) {
+ *     // payload is now validated and typed
+ *     const { name, email } = payload;
  *   }
  * }
  * ```
@@ -61,19 +72,34 @@ const validateDecorator = (
       const res = args[1] as Response;
 
       try {
+        let validatedBody: any = undefined;
+        let validatedQuery: any = undefined;
+        let validatedAll: any = undefined;
+
         if (options.body) {
-          req.validate(options.body, options.safe);
+          validatedBody = req.validate(options.body, options.safe);
         }
 
         if (options.query) {
-          req.validateQuery(options.query, options.safe);
+          validatedQuery = req.validateQuery(options.query, options.safe);
         }
 
         if (options.all) {
-          req.validateAll(options.all, options.safe);
+          validatedAll = req.validateAll(options.all, options.safe);
         }
 
-        return originalMethod.apply(this, args);
+        const newArgs = [...args];
+        if (validatedBody !== undefined) {
+          newArgs.push(validatedBody);
+        }
+        if (validatedQuery !== undefined) {
+          newArgs.push(validatedQuery);
+        }
+        if (validatedAll !== undefined) {
+          newArgs.push(validatedAll);
+        }
+
+        return originalMethod.apply(this, newArgs);
       } catch (error) {
         if (!(error instanceof ValidationError)) {
           throw error;
