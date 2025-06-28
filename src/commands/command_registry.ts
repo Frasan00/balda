@@ -1,4 +1,4 @@
-import { createLogger } from "src/logger/logger";
+import { createLogger } from "../logger/logger";
 import { glob } from "glob";
 import type { Command } from "./base_command";
 
@@ -18,7 +18,7 @@ import type { Command } from "./base_command";
  */
 export class CommandRegistry {
   private commands: Map<string, new () => Command>;
-  static commandsPattern = "commands/**/*.ts";
+  static commandsPattern = "commands/**/*.{ts,js}";
   static logger = createLogger({ level: "debug" });
 
   /**
