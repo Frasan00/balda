@@ -11,7 +11,7 @@ const server = new Server({
   },
 });
 
-server.get("/hello-world", (_req, res) => {
+server.get("/", (_req, res) => {
   res.text("Hello, world!");
 });
 
