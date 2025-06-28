@@ -8,7 +8,7 @@ const server = new Server({
   },
   plugins: {
     static: "public",
-  },
+  }
 });
 
 server.get("/", (_req, res) => {
@@ -16,6 +16,11 @@ server.get("/", (_req, res) => {
 });
 
 server.listen(({ port, host, url, logger }) => {
-  server.use(swagger());
+  server.use(swagger({
+    title: "Test API",
+    description: "Test API",
+    version: "1.0.0",
+    servers: ["http://localhost"],
+  }));
   logger.info(`Server is listening on ${url} on port ${port} on host ${host}`);
 });

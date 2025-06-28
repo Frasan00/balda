@@ -11,9 +11,10 @@ export const put = (path: string, options?: SwaggerRouteOptions) => {
       meta = { middlewares: [], route: { path, method: "PUT" } };
     }
 
-    if (options) {
-      meta.documentation = options;
-    }
+    meta.documentation = {
+      name: propertyKey,
+      ...options,
+    };
 
     meta.route = { path, method: "PUT" };
     MetadataStore.set(target, propertyKey, meta);

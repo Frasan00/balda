@@ -36,5 +36,14 @@
     "ajv-formats": "^3.0.1",
     "glob": "^11.0.3",
     "pino": "^9.7.0"
-  }
+  },
+  "tags": [
+    "framework",
+    "http",
+    "server",
+    "node",
+    "bun",
+    "deno",
+    "backend"
+  ]
 }

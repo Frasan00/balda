@@ -11,9 +11,10 @@ export const del = (path: string, options?: SwaggerRouteOptions) => {
       meta = { middlewares: [], route: { path, method: "DELETE" } };
     }
 
-    if (options) {
-      meta.documentation = options;
-    }
+    meta.documentation = {
+      name: propertyKey,
+      ...options,
+    };
 
     meta.route = { path, method: "DELETE" };
     MetadataStore.set(target, propertyKey, meta);

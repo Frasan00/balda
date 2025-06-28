@@ -17,6 +17,11 @@ const ajv = addFormats(new Ajv(), [
   "json-pointer",
   "relative-json-pointer",
   "regex",
+  "password",
+  "binary",
+  "byte",
+  "iso-date-time",
+  "iso-time",
 ]);
 
 export const validateSchema = <T extends TSchema>(

@@ -9,17 +9,30 @@ import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import { nativeFile } from "src/runtime/native_file";
+import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 
 /**
  * Creates a static file serving middleware and registers all routes for the given path (path + "/*")
  * @param path - The api path to serve static files from.
  * @example 'public' -> localhost:3000/public/index.html will search for public/index.html in the current directory
  */
-export const serveStatic = (path: string = "public"): ServerRouteMiddleware => {
+export const serveStatic = (
+  path: string = "public",
+  swaggerOptions?: SwaggerRouteOptions
+): ServerRouteMiddleware => {
   // Static files handler
-  router.addOrUpdate("GET", `${path}/*`, [], async (req, res) => {
-    return staticFileHandler(req, res, path);
-  });
+  router.addOrUpdate(
+    "GET",
+    `${path}/*`,
+    [],
+    async (req, res) => {
+      return staticFileHandler(req, res, path);
+    },
+    {
+      service: "StaticFiles",
+      ...swaggerOptions,
+    }
+  );
 
   return async (_req: Request, _res: Response, next: NextFunction) => {
     return next();

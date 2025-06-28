@@ -11,9 +11,10 @@ export const patch = (path: string, options?: SwaggerRouteOptions) => {
       meta = { middlewares: [], route: { path, method: "PATCH" } };
     }
 
-    if (options) {
-      meta.documentation = options;
-    }
+    meta.documentation = {
+      name: propertyKey,
+      ...options,
+    };
 
     meta.route = { path, method: "PATCH" };
     MetadataStore.set(target, propertyKey, meta);
