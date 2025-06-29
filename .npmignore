@@ -19,3 +19,4 @@ deno.json
 import_map.json
 public/
 tmp/
+deno/

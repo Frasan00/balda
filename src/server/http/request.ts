@@ -4,6 +4,12 @@ import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
 import { randomUUID } from "node:crypto";
 
+/**
+ * The request object.
+ * This is the main object that is passed to the handler function.
+ * It contains the request body, query parameters, files, cookies, etc.
+ * It also contains the validation methods.
+ */
 export class Request extends NativeRequest {
   static fromRequest(request: Request | NativeRequest): Request {
     return new Request(request.url, {

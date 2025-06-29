@@ -15,7 +15,7 @@ export default defineConfig([
   {
     entry: ["src/cli.ts"],
     outDir: "lib",
-    format: ["esm", "cjs"],
+    format: ["esm"],
     dts: true,
     sourcemap: true,
     clean: true,

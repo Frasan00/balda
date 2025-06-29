@@ -29,6 +29,7 @@ export const arg = (options: ArgOptions) => {
     const argName = propertyKey;
     let argValue = args.length ? args.shift() : options.defaultValue;
     if (options.required && !argValue) {
+      // TODO: balda error
       throw new Error(
         `Argument ${argName} is required for command "${(target as typeof Command).name}"`,
       );

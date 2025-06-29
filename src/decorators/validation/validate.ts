@@ -32,7 +32,7 @@ export interface ValidationOptions {
 /**
  * Decorator to validate request data using TypeBox schemas.
  * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
- * Using this decorator will also update the Swagger documentation with the validated schemas and will override the existing schemas.
+ * Using this decorator will also update the Swagger documentation with the validated schema (except for the .all schema since there is no way to if using query strings or body).
  * @param options - Validation options including body, query, or all schemas
  * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
  * @example
@@ -60,16 +60,12 @@ export interface ValidationOptions {
  * ```
  */
 const validateDecorator = (
-  options: ValidationOptions & { customError?: CustomValidationError },
+  options: ValidationOptions & { customError?: CustomValidationError }
 ) => {
-  return (
-    _target: any,
-    _propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) => {
+  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
-    let meta = MetadataStore.get(_target, _propertyKey);
+    let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: {} };
     }
@@ -86,7 +82,7 @@ const validateDecorator = (
       meta.documentation.query = options.query;
     }
 
-    MetadataStore.set(_target, _propertyKey, meta);
+    MetadataStore.set(target, propertyKey, meta);
 
     descriptor.value = async function (...args: any[]) {
       const req = args[0] as Request;
@@ -147,7 +143,7 @@ const validateDecorator = (
  */
 validateDecorator.query = (
   schema: TSchema,
-  customError?: CustomValidationError,
+  customError?: CustomValidationError
 ) => {
   return validateDecorator({ query: schema, customError });
 };
@@ -159,7 +155,7 @@ validateDecorator.query = (
  */
 validateDecorator.body = (
   schema: TSchema,
-  customError?: CustomValidationError,
+  customError?: CustomValidationError
 ) => {
   return validateDecorator({ body: schema, customError });
 };
@@ -171,7 +167,7 @@ validateDecorator.body = (
  */
 validateDecorator.all = (
   schema: TSchema,
-  customError?: CustomValidationError,
+  customError?: CustomValidationError
 ) => {
   return validateDecorator({ all: schema, customError });
 };

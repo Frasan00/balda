@@ -3,6 +3,12 @@ import { NativeResponse } from "../../runtime/native_response";
 import { nativeFile } from "src/runtime/native_file";
 import { getContentType } from "src/plugins/static/static";
 
+/**
+ * The response object.
+ * This is the main object that is passed to the handler function.
+ * It contains the response body, status, headers, etc.
+ * It also contains the methods to send the response.
+ */
 export class Response {
   /**
    * The native response object that all runtimes use
@@ -131,7 +137,7 @@ export class Response {
   /**
    * Send a response with the given JSON, status defaults to 200
    */
-  json<T extends Record<string, unknown>>(body: T): void {
+  json<T extends Record<string, unknown> | Array<unknown>>(body: T): void {
     this.body = JSON.stringify(body);
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,

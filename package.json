@@ -1,8 +1,17 @@
 {
   "name": "balda-js",
   "version": "0.0.1",
-  "main": "lib/index.js",
   "type": "module",
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
+    }
+  },
   "repository": "git@github.com:Frasan00/balda-js.git",
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
