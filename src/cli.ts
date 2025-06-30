@@ -35,11 +35,20 @@ export const cli = async () => {
     return;
   }
 
-  const command = new CommandClass();
   const commandClass = CommandClass as unknown as typeof Command;
+  // Check if the command has the help flag
   commandClass.handleHelpFlag(commandClass.flags);
+
+  // Validate the command context
+  commandClass.validateContext(commandClass);
+
+  // Handle the command
   await commandClass.handle();
-  if (!(CommandClass as unknown as typeof Command).options?.keepAlive) {
+
+  // Exit the process if the command is not keepAlive
+  const keepAlive =
+    (CommandClass as unknown as typeof Command).options?.keepAlive ?? false;
+  if (!keepAlive) {
     nativeExit.exit(0);
   }
 };

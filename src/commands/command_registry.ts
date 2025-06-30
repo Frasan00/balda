@@ -1,6 +1,7 @@
 import { createLogger } from "../logger/logger";
 import { glob } from "glob";
 import type { Command } from "./base_command";
+import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -49,11 +50,6 @@ export class CommandRegistry {
     CommandRegistry.logger.info(`Loading commands from ${commandsPattern}`);
     const commandFiles = await glob(commandsPattern);
 
-    if (!commandFiles.length) {
-      CommandRegistry.logger.error(`No commands found in ${commandsPattern}`);
-      return;
-    }
-
     for (const commandFile of commandFiles) {
       const command = await import(commandFile)
         .then((module) => {
@@ -65,14 +61,19 @@ export class CommandRegistry {
         })
         .catch((error) => {
           CommandRegistry.logger.error(
-            `Error loading command ${commandFile}: ${error}`,
+            `Error loading command ${commandFile}: ${error}`
           );
           return null;
         });
 
       if (command) {
-        this.commands.set(command.name, command);
+        this.commands.set(command.commandName, command);
       }
+    }
+
+    const baseCommands = [GeneratePluginCommand];
+    for (const command of baseCommands) {
+      this.commands.set(command.commandName, command);
     }
   }
 }

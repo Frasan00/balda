@@ -10,6 +10,10 @@ export type InferFlagType<T extends FlagType> = T extends "boolean"
 
 export type ArgOptions = {
   /**
+   * The description of the argument.
+   */
+  description?: string;
+  /**
    * Whether the argument is required.
    * @default false
    */
@@ -26,6 +30,10 @@ export type ArgOptions = {
 };
 
 export type FlagOptions<T extends FlagType> = {
+  /**
+   * The description of the flag.
+   */
+  description?: string;
   /**
    * The type of the flag.
    */

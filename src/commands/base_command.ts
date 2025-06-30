@@ -1,6 +1,8 @@
+import { VALIDATION_ERROR_SYMBOL } from "src/decorators/command/arg";
 import { createLogger } from "src/logger/logger";
+import { MetadataStore } from "src/metadata_store";
 import { nativeExit } from "src/runtime/native_exit";
-import { type FlagSchema, parseCliArgsAndFlags, Argument } from "./arg_parser";
+import { Argument, type FlagSchema, parseCliArgsAndFlags } from "./arg_parser";
 import type { CommandOptions } from "./command_types";
 
 /**
@@ -11,7 +13,7 @@ export abstract class Command {
   /**
    * The name of the command.
    */
-  static name: string = this.constructor.name;
+  static commandName: string = this.name;
   /**
    * The description of the command.
    */
@@ -44,50 +46,55 @@ export abstract class Command {
    */
   static handle(): Promise<void> {
     throw new Error(
-      `Handle method not implemented in command class ${this.name}`,
+      `Handle method not implemented in command class ${this.name}`
     );
   }
 
   /**
    * Enhanced help flag handler with rich formatting and command information
    */
-  static readonly handleHelpFlag = (flags: FlagSchema) => {
+  static handleHelpFlag(flags: FlagSchema): void {
     const helpFlags = ["-h", "--help", "-?", "--usage"];
     const hasHelpFlag = Object.keys(flags).some((flag) =>
-      helpFlags.includes(flag),
+      helpFlags.includes(flag)
     );
 
     if (!hasHelpFlag) {
       return;
     }
 
-    const commandClass = this.constructor as typeof Command;
-    const commandName = commandClass.name;
-    const description = commandClass.description || "No description available";
-    const helpText = commandClass.help || [];
-    const options = commandClass.options;
+    const commandName = this.commandName;
+    const description = this.description || "No description available";
+    const helpText = this.help || [];
+    const options = this.options;
 
-    const helpOutput = this.generateHelpOutput({
-      name: commandName,
-      description,
-      helpText,
-      options,
-      args: commandClass.args,
-      flags: commandClass.flags,
-    });
+    const helpOutput = this.generateHelpOutput(
+      {
+        name: commandName,
+        description,
+        helpText,
+        options,
+        args: this.args,
+        flags: this.flags,
+      },
+      this
+    );
 
     console.log(helpOutput);
     nativeExit.exit(0);
-  };
+  }
 
-  private static readonly generateHelpOutput = (info: {
-    name: string;
-    description: string;
-    helpText: string[] | string;
-    options: CommandOptions;
-    args: Argument[];
-    flags: FlagSchema;
-  }): string => {
+  private static readonly generateHelpOutput = (
+    info: {
+      name: string;
+      description: string;
+      helpText: string[] | string;
+      options: CommandOptions;
+      args: Argument[];
+      flags: FlagSchema;
+    },
+    commandClass: any
+  ): string => {
     const { name, description, helpText, options, args, flags } = info;
 
     const colors = {
@@ -114,7 +121,7 @@ export abstract class Command {
       `  ${colors.flag}-?, --usage${colors.reset}    Show usage information`,
       "",
       `${colors.subtitle}Command Options:${colors.reset}`,
-      `  ${colors.flag}keepAlive${colors.reset}      ${options.keepAlive ? colors.success + "Enabled" + colors.reset : colors.error + "Disabled" + colors.reset}`,
+      `  ${colors.flag}keepAlive${colors.reset}      ${(options?.keepAlive ?? false) ? colors.success + "Enabled" + colors.reset : colors.error + "Disabled" + colors.reset}`,
       "",
     ];
 
@@ -127,28 +134,77 @@ export abstract class Command {
       lines.push("");
     }
 
-    if (args.length > 0 || Object.keys(flags).length > 0) {
+    // Always show available arguments and flags from decorators
+    const allMeta = MetadataStore.getAll(commandClass);
+    const argsMeta = Array.from(allMeta.values()).filter(
+      (meta) => meta.type === "arg"
+    );
+    const flagsMeta = Array.from(allMeta.values()).filter(
+      (meta) => meta.type === "flag"
+    );
+
+    if (argsMeta.length) {
+      lines.push(`${colors.subtitle}Available Arguments:${colors.reset}`);
+      argsMeta.forEach((meta) => {
+        const required = meta.required
+          ? ` ${colors.error}(required)${colors.reset}`
+          : "";
+        const description = meta.description
+          ? ` ${colors.description}${meta.description}${colors.reset}`
+          : "";
+        lines.push(
+          `  ${colors.code}${meta.name}${colors.reset}${required}${description}`
+        );
+      });
+      lines.push("");
+    }
+
+    if (flagsMeta.length) {
+      lines.push(`${colors.subtitle}Available Flags:${colors.reset}`);
+      flagsMeta.forEach((meta) => {
+        if (meta.aliases && !Array.isArray(meta.aliases)) {
+          meta.aliases = [meta.aliases];
+        }
+
+        const aliases = meta.aliases.length
+          ? ` ${colors.flag}(${meta.aliases.join(", ")})${colors.reset}`
+          : "";
+        const required = meta.required
+          ? ` ${colors.error}(required)${colors.reset}`
+          : "";
+        const description = meta.description
+          ? ` ${colors.description}${meta.description}${colors.reset}`
+          : "";
+        lines.push(
+          `  ${colors.flag}--${meta.name}${aliases}${colors.reset}${required}${description}`
+        );
+      });
+      lines.push("");
+    }
+
+    // Show current context if arguments or flags were provided
+    if ((args?.length ?? 0) > 0 || (flags && Object.keys(flags).length > 0)) {
       lines.push(`${colors.subtitle}Current Context:${colors.reset}`);
 
-      if (args.length > 0) {
+      if (args?.length) {
         lines.push(
-          `  ${colors.info}Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`,
+          `  ${colors.info}Provided Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`
         );
       }
 
-      const currentFlags = Object.entries(flags)
-        .filter(([key]) => !["-h", "--help", "-?", "--usage"].includes(key))
-        .map(
-          ([key, value]) =>
-            `${colors.flag}${key}${colors.reset}=${colors.code}${value}${colors.reset}`,
-        );
-
-      if (currentFlags.length > 0) {
-        lines.push(
-          `  ${colors.info}Flags:${colors.reset} ${currentFlags.join(" ")}`,
-        );
+      if (flags && Object.keys(flags).length > 0) {
+        lines.push(`  ${colors.info}Provided Flags:${colors.reset}`);
+        Object.keys(flags).forEach((flagKey) => {
+          const flagValue = flags[flagKey];
+          const valueDisplay =
+            flagValue !== undefined && flagValue !== null
+              ? ` = ${colors.code}${flagValue}${colors.reset}`
+              : "";
+          lines.push(
+            `  ${colors.flag}${flagKey}${colors.reset}${valueDisplay}`
+          );
+        });
       }
-
       lines.push("");
     }
 
@@ -159,19 +215,50 @@ export abstract class Command {
         : helpText.includes("example"))
     ) {
       lines.push(`${colors.subtitle}Examples:${colors.reset}`);
-      lines.push(
-        `  ${colors.code}${name} --help${colors.reset}     Show this help`,
-      );
-      lines.push(
-        `  ${colors.code}${name} -v${colors.reset}         Show version (if supported)`,
-      );
+      const examples = Array.isArray(helpText)
+        ? helpText.filter((line) => line.includes("example"))
+        : [helpText.split("example")[1].trim()];
+      examples.forEach((example) => {
+        lines.push(`  ${colors.code}${example}${colors.reset}`);
+      });
       lines.push("");
     }
 
-    lines.push(
-      `${colors.info}For more information, visit the documentation${colors.reset}`,
-    );
-
     return lines.join("\n");
+  };
+
+  static readonly validateContext = (target: any): void => {
+    const errorChain = Array.from(
+      MetadataStore.get(target, VALIDATION_ERROR_SYMBOL) || []
+    ) as Array<{ type: string; name: string; message: string }>;
+
+    if (errorChain.length) {
+      const colors = {
+        error: "\x1b[0;31m", // Red
+        title: "\x1b[1;31m", // Bright red
+        reset: "\x1b[0m", // Reset
+        info: "\x1b[0;34m", // Blue
+        code: "\x1b[0;32m", // Green
+      };
+
+      console.error(`${colors.title}❌ Validation Errors:${colors.reset}`);
+      console.error("");
+
+      errorChain.forEach((error, index) => {
+        const errorNumber = `${colors.info}${index + 1}.${colors.reset}`;
+        const errorType = `${colors.error}${error.type.toUpperCase()}${colors.reset}`;
+        const errorName = `${colors.code}${error.name}${colors.reset}`;
+
+        console.error(
+          `  ${errorNumber} ${errorType} ${errorName}: ${colors.error}${error.message}${colors.reset}`
+        );
+      });
+
+      console.error("");
+      console.error(
+        `${colors.info}💡 Tip: Use --help for usage information${colors.reset}`
+      );
+      nativeExit.exit(1);
+    }
   };
 }
