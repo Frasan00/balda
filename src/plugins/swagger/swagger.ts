@@ -1,12 +1,8 @@
 import { TSchema } from "@sinclair/typebox/type";
 import type {
   SwaggerGlobalOptions,
-  SwaggerRouteOptions,
+  SwaggerRouteOptions
 } from "../../plugins/swagger/swagger_types";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
 import { router } from "../../server/router/router";
 
 /**
@@ -19,16 +15,18 @@ import { router } from "../../server/router/router";
  *
  * const server = new Server();
  * server.listen(({ url, logger, swagger }) => {
- *   server.use(swagger()); // Always call this in the listen callback to ensure the routes defined with decorators are added to the router
+ *   // Always call this in the listen callback to ensure the routes defined with decorators are added to the router
+ *   swagger({ type: "redoc" });
  *   logger.info(`Server is listening on ${url}`);
  * });
  * ```
  */
 export const swagger = (
   globalOptions?: SwaggerGlobalOptions,
-): ServerRouteMiddleware => {
+): void => {
   globalOptions = {
     path: "/docs",
+    type: "standard",
     title: "Balda API Documentation",
     description: "API Documentation from the Balda Framework",
     version: "1.0.0",
@@ -43,7 +41,12 @@ export const swagger = (
   const spec = generateOpenAPISpec(globalOptions);
   const uiPath = `${globalOptions.path}`;
   const jsonPath = `${uiPath}/json`;
-  const uiContent = generateRedocUI(jsonPath, globalOptions);
+
+  const uiContent = globalOptions.type === "redoc"
+    ? generateRedocUI(jsonPath, globalOptions)
+    : globalOptions.type === "rapidoc"
+    ? generateRapiDocUI(jsonPath, globalOptions)
+    : generateSwaggerUI(jsonPath, globalOptions);
 
   router.addOrUpdate("GET", uiPath, [], (_req, res) => {
     res.html(uiContent);
@@ -52,10 +55,6 @@ export const swagger = (
   router.addOrUpdate("GET", jsonPath, [], (_req, res) => {
     res.json(spec);
   });
-
-  return (_req: Request, _res: Response, next: NextFunction) => {
-    return next();
-  };
 };
 
 function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
@@ -208,6 +207,58 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   };
 }
 
+function generateSwaggerUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="${globalOptions.description}" />
+    <title>${globalOptions.title}</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin:0;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: '${specUrl}',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                validatorUrl: null,
+                oauth2RedirectUrl: window.location.origin + '/swagger-ui/oauth2-redirect.html'
+            });
+        };
+    </script>
+</body>
+</html>`;
+}
+
 function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
   return `
 <!DOCTYPE html>
@@ -225,6 +276,41 @@ function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
   <body>
     <redoc spec-url="${specUrl}"></redoc>
     <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+  </body>
+</html>
+  `;
+}
+
+function generateRapiDocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
+  return `
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>${globalOptions.title}</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="${globalOptions.description}" />
+    <link rel="icon" type="image/png" href="https://mrin9.github.io/RapiDoc/images/favicon.png">
+    <style>
+      body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <rapi-doc
+      spec-url="${specUrl}"
+      render-style="read"
+      layout="column"
+      show-header="true"
+      allow-server-selection="true"
+      allow-authentication="true"
+      allow-server-variables="true"
+      theme="light"
+      primary-color="#009688"
+      regular-font="Open Sans, sans-serif"
+      mono-font="Fira Mono, monospace"
+      >
+    </rapi-doc>
+    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   </body>
 </html>
   `;

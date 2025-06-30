@@ -1,11 +1,18 @@
 import type { TSchema } from "@sinclair/typebox/type";
 
 /**
+ * Type of Swagger UI to use
+ */
+export type SwaggerUIType = "standard" | "redoc" | "rapidoc";
+
+/**
  * Global documentation options for the API (OpenAPI/Swagger style)
  */
 export type SwaggerGlobalOptions = {
   /** The path to the swagger documentation, defaults to /docs for the UI and /docs/json for the raw json */
   path?: string;
+  /** Type of Swagger UI to use, one of 'standard', 'redoc', or 'rapidoc'. Defaults to 'standard'. */
+  type?: SwaggerUIType;
   /** API title */
   title?: string;
   /** API description */

@@ -14,6 +14,10 @@ import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import type { LogOptions } from "src/plugins/log/log_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import type {
+  RateLimiterKeyOptions,
+  StorageOptions,
+} from "src/plugins/rate_limiter/rate_limiter_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -23,6 +27,10 @@ export type ServerPlugin = {
   helmet?: HelmetOptions;
   cookie?: CookieMiddlewareOptions;
   log?: LogOptions;
+  rateLimiter?: {
+    keyOptions?: RateLimiterKeyOptions;
+    storageOptions?: StorageOptions;
+  };
 };
 
 export interface ServerOptions {
@@ -44,7 +52,7 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error,
+  error: Error
 ) => void | Promise<void>;
 
 export interface ServerInterface {

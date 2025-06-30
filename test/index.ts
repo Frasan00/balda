@@ -22,12 +22,13 @@ server.get(
       },
     },
   },
-  (_req, res) => {
+  (req, res) => {
+    console.log(req.ip);
     res.text("Hello, world!");
   }
 );
 
 server.listen(({ port, host, url, logger }) => {
-  server.use(swagger());
+  swagger({ type: "standard" });
   logger.info(`Server is listening on ${url} on port ${port} on host ${host}`);
 });
