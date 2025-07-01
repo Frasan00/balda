@@ -124,17 +124,17 @@ export class Server implements ServerInterface {
   get(
     path: string,
     options: StandardMethodOptions,
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   get(
     path: string,
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("GET", path, middlewares, handler, swaggerOptions);
@@ -144,17 +144,17 @@ export class Server implements ServerInterface {
   post(
     path: string,
     options: StandardMethodOptions,
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   post(
     path: string,
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("POST", path, middlewares, handler, swaggerOptions);
@@ -164,17 +164,17 @@ export class Server implements ServerInterface {
   patch(
     path: string,
     options: StandardMethodOptions,
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   patch(
     path: string,
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("PATCH", path, middlewares, handler, swaggerOptions);
@@ -184,17 +184,17 @@ export class Server implements ServerInterface {
   put(
     path: string,
     options: StandardMethodOptions,
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   put(
     path: string,
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("PUT", path, middlewares, handler, swaggerOptions);
@@ -204,17 +204,17 @@ export class Server implements ServerInterface {
   delete(
     path: string,
     options: StandardMethodOptions,
-    handler: ServerRouteHandler
+    handler: ServerRouteHandler,
   ): void;
   delete(
     path: string,
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
-        maybeHandler
+        maybeHandler,
       );
 
     router.addOrUpdate("DELETE", path, middlewares, handler, swaggerOptions);
@@ -224,7 +224,7 @@ export class Server implements ServerInterface {
     // TODO: BaldaError implementation
     if (this.runtime.type !== "node") {
       throw new Error(
-        "Server is not using node runtime, you can't call `.getNodeServer()`"
+        "Server is not using node runtime, you can't call `.getNodeServer()`",
       );
     }
 
@@ -234,13 +234,13 @@ export class Server implements ServerInterface {
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
-        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`
+        `Invalid key provided to embed: ${key}. Key must be a non-empty string.`,
       );
     }
 
     if (PROTECTED_KEYS.includes(key)) {
       throw new Error(
-        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`
+        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`,
       );
     }
 
@@ -269,7 +269,7 @@ export class Server implements ServerInterface {
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {
       throw new Error(
-        "Server is already listening, you can't call `.listen()` multiple times"
+        "Server is already listening, you can't call `.listen()` multiple times",
       );
     }
 
@@ -303,15 +303,15 @@ export class Server implements ServerInterface {
         return glob(pattern, {
           cwd: nativeCwd.getCwd(),
         });
-      })
+      }),
     ).then((paths) => paths.flat());
 
     controllerPaths = controllerPaths.flat();
     controllerPaths = controllerPaths.filter(
       (path) =>
         !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
-          path.includes(blacklistedPath)
-        )
+          path.includes(blacklistedPath),
+        ),
     );
 
     await Promise.all(
@@ -319,16 +319,16 @@ export class Server implements ServerInterface {
         this.logger.debug(`Importing controller ${controllerPath}`);
         await import(controllerPath).catch((err) => {
           this.logger.error(
-            `Error importing controller ${controllerPath}: ${err}`
+            `Error importing controller ${controllerPath}: ${err}`,
           );
         });
-      })
+      }),
     );
   }
 
   private extractOptionsAndHandlerFromRouteRegistration(
     optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler
+    maybeHandler?: ServerRouteHandler,
   ): {
     middlewares: ServerRouteMiddleware[];
     handler: ServerRouteHandler;

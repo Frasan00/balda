@@ -22,7 +22,11 @@ type PutHandler = (req: Request, res: Response, ...args: any[]) => any;
  *   }
  */
 export const put = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends PutHandler>(target: any, propertyKey: string, descriptor: PropertyDescriptor): TypedPropertyDescriptor<T> => {
+  return <T extends PutHandler>(
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ): TypedPropertyDescriptor<T> => {
     let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: { path, method: "PUT" } };

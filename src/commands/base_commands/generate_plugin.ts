@@ -33,11 +33,11 @@ export default class GeneratePluginCommand extends Command {
     this.pluginPath = join(this.pluginPath, `${this.pluginName}.ts`);
     await nativeFs.writeFile(
       this.pluginPath,
-      new TextEncoder().encode(pluginTemplate)
+      new TextEncoder().encode(pluginTemplate),
     );
 
     this.logger.info(
-      `Plugin ${this.name} created successfully at ${this.pluginPath}`
+      `Plugin ${this.name} created successfully at ${this.pluginPath}`,
     );
   }
 

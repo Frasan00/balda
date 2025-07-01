@@ -1,7 +1,7 @@
 import { TSchema } from "@sinclair/typebox/type";
 import type {
   SwaggerGlobalOptions,
-  SwaggerRouteOptions
+  SwaggerRouteOptions,
 } from "../../plugins/swagger/swagger_types";
 import { router } from "../../server/router/router";
 
@@ -21,9 +21,7 @@ import { router } from "../../server/router/router";
  * });
  * ```
  */
-export const swagger = (
-  globalOptions?: SwaggerGlobalOptions,
-): void => {
+export const swagger = (globalOptions?: SwaggerGlobalOptions): void => {
   globalOptions = {
     path: "/docs",
     type: "standard",
@@ -42,11 +40,12 @@ export const swagger = (
   const uiPath = `${globalOptions.path}`;
   const jsonPath = `${uiPath}/json`;
 
-  const uiContent = globalOptions.type === "redoc"
-    ? generateRedocUI(jsonPath, globalOptions)
-    : globalOptions.type === "rapidoc"
-    ? generateRapiDocUI(jsonPath, globalOptions)
-    : generateSwaggerUI(jsonPath, globalOptions);
+  const uiContent =
+    globalOptions.type === "redoc"
+      ? generateRedocUI(jsonPath, globalOptions)
+      : globalOptions.type === "rapidoc"
+        ? generateRapiDocUI(jsonPath, globalOptions)
+        : generateSwaggerUI(jsonPath, globalOptions);
 
   router.addOrUpdate("GET", uiPath, [], (_req, res) => {
     res.html(uiContent);
@@ -207,7 +206,10 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   };
 }
 
-function generateSwaggerUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
+function generateSwaggerUI(
+  specUrl: string,
+  globalOptions: SwaggerGlobalOptions,
+) {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -281,7 +283,10 @@ function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
   `;
 }
 
-function generateRapiDocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
+function generateRapiDocUI(
+  specUrl: string,
+  globalOptions: SwaggerGlobalOptions,
+) {
   return `
 <!DOCTYPE html>
 <html>

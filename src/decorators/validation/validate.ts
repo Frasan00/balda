@@ -60,7 +60,7 @@ export interface ValidationOptions {
  * ```
  */
 const validateDecorator = (
-  options: ValidationOptions & { customError?: CustomValidationError }
+  options: ValidationOptions & { customError?: CustomValidationError },
 ) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
@@ -143,7 +143,7 @@ const validateDecorator = (
  */
 validateDecorator.query = (
   schema: TSchema,
-  customError?: CustomValidationError
+  customError?: CustomValidationError,
 ) => {
   return validateDecorator({ query: schema, customError });
 };
@@ -155,7 +155,7 @@ validateDecorator.query = (
  */
 validateDecorator.body = (
   schema: TSchema,
-  customError?: CustomValidationError
+  customError?: CustomValidationError,
 ) => {
   return validateDecorator({ body: schema, customError });
 };
@@ -167,7 +167,7 @@ validateDecorator.body = (
  */
 validateDecorator.all = (
   schema: TSchema,
-  customError?: CustomValidationError
+  customError?: CustomValidationError,
 ) => {
   return validateDecorator({ all: schema, customError });
 };

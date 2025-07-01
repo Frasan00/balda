@@ -25,7 +25,7 @@ server.get(
   (req, res) => {
     console.log(req.ip);
     res.text("Hello, world!");
-  }
+  },
 );
 
 server.listen(({ port, host, url, logger }) => {

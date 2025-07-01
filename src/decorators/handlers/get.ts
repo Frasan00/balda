@@ -24,7 +24,11 @@ type GetHandler = (req: Request, res: Response, ...args: any[]) => any;
  * ```
  */
 export const get = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends GetHandler>(target: any, propertyKey: string, descriptor: PropertyDescriptor): TypedPropertyDescriptor<T> => {
+  return <T extends GetHandler>(
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ): TypedPropertyDescriptor<T> => {
     let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: { path, method: "GET" } };

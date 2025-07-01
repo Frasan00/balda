@@ -24,7 +24,11 @@ type PatchHandler = (req: Request, res: Response, ...args: any[]) => any;
  * ```
  */
 export const patch = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends PatchHandler>(target: any, propertyKey: string, descriptor: PropertyDescriptor): TypedPropertyDescriptor<T> => {
+  return <T extends PatchHandler>(
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ): TypedPropertyDescriptor<T> => {
     let meta = MetadataStore.get(target, propertyKey);
     if (!meta) {
       meta = { middlewares: [], route: { path, method: "PATCH" } };

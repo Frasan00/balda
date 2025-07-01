@@ -61,7 +61,7 @@ export class CommandRegistry {
         })
         .catch((error) => {
           CommandRegistry.logger.error(
-            `Error loading command ${commandFile}: ${error}`
+            `Error loading command ${commandFile}: ${error}`,
           );
           return null;
         });

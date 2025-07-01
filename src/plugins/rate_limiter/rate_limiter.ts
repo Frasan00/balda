@@ -20,7 +20,7 @@ import type {
  */
 export const rateLimiter = (
   keyOptions?: RateLimiterKeyOptions,
-  storageOptions?: StorageOptions
+  storageOptions?: StorageOptions,
 ): ServerRouteMiddleware => {
   const baseKeyOptions: RateLimiterKeyOptions = {
     type: "ip",

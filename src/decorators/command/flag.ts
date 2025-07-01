@@ -35,7 +35,7 @@ export const flag = <T extends FlagType>(options: FlagOptions<T>) => {
       const possibleNames = [
         flagVariant,
         `-${flagVariant}`,
-        `--${flagVariant}`
+        `--${flagVariant}`,
       ];
 
       for (const flagName of possibleNames) {

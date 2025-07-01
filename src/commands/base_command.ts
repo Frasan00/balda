@@ -46,7 +46,7 @@ export abstract class Command {
    */
   static handle(): Promise<void> {
     throw new Error(
-      `Handle method not implemented in command class ${this.name}`
+      `Handle method not implemented in command class ${this.name}`,
     );
   }
 
@@ -56,7 +56,7 @@ export abstract class Command {
   static handleHelpFlag(flags: FlagSchema): void {
     const helpFlags = ["-h", "--help", "-?", "--usage"];
     const hasHelpFlag = Object.keys(flags).some((flag) =>
-      helpFlags.includes(flag)
+      helpFlags.includes(flag),
     );
 
     if (!hasHelpFlag) {
@@ -77,7 +77,7 @@ export abstract class Command {
         args: this.args,
         flags: this.flags,
       },
-      this
+      this,
     );
 
     console.log(helpOutput);
@@ -93,7 +93,7 @@ export abstract class Command {
       args: Argument[];
       flags: FlagSchema;
     },
-    commandClass: any
+    commandClass: any,
   ): string => {
     const { name, description, helpText, options, args, flags } = info;
 
@@ -137,10 +137,10 @@ export abstract class Command {
     // Always show available arguments and flags from decorators
     const allMeta = MetadataStore.getAll(commandClass);
     const argsMeta = Array.from(allMeta.values()).filter(
-      (meta) => meta.type === "arg"
+      (meta) => meta.type === "arg",
     );
     const flagsMeta = Array.from(allMeta.values()).filter(
-      (meta) => meta.type === "flag"
+      (meta) => meta.type === "flag",
     );
 
     if (argsMeta.length) {
@@ -153,7 +153,7 @@ export abstract class Command {
           ? ` ${colors.description}${meta.description}${colors.reset}`
           : "";
         lines.push(
-          `  ${colors.code}${meta.name}${colors.reset}${required}${description}`
+          `  ${colors.code}${meta.name}${colors.reset}${required}${description}`,
         );
       });
       lines.push("");
@@ -176,7 +176,7 @@ export abstract class Command {
           ? ` ${colors.description}${meta.description}${colors.reset}`
           : "";
         lines.push(
-          `  ${colors.flag}--${meta.name}${aliases}${colors.reset}${required}${description}`
+          `  ${colors.flag}--${meta.name}${aliases}${colors.reset}${required}${description}`,
         );
       });
       lines.push("");
@@ -188,7 +188,7 @@ export abstract class Command {
 
       if (args?.length) {
         lines.push(
-          `  ${colors.info}Provided Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`
+          `  ${colors.info}Provided Arguments:${colors.reset} ${colors.code}${args.join(" ")}${colors.reset}`,
         );
       }
 
@@ -201,7 +201,7 @@ export abstract class Command {
               ? ` = ${colors.code}${flagValue}${colors.reset}`
               : "";
           lines.push(
-            `  ${colors.flag}${flagKey}${colors.reset}${valueDisplay}`
+            `  ${colors.flag}${flagKey}${colors.reset}${valueDisplay}`,
           );
         });
       }
@@ -229,7 +229,7 @@ export abstract class Command {
 
   static readonly validateContext = (target: any): void => {
     const errorChain = Array.from(
-      MetadataStore.get(target, VALIDATION_ERROR_SYMBOL) || []
+      MetadataStore.get(target, VALIDATION_ERROR_SYMBOL) || [],
     ) as Array<{ type: string; name: string; message: string }>;
 
     if (errorChain.length) {
@@ -250,13 +250,13 @@ export abstract class Command {
         const errorName = `${colors.code}${error.name}${colors.reset}`;
 
         console.error(
-          `  ${errorNumber} ${errorType} ${errorName}: ${colors.error}${error.message}${colors.reset}`
+          `  ${errorNumber} ${errorType} ${errorName}: ${colors.error}${error.message}${colors.reset}`,
         );
       });
 
       console.error("");
       console.error(
-        `${colors.info}💡 Tip: Use --help for usage information${colors.reset}`
+        `${colors.info}💡 Tip: Use --help for usage information${colors.reset}`,
       );
       nativeExit.exit(1);
     }

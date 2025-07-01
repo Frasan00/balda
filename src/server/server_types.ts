@@ -52,7 +52,7 @@ export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error
+  error: Error,
 ) => void | Promise<void>;
 
 export interface ServerInterface {
