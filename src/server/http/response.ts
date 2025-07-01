@@ -143,13 +143,13 @@ export class Response {
    * Send a response with the given JSON, status defaults to 200
    */
   json<T extends Record<string, unknown> | Array<unknown>>(body: T): void {
-    this.body = JSON.stringify(body);
+    this.body = body;
     this.headers = {
       ...this.headers,
       "Content-Type": "application/json",
     };
 
-    this.nativeResponse = new NativeResponse(this.body, {
+    this.nativeResponse = new NativeResponse(JSON.stringify(this.body), {
       status: this.responseStatus,
       headers: this.headers,
     });

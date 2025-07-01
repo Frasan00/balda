@@ -18,6 +18,14 @@ import type {
 } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
+const isJsonResponse = (headers: Record<string, string>) => {
+  const applicationJsonRegex = /^application\/json/;
+  return (
+    applicationJsonRegex.test(headers["content-type"] ?? "") ||
+    applicationJsonRegex.test(headers["Content-Type"] ?? "")
+  );
+};
+
 export class ServerNode implements ServerInterface {
   port: number;
   host: string;
@@ -35,7 +43,7 @@ export class ServerNode implements ServerInterface {
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
-        httpResponse: ServerResponse,
+        httpResponse: ServerResponse
       ): Promise<void> => {
         // User input handler
         if (this.tapOptions) {
@@ -52,7 +60,7 @@ export class ServerNode implements ServerInterface {
           httpResponse.end(
             JSON.stringify({
               error: routeNotFoundError.error,
-            }),
+            })
           );
           return;
         }
@@ -79,18 +87,22 @@ export class ServerNode implements ServerInterface {
         const response = await executeMiddlewareChain(
           match.middleware,
           match.handler,
-          request,
+          request
         );
 
         httpResponse.writeHead(response.responseStatus, response.headers);
 
-        const body = await response.getBody();
+        let body = await response.getBody();
+        if (isJsonResponse(response.headers) && typeof body !== "string") {
+          body = JSON.stringify(body);
+        }
+
         if (body instanceof Readable) {
           body.pipe(httpResponse);
         } else {
           httpResponse.end(body);
         }
-      },
+      }
     );
   }
 
