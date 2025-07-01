@@ -1,23 +1,24 @@
+import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import { FilePluginOptions } from "src/plugins/file/file_types";
+import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
+import type { LogOptions } from "src/plugins/log/log_types";
+import type {
+    RateLimiterKeyOptions,
+    StorageOptions,
+} from "src/plugins/rate_limiter/rate_limiter_types";
+import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import type { createLogger } from "../logger/logger";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
 import type {
-  RuntimeServerMap,
-  ServerListenCallback,
-  ServerRouteMiddleware,
-  ServerTapOptions,
+    RuntimeServerMap,
+    ServerListenCallback,
+    ServerRouteMiddleware,
+    ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
-import { FilePluginOptions } from "src/plugins/file/file_types";
-import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
-import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
-import type { LogOptions } from "src/plugins/log/log_types";
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import type {
-  RateLimiterKeyOptions,
-  StorageOptions,
-} from "src/plugins/rate_limiter/rate_limiter_types";
+import type { MockServer } from "src/mock/mock_server";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -162,6 +163,10 @@ export interface ServerInterface {
    * Closes the server and frees the port
    */
   close: () => Promise<void>;
+  /**
+   * Get a mock server instance, useful for testing purposes
+   */
+  getMockServer: () => Promise<MockServer>;
 }
 
 export type StandardMethodOptions = {

@@ -18,6 +18,7 @@ export class FileUploadController {
       filename: file.formName,
       size: file.size,
       mimetype: file.mimeType,
+      otherFields: req.body,
     });
   }
 }

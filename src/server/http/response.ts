@@ -128,9 +128,14 @@ export class Response {
    */
   text(body: string): void {
     this.body = body;
+    this.headers = {
+      ...this.headers,
+      "Content-Type": "text/plain",
+    };
+
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.headers, "Content-Type": "text/plain" },
+      headers: this.headers,
     });
   }
 
@@ -139,9 +144,14 @@ export class Response {
    */
   json<T extends Record<string, unknown> | Array<unknown>>(body: T): void {
     this.body = JSON.stringify(body);
+    this.headers = {
+      ...this.headers,
+      "Content-Type": "application/json",
+    };
+
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.headers, "Content-Type": "application/json" },
+      headers: this.headers,
     });
   }
 
@@ -150,9 +160,14 @@ export class Response {
    */
   html(body: string): void {
     this.body = body;
+    this.headers = {
+      ...this.headers,
+      "Content-Type": "text/html",
+    };
+
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.headers, "Content-Type": "text/html" },
+      headers: this.headers,
     });
   }
 
@@ -161,9 +176,14 @@ export class Response {
    */
   xml(body: string): void {
     this.body = body;
+    this.headers = {
+      ...this.headers,
+      "Content-Type": "application/xml",
+    };
+
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: { ...this.headers, "Content-Type": "application/xml" },
+      headers: this.headers,
     });
   }
 
@@ -172,12 +192,14 @@ export class Response {
    */
   download(body: Uint8Array): void {
     this.body = body;
+    this.headers = {
+      ...this.headers,
+      "Content-Type": "application/octet-stream",
+    };
+
     this.nativeResponse = new NativeResponse(this.body, {
       status: this.responseStatus,
-      headers: {
-        ...this.headers,
-        "Content-Type": "application/octet-stream",
-      },
+      headers: this.headers,
     });
   }
 
@@ -187,12 +209,14 @@ export class Response {
   file(pathToFile: string): void {
     const mimeType = getContentType(pathToFile);
     const file = nativeFile.file(pathToFile);
+    this.headers = {
+      ...this.headers,
+      "Content-Type": mimeType,
+    };
+
     this.nativeResponse = new NativeResponse(file, {
       status: this.responseStatus,
-      headers: {
-        ...this.headers,
-        "Content-Type": mimeType,
-      },
+      headers: this.headers,
     });
   }
 

@@ -22,4 +22,5 @@ export const PROTECTED_KEYS = [
   "startUpOptions",
   "tmpDir",
   "logger",
+  "getMockServer",
 ];

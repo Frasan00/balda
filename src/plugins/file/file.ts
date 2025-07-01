@@ -26,6 +26,7 @@ export const fileParser = (
     try {
       const contentType =
         req.headers.get("content-type") ?? req.headers.get("Content-Type");
+
       if (!contentType || !contentType.startsWith("multipart/form-data")) {
         return next();
       }
@@ -152,11 +153,13 @@ export const fileParser = (
             originalName,
           });
         } else {
+          // Field
           fields[formName] = new TextDecoder().decode(part.data);
         }
       }
 
       req.files = files;
+      req.body = fields;
 
       await next();
 
