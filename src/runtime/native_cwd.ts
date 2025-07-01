@@ -1,14 +1,8 @@
-import { RunTime } from "./runtime";
+import { runtime } from "./runtime";
 
 class NativeCwd {
-  runtime: RunTime;
-
-  constructor() {
-    this.runtime = new RunTime();
-  }
-
   getCwd(): string {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "node":
       case "bun":
         return process.cwd();

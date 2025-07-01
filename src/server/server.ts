@@ -31,7 +31,7 @@ import type {
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
-import { RunTime } from "../runtime/runtime";
+import { runtime } from "../runtime/runtime";
 import { router } from "./router/router";
 import { PROTECTED_KEYS } from "./server_constants";
 import type {
@@ -51,8 +51,6 @@ import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types"
 export class Server implements ServerInterface {
   isListening: boolean;
   logger: ReturnType<typeof createLogger>;
-  tapOptions?: ServerTapOptions;
-  runtime: RunTime;
 
   private wasInitialized: boolean;
   private serverConnector: ServerConnector;
@@ -67,7 +65,6 @@ export class Server implements ServerInterface {
   /**
    * The constructor for the server
    * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
-   * @warning The server will not parse the body of the request, you need to use the `json` or `urlencoded` or `fileParser` plugins to parse the body of the request, by default, only req.rawBody is populated with the raw body of the request
    * @param options - The options for the server
    * @param options.port - The port to listen on, defaults to 80
    * @param options.host - The hostname to listen on, defaults to 0.0.0.0
@@ -87,14 +84,12 @@ export class Server implements ServerInterface {
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
     };
 
-    this.runtime = new RunTime();
-
     this.serverConnector = new ServerConnector({
       routes: [],
       port: this.options.port,
       host: this.options.host,
       tapOptions: this.options.tapOptions,
-      runtime: this.runtime.type,
+      runtime: runtime.type,
     });
 
     this.logger = createLogger(this.options.logger);
@@ -228,7 +223,7 @@ export class Server implements ServerInterface {
 
   getNodeServer(): RuntimeServerMap<"node"> {
     // TODO: BaldaError implementation
-    if (this.runtime.type !== "node") {
+    if (runtime.type !== "node") {
       throw new Error(
         "Server is not using node runtime, you can't call `.getNodeServer()`"
       );
@@ -398,6 +393,7 @@ export class Server implements ServerInterface {
             keyOptions?: RateLimiterKeyOptions;
             storageOptions?: StorageOptions;
           };
+
           this.use(rateLimiter(keyOptions, storageOptions));
           break;
         case "urlencoded":

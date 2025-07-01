@@ -16,7 +16,7 @@ export const bodyParser = (): ServerRouteMiddleware => {
 
     req.rawBody = await req.arrayBuffer();
     Object.defineProperty(req, "body", {
-      value: undefined,
+      value: req.rawBody,
       writable: true,
       configurable: true,
       enumerable: true,

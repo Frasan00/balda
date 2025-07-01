@@ -1,5 +1,5 @@
 import { validate } from "src/decorators/validation/validate";
-import { controller, get, post } from "../../src/index";
+import { controller, get, middleware, post, urlencoded } from "../../src/index";
 import { Request } from "../../src/server/http/request";
 import { Response } from "../../src/server/http/response";
 import { type Static, Type } from "@sinclair/typebox";
@@ -18,6 +18,7 @@ export class BasicController {
   }
 
   @post("/www")
+  @middleware(urlencoded())
   async post(req: Request, res: Response) {
     res.ok({ message: req.body });
   }

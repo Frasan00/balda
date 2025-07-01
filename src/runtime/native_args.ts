@@ -1,18 +1,12 @@
-import { RunTime } from "./runtime";
+import { runtime } from "./runtime";
 
 class NativeArgs {
-  runtime: RunTime;
-
-  constructor() {
-    this.runtime = new RunTime();
-  }
-
   /**
    * Gets CLI arguments, dynamically determining where they start
    * Handles different execution contexts (direct execution, tsx, ts-node, etc.)
    */
   getCliArgs(): string[] {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "bun":
         return this.getBunArgs();
       case "node":

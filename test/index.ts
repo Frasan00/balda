@@ -9,9 +9,6 @@ const server = new Server({
   },
   plugins: {
     static: "public",
-    urlencoded: {
-      extended: true,
-    },
   },
 });
 
@@ -28,7 +25,7 @@ server.get(
   (req, res) => {
     console.log(req.ip);
     res.text("Hello, world!");
-  },
+  }
 );
 
 server.listen(({ port, host, url, logger }) => {

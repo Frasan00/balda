@@ -1,4 +1,4 @@
-import { RunTime, type RunTimeType } from "../runtime";
+import { type RunTimeType } from "../runtime";
 import { ServerBun } from "./server_bun";
 import { ServerDeno } from "./server_deno";
 import type { ServerInterface } from "./server_interface";

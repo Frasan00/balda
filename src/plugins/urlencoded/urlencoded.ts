@@ -44,10 +44,7 @@ export const urlencoded = (
         return;
       }
 
-      res.status(400).json({
-        error: "Bad request",
-        message: "Invalid URL-encoded data",
-      });
+      throw error;
     }
   };
 };
@@ -81,35 +78,22 @@ function parseUrlEncodedString(
   opts: Required<UrlEncodedOptions>
 ): Record<string, any> {
   const result: Record<string, any> = {};
-  const pairs = str.split("&");
-
-  if (pairs.length > opts.parameterLimit) {
+  const searchParams = new URLSearchParams(str);
+  if (searchParams.size > opts.parameterLimit) {
     throw new Error(
-      `Too many parameters: ${pairs.length} exceeds limit ${opts.parameterLimit}`
+      `Too many parameters: ${searchParams.size} exceeds limit ${opts.parameterLimit}`
     );
   }
 
-  for (const pair of pairs) {
-    if (!pair) {
-      continue;
-    }
-
-    const [key, value] = pair.split("=");
-    if (!key) {
-      continue;
-    }
-
-    const decodedKey = decodeURIComponent(key);
-    const decodedValue = value ? decodeURIComponent(value) : "";
-
-    if (!opts.allowEmpty && decodedValue === "") {
+  for (const [key, value] of searchParams.entries()) {
+    if (!opts.allowEmpty && value === "") {
       continue;
     }
 
     if (opts.extended) {
-      setNestedValue(result, decodedKey, decodedValue);
+      setNestedValue(result, key, value);
     } else {
-      result[decodedKey] = decodedValue;
+      result[key] = value;
     }
   }
 

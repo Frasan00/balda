@@ -23,7 +23,7 @@ export class MockServer {
    * @param method - The HTTP method (GET, POST, PUT, DELETE, PATCH)
    * @param path - The request path
    * @param options - Request options including body, headers, query params, etc.
-   * @returns Promise<Response> - The response object with status, body, headers
+   * @throws {Error} - If more than one of body, formData, urlencoded is provided
    */
   async request(
     method: HttpMethod,
@@ -31,6 +31,7 @@ export class MockServer {
     options: MockServerOptions = {}
   ): Promise<MockResponse> {
     const { headers = {}, query = {}, params = {}, cookies = {}, ip } = options;
+    this.validateOptions(options);
 
     const route = router.find(method.toUpperCase(), path);
     if (!route) {
@@ -56,6 +57,11 @@ export class MockServer {
         boundary
       );
       body = multipartBody;
+    }
+
+    if (options.urlencoded) {
+      contentType = "application/x-www-form-urlencoded";
+      body = new URLSearchParams(options.urlencoded).toString();
     }
 
     const req = new Request(
@@ -96,7 +102,7 @@ export class MockServer {
 
   async get(
     path: string,
-    options?: Omit<MockServerOptions, "body" | "formData">
+    options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">
   ): Promise<MockResponse> {
     return this.request("GET", path, options);
   }
@@ -166,5 +172,20 @@ export class MockServer {
     }
 
     return multipartBody;
+  }
+
+  private validateOptions(options: MockServerOptions) {
+    const { body, formData, urlencoded } = options;
+    if (body && (formData || urlencoded)) {
+      throw new Error("Only one of body, formData, urlencoded can be provided");
+    }
+
+    if (formData && (urlencoded || body)) {
+      throw new Error("Only one of formData, urlencoded can be provided");
+    }
+
+    if (urlencoded && (body || formData)) {
+      throw new Error("Only one of urlencoded, body can be provided");
+    }
   }
 }

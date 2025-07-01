@@ -30,15 +30,14 @@ server.get(
 
 (async () => {
   const mockServer = await server.getMockServer();
-  const fileBuffer = await nativeFs.readFile("./test/resources/test.txt");
-  const blob = new Blob([new Uint8Array(fileBuffer)], { type: "text/plain" });
-  const formData = new FormData();
-  formData.append("file", blob, "test.txt");
-  formData.append("file2", "test2");
+  // const fileBuffer = await nativeFs.readFile("./test/resources/test.txt");
+  // const blob = new Blob([new Uint8Array(fileBuffer)], { type: "text/plain" });
+  // const formData = new FormData();
+  // formData.append("file", blob, "test.txt");
+  // formData.append("file2", "test2");
 
-  const response = await mockServer.post("/file/upload", {
-    formData,
-  });
+  const response = await mockServer.get("/basic");
 
+  console.log(response.body());
   response.assertStatus(200);
 })();

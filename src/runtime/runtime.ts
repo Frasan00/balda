@@ -1,6 +1,6 @@
 export type RunTimeType = "bun" | "node" | "deno";
 
-export class RunTime {
+class RunTime {
   type: RunTimeType;
 
   constructor() {
@@ -19,3 +19,5 @@ export class RunTime {
     throw new Error("No environment detected");
   }
 }
+
+export const runtime = new RunTime();

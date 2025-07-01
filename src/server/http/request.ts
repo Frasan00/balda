@@ -129,8 +129,7 @@ export class Request extends NativeRequest {
   id: string = randomUUID();
 
   /**
-   * The parsed body of the request. Undefined by default, you need to use a middleware to parse the body of the request like `json` or `urlencoded` or `fileParser` or your own middleware to parse the body of the request.
-   * by default only req.rawBody is populated with the raw body of the request
+   * The parsed body of the request
    */
   override body: any;
 

@@ -1,14 +1,8 @@
-import { RunTime } from "./runtime";
+import { runtime } from "./runtime";
 
 class NativeFs {
-  runtime: RunTime;
-
-  constructor() {
-    this.runtime = new RunTime();
-  }
-
   async readFile(path: string): Promise<Uint8Array> {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         const buffer = await fs.readFile(path);
@@ -22,7 +16,7 @@ class NativeFs {
   }
 
   async writeFile(path: string, data: Uint8Array): Promise<void> {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         await fs.writeFile(path, data);
@@ -42,7 +36,7 @@ class NativeFs {
     isSymbolicLink: boolean;
     size: number;
   }> {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         const stats = await fs.stat(path);
@@ -72,7 +66,7 @@ class NativeFs {
   }
 
   async unlink(path: string): Promise<void> {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "node":
         const fs = await import("fs/promises");
         await fs.unlink(path);

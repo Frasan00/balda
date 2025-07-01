@@ -1,3 +1,6 @@
+/**
+ * The options for the mock server, only one of body, formData, urlencoded can be provided
+ */
 export interface MockServerOptions {
   /**
    * The body of the request, if formData is provided, it will be ignored
@@ -8,6 +11,11 @@ export interface MockServerOptions {
    * The form data of the request
    */
   formData?: FormData;
+
+  /**
+   * The urlencoded body of the request
+   */
+  urlencoded?: Record<string, string>;
 
   /**
    * The headers of the request

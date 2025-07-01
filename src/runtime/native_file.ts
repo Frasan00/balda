@@ -1,15 +1,9 @@
-import { RunTime } from "./runtime";
+import { runtime } from "./runtime";
 import fs from "node:fs/promises";
 
 class NativeFile {
-  runtime: RunTime;
-
-  constructor() {
-    this.runtime = new RunTime();
-  }
-
   file(path: string): any {
-    switch (this.runtime.type) {
+    switch (runtime.type) {
       case "bun":
         return Bun.file(path);
       case "node":
