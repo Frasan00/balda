@@ -42,6 +42,8 @@ import type {
   StandardMethodOptions,
 } from "./server_types";
 import { MockServer } from "src/mock/mock_server";
+import { urlencoded } from "src/plugins/urlencoded/urlencoded";
+import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 
 /**
  * The server class that is used to create and manage the server
@@ -65,6 +67,7 @@ export class Server implements ServerInterface {
   /**
    * The constructor for the server
    * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
+   * @warning The server will not parse the body of the request, you need to use the `json` or `urlencoded` or `fileParser` plugins to parse the body of the request, by default, only req.rawBody is populated with the raw body of the request
    * @param options - The options for the server
    * @param options.port - The port to listen on, defaults to 80
    * @param options.host - The hostname to listen on, defaults to 0.0.0.0
@@ -396,6 +399,9 @@ export class Server implements ServerInterface {
             storageOptions?: StorageOptions;
           };
           this.use(rateLimiter(keyOptions, storageOptions));
+          break;
+        case "urlencoded":
+          this.use(urlencoded(pluginOptions as UrlEncodedOptions));
           break;
         default:
           this.logger.warn(`Unknown plugin ${pluginName}`);

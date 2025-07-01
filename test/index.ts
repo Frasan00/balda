@@ -9,6 +9,9 @@ const server = new Server({
   },
   plugins: {
     static: "public",
+    urlencoded: {
+      extended: true,
+    },
   },
 });
 

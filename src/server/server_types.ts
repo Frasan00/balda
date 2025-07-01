@@ -19,6 +19,7 @@ import type {
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
 import type { MockServer } from "src/mock/mock_server";
+import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -28,6 +29,7 @@ export type ServerPlugin = {
   helmet?: HelmetOptions;
   cookie?: CookieMiddlewareOptions;
   log?: LogOptions;
+  urlencoded?: UrlEncodedOptions;
   rateLimiter?: {
     keyOptions?: RateLimiterKeyOptions;
     storageOptions?: StorageOptions;

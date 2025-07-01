@@ -32,12 +32,7 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
 
     const decodedBody = new TextDecoder().decode(arrayBuffer);
     try {
-      Object.defineProperty(req, "body", {
-        value: JSON.parse(decodedBody),
-        writable: false,
-        configurable: true,
-        enumerable: true,
-      });
+      req.body = JSON.parse(decodedBody);
     } catch (error) {
       return res.status(invalidJsonError.status).json({
         error: invalidJsonError.error,

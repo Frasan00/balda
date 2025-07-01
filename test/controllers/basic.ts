@@ -1,5 +1,5 @@
 import { validate } from "src/decorators/validation/validate";
-import { controller, get } from "../../src/index";
+import { controller, get, post } from "../../src/index";
 import { Request } from "../../src/server/http/request";
 import { Response } from "../../src/server/http/response";
 import { type Static, Type } from "@sinclair/typebox";
@@ -15,5 +15,10 @@ export class BasicController {
   async get(_req: Request, res: Response, query: Static<typeof SearchSchema>) {
     const { search } = query;
     res.ok({ message: search });
+  }
+
+  @post("/www")
+  async post(req: Request, res: Response) {
+    res.ok({ message: req.body });
   }
 }

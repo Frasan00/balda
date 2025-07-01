@@ -25,3 +25,4 @@ export * from "./plugins/rate_limiter/rate_limiter";
 export * from "./plugins/log/log";
 export * from "./plugins/file/file";
 export * from "./plugins/helmet/helmet";
+export * from "./plugins/urlencoded/urlencoded";
