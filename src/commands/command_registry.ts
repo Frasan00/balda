@@ -2,6 +2,7 @@ import { createLogger } from "../logger/logger";
 import { glob } from "glob";
 import type { Command } from "./base_command";
 import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
+import GenerateCommand from "src/commands/base_commands/generate_command";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -18,7 +19,7 @@ import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
  * }
  */
 export class CommandRegistry {
-  private commands: Map<string, new () => Command>;
+  private commands: Map<string, typeof Command>;
   static commandsPattern = "commands/**/*.{ts,js}";
   static logger = createLogger({ level: "debug" });
 
@@ -38,11 +39,11 @@ export class CommandRegistry {
     this.commandsPattern = pattern;
   }
 
-  getCommand(name: string): (new () => Command) | null {
+  getCommand(name: string): typeof Command | null {
     return this.commands.get(name) ?? null;
   }
 
-  getCommands(): (new () => Command)[] {
+  getCommands(): (typeof Command)[] {
     return Array.from(this.commands.values());
   }
 
@@ -71,7 +72,7 @@ export class CommandRegistry {
       }
     }
 
-    const baseCommands = [GeneratePluginCommand];
+    const baseCommands = [GeneratePluginCommand, GenerateCommand];
     for (const command of baseCommands) {
       this.commands.set(command.commandName, command);
     }

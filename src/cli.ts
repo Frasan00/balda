@@ -15,7 +15,7 @@ export const cli = async () => {
     console.error(
       `No command provided, available commands: ${commandRegistry
         .getCommands()
-        .map((command) => command.name)
+        .map((command) => command.commandName)
         .join(", ")}`,
     );
     nativeExit.exit(1);
@@ -27,7 +27,7 @@ export const cli = async () => {
     console.error(
       findSimilarCommands(
         commandName,
-        commandRegistry.getCommands().map((command) => command.name),
+        commandRegistry.getCommands().map((command) => command.commandName),
       ) || `Command ${commandName} not found`,
     );
 
