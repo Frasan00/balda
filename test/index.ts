@@ -22,8 +22,7 @@ server.get(
       },
     },
   },
-  (req, res) => {
-    console.log(req.ip);
+  (_req, res) => {
     res.text("Hello, world!");
   }
 );
