@@ -117,7 +117,6 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       };
     }
 
-    // Responses (success)
     operation.responses = {};
     if (swaggerOptions?.responses) {
       for (const [statusCode, schema] of Object.entries(

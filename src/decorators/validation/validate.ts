@@ -3,31 +3,7 @@ import { ValidationError } from "ajv";
 import { MetadataStore } from "../../metadata_store";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
-
-export interface CustomValidationError {
-  status?: number;
-  message?: string;
-}
-
-export interface ValidationOptions {
-  /**
-   * The schema to validate the request body against
-   */
-  body?: TSchema;
-  /**
-   * The schema to validate the query parameters against
-   */
-  query?: TSchema;
-  /**
-   * The schema to validate both body and query against
-   */
-  all?: TSchema;
-  /**
-   * Whether to use safe validation (returns original data if validation fails instead of throwing)
-   * @default false
-   */
-  safe?: boolean;
-}
+import type { CustomValidationError, ValidationOptions } from "./validate_types";
 
 /**
  * Decorator to validate request data using TypeBox schemas.

@@ -26,9 +26,18 @@ const ajv = addFormats(new Ajv(), [
 
 export const validateSchema = <T extends TSchema>(
   inputSchema: T,
-  data: Record<string, unknown>,
+  data: Record<string, unknown> | string,
   safe: boolean = false,
 ): Static<T> => {
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch (error) {
+      // TODO: balda error
+      throw new Error(`Invalid JSON in serialize "${data}" with type "${typeof data}"`);
+    }
+  }
+
   const validate = ajv.compile(inputSchema);
   if (!validate(data)) {
     if (safe) {

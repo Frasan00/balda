@@ -7,18 +7,18 @@ export class MetadataStore {
   /**
    * Set the metadata for the given target and property key
    */
-  static set(target: any, propertyKey: string | symbol, value: any): void {
+  static set(target: any, propertyKey: string, value: any): void {
     if (!this.metadata.has(target)) {
       this.metadata.set(target, new Map());
     }
-    this.metadata.get(target)!.set(propertyKey.toString(), value);
+    this.metadata.get(target)!.set(propertyKey, value);
   }
 
   /**
    * Get the metadata for the given target and property key
    */
-  static get(target: any, propertyKey: string | symbol): any {
-    return this.metadata.get(target)?.get(propertyKey.toString());
+  static get(target: any, propertyKey: string): any {
+    return this.metadata.get(target)?.get(propertyKey);
   }
 
   /**
