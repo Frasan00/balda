@@ -16,7 +16,7 @@ export default class GenerateCommand extends Command {
     description: "The name of the command to generate",
     required: true,
   })
-  declare static name: string;
+  static name: string;
 
   @flag({
     description: "The path to the command to generate, default is src/commands",
@@ -26,7 +26,7 @@ export default class GenerateCommand extends Command {
     required: false,
     defaultValue: "src/commands",
   })
-  declare static path: string;
+  static path: string;
 
   static async handle(): Promise<void> {
     const commandTemplate = this.getCommandTemplate();

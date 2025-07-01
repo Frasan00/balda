@@ -16,7 +16,7 @@ export default class GeneratePluginCommand extends Command {
     description: "The name of the plugin to generate",
     required: true,
   })
-  declare static pluginName: string;
+  static pluginName: string;
 
   @flag({
     description: "The path to the plugin to generate, default is src/plugins",
@@ -26,7 +26,7 @@ export default class GeneratePluginCommand extends Command {
     required: false,
     defaultValue: "src/plugins",
   })
-  declare static pluginPath: string;
+  static pluginPath: string;
 
   static async handle(): Promise<void> {
     const pluginTemplate = this.getPluginTemplate();
