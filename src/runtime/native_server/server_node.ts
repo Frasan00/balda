@@ -18,13 +18,27 @@ import type {
 } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
-const isJsonResponse = (headers: Record<string, string>) => {
-  const applicationJsonRegex = /^application\/json/;
-  return (
-    applicationJsonRegex.test(headers["content-type"] ?? "") ||
-    applicationJsonRegex.test(headers["Content-Type"] ?? "")
-  );
-};
+/**
+ * Handles chunk reading, writing, and error handling for ReadableStream responses.
+ */
+async function pipeReadableStreamToNodeResponse(
+  stream: ReadableStream,
+  res: ServerResponse
+) {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        res.end();
+        break;
+      }
+      res.write(value);
+    }
+  } catch (error) {
+    res.destroy(error as Error);
+  }
+}
 
 export class ServerNode implements ServerInterface {
   port: number;
@@ -92,16 +106,19 @@ export class ServerNode implements ServerInterface {
 
         httpResponse.writeHead(response.responseStatus, response.headers);
 
-        let body = await response.getBody();
-        if (isJsonResponse(response.headers) && typeof body !== "string") {
-          body = JSON.stringify(body);
+        if (response.nativeResponse.body instanceof Readable) {
+          response.nativeResponse.body.pipe(httpResponse);
+          return;
+        } else if (response.nativeResponse.body instanceof ReadableStream) {
+          pipeReadableStreamToNodeResponse(
+            response.nativeResponse.body,
+            httpResponse
+          );
+
+          return;
         }
 
-        if (body instanceof Readable) {
-          body.pipe(httpResponse);
-        } else {
-          httpResponse.end(body);
-        }
+        httpResponse.end(response.nativeResponse.body);
       }
     );
   }

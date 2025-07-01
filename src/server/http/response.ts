@@ -149,7 +149,7 @@ export class Response {
       "Content-Type": "application/json",
     };
 
-    this.nativeResponse = new NativeResponse(JSON.stringify(this.body), {
+    this.nativeResponse = NativeResponse.json(this.body, {
       status: this.responseStatus,
       headers: this.headers,
     });
