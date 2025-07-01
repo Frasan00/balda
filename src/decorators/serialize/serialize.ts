@@ -6,7 +6,7 @@ import { validateSchema } from "src/validator/validator";
 
 /**
  * Decorator to serialize the response body using TypeBox schemas.
- * Does not throw an error if the response body is not valid unless the `force` option is set to `true`.
+ * Does not throw an error if the response body is not valid unless the `safe` option is set to `false`.
  * Also updates the documentation to reflect the schema.
  * @param schema - The schema to serialize the response body against.
  * @param options - The options to serialize the response body against.

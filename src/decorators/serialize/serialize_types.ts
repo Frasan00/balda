@@ -1,6 +1,6 @@
 export interface SerializeOptions {
   /**
-   * The status code to serialize the response body against (useful only for the documentation does not affect the actual response)
+   * The status code to serialize the response body against (useful only for the documentation does not affect the actual response status)
    * @default 200
    */
   status?: number;
