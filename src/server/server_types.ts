@@ -148,6 +148,13 @@ export interface ServerInterface {
   embed: (key: string, value: any) => void;
 
   /**
+   * Register a signal event listener to the server, this is useful for handling signals like SIGINT, SIGTERM, etc.
+   * @param event - The signal event to listen for
+   * @param cb - The callback to be called when the signal event is received
+   */
+  on: (event: SignalEvent, cb: () => void) => void;
+
+  /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
    */
   use: (middleware: ServerRouteMiddleware) => void;
@@ -169,9 +176,21 @@ export interface ServerInterface {
    * Get a mock server instance, useful for testing purposes
    */
   getMockServer: () => Promise<MockServer>;
+  /**
+   * Exit current runtime process with the given code based on the current runtime
+   * @param code - The code to exit with, defaults to 0
+   * @example
+   * ```typescript
+   * server.exit(1); // If node process.exit(1) is called
+   * server.exit(); // If deno Deno.exit(0) is called
+   * ```
+   */
+  exit: (code?: number) => void;
 }
 
 export type StandardMethodOptions = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
   swagger?: SwaggerRouteOptions;
 };
+
+export type SignalEvent = Deno.Signal | NodeJS.Signals;

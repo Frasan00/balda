@@ -15,5 +15,3 @@ export const createLogger = (options?: LoggerOptions) => {
     ...options,
   });
 };
-
-export const logger = createLogger();

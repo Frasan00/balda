@@ -39,6 +39,7 @@ import type {
   ServerInterface,
   ServerOptions,
   ServerPlugin,
+  SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
 import { MockServer } from "src/mock/mock_server";
@@ -253,8 +254,38 @@ export class Server implements ServerInterface {
     });
   }
 
-  use(middleware: ServerRouteMiddleware): void {
-    this.globalMiddlewares.push(middleware);
+  exit(code: number = 0): void {
+    switch (runtime.type) {
+      case "bun":
+      case "node":
+        process.exit(code);
+      case "deno":
+        Deno.exit(code);
+      default:
+        throw new Error(`Unsupported runtime: ${runtime.type}`);
+    }
+  }
+
+  on(event: SignalEvent, cb: () => void): void;
+  on(event: string, cb: () => void): void;
+  on(event: SignalEvent | string, cb: () => void): void {
+    switch (runtime.type) {
+      case "bun":
+      case "node":
+        process.on(event, cb);
+        break;
+      case "deno":
+        Deno.addSignalListener(event as Deno.Signal, cb);
+        break;
+      default:
+        throw new Error(
+          `Unsupported runtime: ${runtime.type}, only node, bun and deno are supported`
+        );
+    }
+  }
+
+  use(...middlewares: ServerRouteMiddleware[]): void {
+    this.globalMiddlewares.push(...middlewares);
   }
 
   setErrorHandler(errorHandler?: ServerErrorHandler): void {

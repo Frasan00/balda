@@ -12,13 +12,18 @@ const server = new Server({
   },
 });
 
+server.on("SIGTERM", () => {
+  console.log("SIGTERM");
+  server.exit(1);
+});
+
 server.get(
   "/",
   {
     swagger: {
       service: "Test API",
       responses: {
-        200: Type.String(),
+        200: Type.Literal("Hello, world!"),
       },
     },
   },

@@ -19,8 +19,9 @@
     "dev": "tsx watch test/index.ts",
     "dev:bun": "bun run --watch test/index.ts",
     "dev:deno": "deno task dev",
-    "build": "tsup",
-    "build:prod": "tsup --minify",
+    "build": "rm -rf lib && tsup",
+    "build:test": "rm -rf lib && tsup && rm -rf lib",
+    "build:prod": "rm -rf lib && tsup --minify",
     "format": "prettier --write \"**/*.ts\""
   },
   "devDependencies": {
