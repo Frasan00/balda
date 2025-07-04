@@ -23,7 +23,7 @@ export interface MockServerOptions {
   headers?: Record<string, string>;
 
   /**
-   * The query parameters of the request
+   * The query parameters of the request, if provided, they will be merged with the query parameters from the path (precedence is given to the query parameters provided here)
    */
   query?: Record<string, string>;
 
@@ -33,12 +33,7 @@ export interface MockServerOptions {
   cookies?: Record<string, string>;
 
   /**
-   * The params of the request
-   */
-  params?: Record<string, string>;
-
-  /**
    * The ip of the request
    */
   ip?: string;
-};
+}

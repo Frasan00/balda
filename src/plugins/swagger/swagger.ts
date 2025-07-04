@@ -7,24 +7,15 @@ import { router } from "../../server/router/router";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json
- * @warning SHOULD be called in the listen callback of the `server.listen` method or it will not work since routes from controller based routes are not added to the router until the listen method is called
  * @warning The json specification is always available at /${globalOptions.path}/json
- * @example
- * ```ts
- * import { Server } from "balda";
- *
- * const server = new Server();
- * server.listen(({ url, logger, swagger }) => {
- *   // Always call this in the listen callback to ensure the routes defined with decorators are added to the router
- *   swagger({ type: "redoc" });
- *   logger.info(`Server is listening on ${url}`);
- * });
- * ```
+ * @internal
  */
-export const swagger = (globalOptions?: SwaggerGlobalOptions): void => {
-  globalOptions = {
-    path: "/docs",
+export const swagger = (
+  globalOptions?: SwaggerGlobalOptions | boolean
+): void => {
+  let swaggerOptions: SwaggerGlobalOptions = {
     type: "standard",
+    path: "/docs",
     title: "Balda API Documentation",
     description: "API Documentation from the Balda Framework",
     version: "1.0.0",
@@ -33,19 +24,25 @@ export const swagger = (globalOptions?: SwaggerGlobalOptions): void => {
     tags: [],
     components: {},
     securitySchemes: {},
-    ...globalOptions,
   };
 
-  const spec = generateOpenAPISpec(globalOptions);
-  const uiPath = `${globalOptions.path}`;
+  if (typeof globalOptions !== "boolean") {
+    swaggerOptions = {
+      ...swaggerOptions,
+      ...globalOptions,
+    };
+  }
+
+  const spec = generateOpenAPISpec(swaggerOptions);
+  const uiPath = `${swaggerOptions.path}`;
   const jsonPath = `${uiPath}/json`;
 
   const uiContent =
-    globalOptions.type === "redoc"
-      ? generateRedocUI(jsonPath, globalOptions)
-      : globalOptions.type === "rapidoc"
-        ? generateRapiDocUI(jsonPath, globalOptions)
-        : generateSwaggerUI(jsonPath, globalOptions);
+    swaggerOptions.type === "redoc"
+      ? generateRedocUI(jsonPath, swaggerOptions)
+      : swaggerOptions.type === "rapidoc"
+        ? generateRapiDocUI(jsonPath, swaggerOptions)
+        : generateSwaggerUI(jsonPath, swaggerOptions);
 
   router.addOrUpdate("GET", uiPath, [], (_req, res) => {
     res.html(uiContent);
@@ -81,7 +78,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         swaggerOptions.query.properties
       ) {
         for (const [name, schema] of Object.entries(
-          swaggerOptions.query.properties,
+          swaggerOptions.query.properties
         )) {
           parameters.push({
             name,
@@ -96,7 +93,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
     if (swaggerOptions && (swaggerOptions as any).params) {
       parameters = parameters.concat(
-        extractPathParams(route.path, (swaggerOptions as any).params),
+        extractPathParams(route.path, (swaggerOptions as any).params)
       );
     } else {
       parameters = parameters.concat(extractPathParams(route.path));
@@ -120,7 +117,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     operation.responses = {};
     if (swaggerOptions?.responses) {
       for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.responses,
+        swaggerOptions.responses
       )) {
         operation.responses[statusCode] = {
           description: `Response for ${statusCode}`,
@@ -134,7 +131,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
     if (swaggerOptions?.errors) {
       for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.errors,
+        swaggerOptions.errors
       )) {
         operation.responses[statusCode] = {
           description: `Error response for ${statusCode}`,
@@ -207,7 +204,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
 
 function generateSwaggerUI(
   specUrl: string,
-  globalOptions: SwaggerGlobalOptions,
+  globalOptions: SwaggerGlobalOptions
 ) {
   return `
 <!DOCTYPE html>
@@ -284,7 +281,7 @@ function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
 
 function generateRapiDocUI(
   specUrl: string,
-  globalOptions: SwaggerGlobalOptions,
+  globalOptions: SwaggerGlobalOptions
 ) {
   return `
 <!DOCTYPE html>
@@ -325,7 +322,7 @@ function generateRapiDocUI(
  * This is a shallow conversion, as TypeBox is already mostly JSON Schema compatible
  */
 function typeboxToOpenAPI(
-  schema: TSchema,
+  schema: TSchema
 ): Omit<TSchema, "$id" | "$schema"> | undefined {
   if (!schema) {
     return undefined;

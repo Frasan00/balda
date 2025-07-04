@@ -83,6 +83,7 @@ export class Server implements ServerInterface {
       plugins: options?.plugins ?? {},
       logger: options?.logger ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
+      swagger: options?.swagger ?? true,
     };
 
     this.serverConnector = new ServerConnector({
@@ -308,13 +309,15 @@ export class Server implements ServerInterface {
     this.bootstrap().then(() => {
       this.serverConnector.listen();
       this.isListening = true;
+      if (this.options.swagger) {
+        swagger(this.options.swagger);
+      }
 
       cb?.({
         port: this.port,
         host: this.host,
         url: this.url,
         logger: this.logger,
-        swagger: swagger,
       });
     });
   }
@@ -351,6 +354,7 @@ export class Server implements ServerInterface {
         )
     );
 
+    this.logger.debug(`Found ${controllerPaths.length} controllers to import`);
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
         this.logger.debug(`Importing controller ${controllerPath}`);

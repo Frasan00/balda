@@ -18,7 +18,6 @@ export * from "./server/server";
 export * from "./plugins/cors/cors";
 export * from "./plugins/json/json";
 export * from "./plugins/static/static";
-export * from "./plugins/swagger/swagger";
 export * from "./plugins/cookie/cookie";
 export * from "./plugins/base_plugin";
 export * from "./plugins/rate_limiter/rate_limiter";

@@ -3,23 +3,24 @@ import { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { LogOptions } from "src/plugins/log/log_types";
 import type {
-    RateLimiterKeyOptions,
-    StorageOptions,
+  RateLimiterKeyOptions,
+  StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import type { createLogger } from "../logger/logger";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
 import type {
-    RuntimeServerMap,
-    ServerListenCallback,
-    ServerRouteMiddleware,
-    ServerTapOptions,
+  RuntimeServerMap,
+  ServerListenCallback,
+  ServerRouteMiddleware,
+  ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
 import type { MockServer } from "src/mock/mock_server";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
+import type { swagger } from "../plugins/swagger/swagger";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -49,13 +50,23 @@ export interface ServerOptions {
   logger?: Parameters<typeof createLogger>[0];
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;
+  /**
+   * The swagger options to apply to the server, by default swagger plugin is applied with standard options, you can pass a boolean to enable or disable the plugin or you can pass an object to apply custom options to the plugin
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   swagger: true,
+   * });
+   * ```
+   */
+  swagger?: Parameters<typeof swagger>[0] | boolean;
 }
 
 export type ServerErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-  error: Error,
+  error: Error
 ) => void | Promise<void>;
 
 export interface ServerInterface {

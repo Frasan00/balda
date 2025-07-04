@@ -71,7 +71,7 @@ export class ServerDeno implements ServerInterface {
       ...rest,
     });
 
-    this.url = this.runtimeServer.addr.hostname;
+    this.url = `http://${this.host}:${this.port}`;
   }
 
   async close(): Promise<void> {

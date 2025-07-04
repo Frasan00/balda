@@ -3,7 +3,6 @@ import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
-import type { swagger as SwaggerPlugin } from "../../plugins/swagger/swagger";
 import type { createLogger } from "../../logger/logger";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -57,13 +56,11 @@ export type ServerListenCallback = ({
   host,
   url,
   logger,
-  swagger,
 }: {
   port: number;
   host: string;
   url: string;
   logger: ReturnType<typeof createLogger>;
-  swagger: typeof SwaggerPlugin;
 }) => void;
 
 /**

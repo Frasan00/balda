@@ -1,0 +1,40 @@
+services:
+  node:
+    build:
+      context: .
+      dockerfile: docker/node.Dockerfile
+    ports:
+      - 80:80
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - PORT=80
+      - HOST=0.0.0.0
+
+  bun:
+    build:
+      context: .
+      dockerfile: docker/bun.Dockerfile
+    ports:
+      - 81:81
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - PORT=81
+      - HOST=0.0.0.0
+
+  deno:
+    build:
+      context: .
+      dockerfile: docker/deno.Dockerfile
+    ports:
+      - 82:82
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - PORT=82
+      - HOST=0.0.0.0

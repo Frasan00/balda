@@ -1,23 +1,23 @@
 import { Response } from "../server/http/response";
 
-export class MockResponse {
+export class MockResponse<T = any> {
   constructor(private readonly response: Response) {}
 
   // base getters
-  body() {
+  body(): T {
     return this.response.getBody();
   }
 
-  statusCode() {
+  statusCode(): number {
     return this.response.responseStatus;
   }
 
-  headers() {
+  headers(): Record<string, string> {
     return this.response.headers;
   }
 
   // assertions
-  assertStatus(status: number) {
+  assertStatus(status: number): this {
     if (this.response.responseStatus !== status) {
       throw new Error(
         `Expected status ${status}, but got ${this.response.responseStatus}`
@@ -26,7 +26,7 @@ export class MockResponse {
     return this;
   }
 
-  assertHeader(header: string, value: string) {
+  assertHeader(header: string, value: string): this {
     if (this.response.headers[header] !== value) {
       throw new Error(
         `Expected header ${header} to be ${value}, but got ${this.response.headers[header]}`
@@ -35,7 +35,7 @@ export class MockResponse {
     return this;
   }
 
-  assertHeaderExists(header: string) {
+  assertHeaderExists(header: string): this {
     if (!(header in this.response.headers)) {
       throw new Error(
         `Expected header ${header} to exist, but it was not found`
@@ -44,7 +44,7 @@ export class MockResponse {
     return this;
   }
 
-  assertHeaderNotExists(header: string) {
+  assertHeaderNotExists(header: string): this {
     if (header in this.response.headers) {
       throw new Error(
         `Expected header ${header} to not exist, but it was found with value: ${this.response.headers[header]}`
@@ -55,7 +55,7 @@ export class MockResponse {
 
   // TODO: body assertions
 
-  assertCustom(assertion: (response: Response) => void) {
+  assertCustom(assertion: (response: Response) => void): this {
     assertion(this.response);
     return this;
   }

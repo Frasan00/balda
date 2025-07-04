@@ -16,17 +16,25 @@
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch test/index.ts",
-    "dev:bun": "bun run --watch test/index.ts",
+    "benchmark": "tsx test/benchmark/index.ts",
+    "benchmark:bun": "bun run --watch test/benchmark/index.ts",
+    "benchmark:deno": "deno task benchmark",
+    "dev": "tsx watch test/server/index.ts",
+    "dev:bun": "bun run --watch test/server/index.ts",
     "dev:deno": "deno task dev",
     "build": "rm -rf lib && tsup",
     "build:test": "rm -rf lib && tsup && rm -rf lib",
     "build:prod": "rm -rf lib && tsup --minify",
-    "format": "prettier --write \"**/*.ts\""
+    "format": "prettier --write \"**/*.ts\"",
+    "test": "vitest",
+    "test:bun": "bun test",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.17",
     "@types/deno": "^2.3.0",
-    "@types/node": "^24.0.4",
+    "@types/node": "^24.0.10",
     "@types/ws": "^8.18.1",
     "autocannon": "^8.0.0",
     "bun-types": "^1.2.17",
@@ -39,6 +47,7 @@
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
     "ws": "^8.18.2"
   },
   "bin": {

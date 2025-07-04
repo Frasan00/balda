@@ -25,12 +25,12 @@ export class MockServer {
    * @param options - Request options including body, headers, query params, etc.
    * @throws {Error} - If more than one of body, formData, urlencoded is provided
    */
-  async request(
+  async request<T>(
     method: HttpMethod,
     path: string,
     options: MockServerOptions = {}
-  ): Promise<MockResponse> {
-    const { headers = {}, query = {}, params = {}, cookies = {}, ip } = options;
+  ): Promise<MockResponse<T>> {
+    const { headers = {}, query = {}, cookies = {}, ip } = options;
     this.validateOptions(options);
 
     const route = router.find(method.toUpperCase(), path);
@@ -64,20 +64,22 @@ export class MockServer {
       body = new URLSearchParams(options.urlencoded).toString();
     }
 
-    const req = new Request(
-      `http://${this.server.host}:${this.server.port}${path}`,
-      {
-        method: method.toUpperCase(),
-        body,
-        headers: {
-          "content-type": contentType,
-          ...headers,
-        },
-      }
+    const url = new URL(
+      `http://${this.server.host}:${this.server.port}${path}`
     );
+    url.search = new URLSearchParams(query).toString();
 
-    req.query = query;
-    req.params = params;
+    const req = new Request(url.toString(), {
+      method: method.toUpperCase(),
+      body,
+      headers: {
+        "content-type": contentType,
+        ...headers,
+      },
+    });
+
+    req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
+    req.params = route.params;
     req.cookies = cookies;
     req.ip = ip;
 
@@ -100,32 +102,38 @@ export class MockServer {
     }
   }
 
-  async get(
+  async get<T>(
     path: string,
     options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">
-  ): Promise<MockResponse> {
+  ): Promise<MockResponse<T>> {
     return this.request("GET", path, options);
   }
 
-  async post(path: string, options?: MockServerOptions): Promise<MockResponse> {
+  async post<T>(
+    path: string,
+    options?: MockServerOptions
+  ): Promise<MockResponse<T>> {
     return this.request("POST", path, options);
   }
 
-  async put(path: string, options?: MockServerOptions): Promise<MockResponse> {
+  async put<T>(
+    path: string,
+    options?: MockServerOptions
+  ): Promise<MockResponse<T>> {
     return this.request("PUT", path, options);
   }
 
-  async patch(
+  async patch<T>(
     path: string,
     options?: MockServerOptions
-  ): Promise<MockResponse> {
+  ): Promise<MockResponse<T>> {
     return this.request("PATCH", path, options);
   }
 
-  async delete(
+  async delete<T>(
     path: string,
     options?: Omit<MockServerOptions, "body" | "formData">
-  ): Promise<MockResponse> {
+  ): Promise<MockResponse<T>> {
     return this.request("DELETE", path, options);
   }
 
