@@ -41,7 +41,7 @@ export interface ServerOptions {
   port?: number;
   /** The hostname to listen on, defaults to 0.0.0.0 */
   host?: string;
-  /** Controller patterns to match, defaults to "**" which means all files defined in the current working directory will be matched, you can set logger level to debug to see the controllers that are being imported or on error to see the errors during the import process */
+  /** Controller patterns to match, defaults to an empty array */
   controllerPatterns?: string[];
   /** Basic plugins to apply to the server, by default no plugins are applied */
   plugins?: ServerPlugin;

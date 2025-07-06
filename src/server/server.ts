@@ -69,7 +69,7 @@ export class Server implements ServerInterface {
    * @param options - The options for the server
    * @param options.port - The port to listen on, defaults to 80
    * @param options.host - The hostname to listen on, defaults to 0.0.0.0
-   * @param options.controllerPatterns - The patterns to match for controllers, defaults to every .ts and .js file in the root directory
+   * @param options.controllerPatterns - The patterns to match for controllers, defaults to an empty array
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
    * @param options.logger - The logger to use for the server, by default a default logger is used
    * @param options.tapOptions - Options fetch to the runtime server before the server is up and running
@@ -79,7 +79,7 @@ export class Server implements ServerInterface {
     this.options = {
       port: options?.port ?? 80,
       host: options?.host ?? "0.0.0.0",
-      controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
+      controllerPatterns: options?.controllerPatterns ?? [],
       plugins: options?.plugins ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
