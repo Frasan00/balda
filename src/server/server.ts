@@ -10,7 +10,7 @@ import type {
   StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { createLogger } from "../logger/logger";
+import { logger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
 import type { CorsOptions } from "../plugins/cors/cors_types";
@@ -45,13 +45,13 @@ import type {
 import { MockServer } from "src/mock/mock_server";
 import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
+import { routeNotFoundError } from "src/errors/errors_constants";
 
 /**
  * The server class that is used to create and manage the server
  */
 export class Server implements ServerInterface {
   isListening: boolean;
-  logger: ReturnType<typeof createLogger>;
 
   private wasInitialized: boolean;
   private serverConnector: ServerConnector;
@@ -81,7 +81,6 @@ export class Server implements ServerInterface {
       host: options?.host ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? ["**/*.{ts,js}"],
       plugins: options?.plugins ?? {},
-      logger: options?.logger ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
     };
@@ -94,10 +93,7 @@ export class Server implements ServerInterface {
       runtime: runtime.type,
     });
 
-    this.logger = createLogger(this.options.logger);
-
     this.use(bodyParser());
-    this.applyPlugins(this.options.plugins);
 
     this.isListening = false;
   }
@@ -317,7 +313,6 @@ export class Server implements ServerInterface {
         port: this.port,
         host: this.host,
         url: this.url,
-        logger: this.logger,
       });
     });
   }
@@ -354,14 +349,12 @@ export class Server implements ServerInterface {
         )
     );
 
-    this.logger.debug(`Found ${controllerPaths.length} controllers to import`);
+    logger.debug(`Found ${controllerPaths.length} controllers to import`);
     await Promise.all(
       controllerPaths.map(async (controllerPath) => {
-        this.logger.debug(`Importing controller ${controllerPath}`);
+        logger.debug(`Importing controller ${controllerPath}`);
         await import(controllerPath).catch((err) => {
-          this.logger.error(
-            `Error importing controller ${controllerPath}: ${err}`
-          );
+          logger.error(`Error importing controller ${controllerPath}: ${err}`);
         });
       })
     );
@@ -435,7 +428,7 @@ export class Server implements ServerInterface {
           this.use(urlencoded(pluginOptions as UrlEncodedOptions));
           break;
         default:
-          this.logger.warn(`Unknown plugin ${pluginName}`);
+          logger.warn(`Unknown plugin ${pluginName}`);
           break;
       }
     });
@@ -451,11 +444,88 @@ export class Server implements ServerInterface {
     }
 
     await this.importControllers();
+    this.registerNotFoundRoutes();
     this.applyPlugins(this.options.plugins);
     if (this.globalMiddlewares.length) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
     }
 
     this.wasInitialized = true;
+  }
+
+  /**
+   * Registers the not found routes for all routes
+   * @internal
+   */
+  private registerNotFoundRoutes(): void {
+    router.addOrUpdate(
+      "GET",
+      "*",
+      [],
+      (_req, res) => {
+        res.status(404).json({
+          error: routeNotFoundError.error,
+        });
+      },
+      {
+        excludeFromSwagger: true,
+      }
+    );
+
+    router.addOrUpdate(
+      "POST",
+      "*",
+      [],
+      (_req, res) => {
+        res.status(404).json({
+          error: routeNotFoundError.error,
+        });
+      },
+      {
+        excludeFromSwagger: true,
+      }
+    );
+
+    router.addOrUpdate(
+      "PUT",
+      "*",
+      [],
+      (_req, res) => {
+        res.status(404).json({
+          error: routeNotFoundError.error,
+        });
+      },
+      {
+        excludeFromSwagger: true,
+      }
+    );
+
+    router.addOrUpdate(
+      "PATCH",
+      "*",
+      [],
+      (_req, res) => {
+        res.status(404).json({
+          error: routeNotFoundError.error,
+        });
+      },
+      {
+        excludeFromSwagger: true,
+      }
+    );
+
+    router.addOrUpdate(
+      "DELETE",
+      "*",
+      [],
+      (_req, res) => {
+        res.status(404).json({
+          error: routeNotFoundError.error,
+        });
+      },
+      {
+        excludeFromSwagger: true,
+      }
+    );
   }
 }

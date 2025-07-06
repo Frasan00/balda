@@ -1,4 +1,5 @@
 import type { TSchema } from "@sinclair/typebox";
+import { ValidationError } from "ajv";
 import type { SerializeOptions } from "src/decorators/serialize/serialize_types";
 import { MetadataStore } from "src/metadata_store";
 import type { Response } from "src/server/http/response";
@@ -46,7 +47,17 @@ export const serialize = (schema: TSchema, options?: SerializeOptions) => {
         const safe = serializeMetadata?.[actualStatus]?.safe ?? true;
 
         if (schema && !safe) {
-          res.send(validateSchema(schema, res.getBody(), safe));
+          const body = res.getBody();
+          try {
+            res.send(validateSchema(schema, body, safe));
+          } catch (error) {
+            if (error instanceof ValidationError) {
+              res.internalServerError({ received: body, schema, error: error.errors });
+              return;
+            }
+
+            throw error;
+          }
         }
       };
 

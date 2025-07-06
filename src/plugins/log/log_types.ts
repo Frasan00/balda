@@ -24,6 +24,15 @@ export interface LogOptions {
    */
   logResponse?: boolean;
   /**
+   * Whether to log the response body.
+   * @default false
+   */
+  responsePayload?: {
+    status?: boolean;
+    headers?: boolean;
+    body?: boolean;
+  };
+  /**
    * What to log for the response.
    * @default true for all properties
    */

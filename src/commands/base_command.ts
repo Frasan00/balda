@@ -1,9 +1,9 @@
 import { VALIDATION_ERROR_SYMBOL } from "src/decorators/command/arg";
-import { createLogger } from "src/logger/logger";
 import { MetadataStore } from "src/metadata_store";
 import { nativeExit } from "src/runtime/native_exit";
 import { Argument, type FlagSchema, parseCliArgsAndFlags } from "./arg_parser";
 import type { CommandOptions } from "./command_types";
+import { logger } from "src/logger/logger";
 
 /**
  * Base class for all cli commands.
@@ -39,7 +39,7 @@ export abstract class Command {
    */
   static flags: FlagSchema = parseCliArgsAndFlags().flags;
 
-  static readonly logger = createLogger();
+  static readonly logger = logger;
 
   /**
    * Main entry point for the command.

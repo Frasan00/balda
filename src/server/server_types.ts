@@ -7,7 +7,6 @@ import type {
   StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import type { createLogger } from "../logger/logger";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
 import type {
@@ -46,8 +45,6 @@ export interface ServerOptions {
   controllerPatterns?: string[];
   /** Basic plugins to apply to the server, by default no plugins are applied */
   plugins?: ServerPlugin;
-  /** The logger to use, defaults to the global logger */
-  logger?: Parameters<typeof createLogger>[0];
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;
   /**
@@ -74,10 +71,6 @@ export interface ServerInterface {
    * Whether the server is listening for requests
    */
   isListening: boolean;
-  /**
-   * The logger for the server
-   */
-  logger: ReturnType<typeof createLogger>;
   /**
    * The url of the server
    */

@@ -38,20 +38,9 @@ export class ServerDeno implements ServerInterface {
       handler: async (req, info) => {
         const url = new URL(req.url);
         const match = router.find(req.method as HttpMethod, url.pathname);
-        if (!match) {
-          return new Response(
-            JSON.stringify({
-              error: routeNotFoundError.error,
-            }),
-            {
-              status: routeNotFoundError.status,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-        }
 
         Request.enrichRequest(req as Request);
-        req.params = match.params;
+        req.params = match?.params ?? {};
         req.query = Object.fromEntries(url.searchParams.entries());
         (req as any).ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
@@ -61,8 +50,12 @@ export class ServerDeno implements ServerInterface {
         await handler?.(req, info);
 
         const res = await executeMiddlewareChain(
-          match.middleware,
-          match.handler,
+          match?.middleware ?? [],
+          match?.handler ?? ((_req, res) => {
+            res.status(404).json({
+              error: routeNotFoundError.error,
+            });
+          }),
           req as Request,
         );
 

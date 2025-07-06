@@ -25,29 +25,29 @@ export class Request extends NativeRequest {
   static enrichRequest(request: Request): Request {
     request.validate = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
       }
 
-      return validateSchema(inputSchema, request.body, safe);
+      return validateSchema(inputSchema, request.body || {}, safe);
     };
 
     request.validateQuery = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
       }
 
-      return validateSchema(inputSchema, request.query, safe);
+      return validateSchema(inputSchema, request.query || {}, safe);
     };
 
     request.validateAll = <T extends TSchema>(
       inputSchema: T | ((schema: typeof Type) => T),
-      safe: boolean = false,
+      safe: boolean = false
     ): Static<T> => {
       if (typeof inputSchema === "function") {
         inputSchema = inputSchema(Type);
@@ -56,10 +56,10 @@ export class Request extends NativeRequest {
       return validateSchema(
         inputSchema,
         {
-          body: request.body,
-          query: request.query,
+          ...(request.body ? { body: request.body } : {}),
+          ...(request.query ? { query: request.query } : {}),
         },
-        safe,
+        safe
       );
     };
 
@@ -140,13 +140,13 @@ export class Request extends NativeRequest {
    */
   validate<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
     }
 
-    return validateSchema(inputSchema, this.body, safe);
+    return validateSchema(inputSchema, this.body || {}, safe);
   }
 
   /**
@@ -154,13 +154,13 @@ export class Request extends NativeRequest {
    */
   validateQuery<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
     }
 
-    return validateSchema(inputSchema, this.query, safe);
+    return validateSchema(inputSchema, this.query || {}, safe);
   }
 
   /**
@@ -168,7 +168,7 @@ export class Request extends NativeRequest {
    */
   validateAll<T extends TSchema>(
     inputSchema: T | ((schema: typeof Type) => T),
-    safe: boolean = false,
+    safe: boolean = false
   ): Static<T> {
     if (typeof inputSchema === "function") {
       inputSchema = inputSchema(Type);
@@ -177,10 +177,10 @@ export class Request extends NativeRequest {
     return validateSchema(
       inputSchema,
       {
-        body: this.body,
-        query: this.query,
+        ...(this.body ? { body: this.body } : {}),
+        ...(this.query ? { query: this.query } : {}),
       },
-      safe,
+      safe
     );
   }
 }

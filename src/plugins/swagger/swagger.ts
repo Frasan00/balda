@@ -58,12 +58,18 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const paths: Record<string, any> = {};
 
   for (const route of routes) {
+    const swaggerOptions: SwaggerRouteOptions | undefined =
+      route.swaggerOptions;
+
+    // Skip routes that are explicitly excluded from swagger
+    if (swaggerOptions?.excludeFromSwagger) {
+      continue;
+    }
+
     if (!paths[route.path]) {
       paths[route.path] = {};
     }
     const method = route.method.toLowerCase();
-    const swaggerOptions: SwaggerRouteOptions | undefined =
-      route.swaggerOptions;
     const operation: any = {
       summary: swaggerOptions?.name || `${method.toUpperCase()} ${route.path}`,
       description: swaggerOptions?.description || "",

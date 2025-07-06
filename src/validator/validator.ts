@@ -26,7 +26,7 @@ const ajv = addFormats(new Ajv(), [
 
 export const validateSchema = <T extends TSchema>(
   inputSchema: T,
-  data: Record<string, unknown>,
+  data: object,
   safe: boolean = false,
 ): Static<T> => {
   const validate = ajv.compile(inputSchema);

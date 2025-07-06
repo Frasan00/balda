@@ -66,19 +66,6 @@ export class ServerNode implements ServerInterface {
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);
-        if (!match) {
-          httpResponse.writeHead(routeNotFoundError.status, {
-            "Content-Type": "application/json",
-          });
-
-          httpResponse.end(
-            JSON.stringify({
-              error: routeNotFoundError.error,
-            })
-          );
-          return;
-        }
-
         const requestUrl = `http://${req.headers.host}${req.url}`;
         const request = new Request(requestUrl, {
           method: req.method,
@@ -96,11 +83,16 @@ export class ServerNode implements ServerInterface {
         request.ip = forwardedFor ?? req.socket.remoteAddress;
         const url = new URL(requestUrl);
         request.query = Object.fromEntries(url.searchParams.entries());
-        request.params = match.params;
+        request.params = match?.params ?? {};
 
         const response = await executeMiddlewareChain(
-          match.middleware,
-          match.handler,
+          match?.middleware ?? [],
+          match?.handler ?? ((_req, res) => {
+            res.status(404).json({
+              error: routeNotFoundError.error,
+            });
+          }),
+
           request
         );
 

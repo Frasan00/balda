@@ -25,3 +25,8 @@ export * from "./plugins/log/log";
 export * from "./plugins/file/file";
 export * from "./plugins/helmet/helmet";
 export * from "./plugins/urlencoded/urlencoded";
+
+// Router
+import type { ClientRouter } from "./server/router/router_type";
+import { router as routerInstance } from "./server/router/router";
+export const router = routerInstance as ClientRouter;

@@ -6,6 +6,7 @@ import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import { router } from "src/server/router/router";
 import type { Server } from "src/server/server";
+import { logger } from "src/logger/logger";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
@@ -89,7 +90,7 @@ export class MockServer {
       await executeMiddlewareChain(route.middleware, route.handler, req, res);
       return new MockResponse(res);
     } catch (error) {
-      this.server.logger.error(
+      logger.error(
         `Error processing mock request ${method} ${path}:`,
         error
       );

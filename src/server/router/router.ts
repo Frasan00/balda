@@ -152,6 +152,11 @@ export class Router {
     return { middleware: node.middleware, handler: node.handler, params };
   }
 
+  /**
+   * Apply global middlewares to all routes
+   * @param middlewares - The middlewares to apply
+   * @internal
+   */
   applyGlobalMiddlewaresToAllRoutes(
     middlewares: ServerRouteMiddleware[],
   ): void {

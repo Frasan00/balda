@@ -1,8 +1,9 @@
 import pino from "pino";
 import type { LoggerOptions } from "./logger_types";
 
-export const createLogger = (options?: LoggerOptions) => {
+const createBaseLogger = () => {
   const baseOptions: LoggerOptions = {
+    level: "info",
     formatters: {
       level: (label) => {
         return { level: label };
@@ -10,8 +11,18 @@ export const createLogger = (options?: LoggerOptions) => {
     },
   };
 
-  return pino({
-    ...baseOptions,
-    ...options,
-  });
+  return pino(baseOptions);
+};
+
+/**
+ * The logger instance, can be overridden by the `defineLoggerConfig` function
+ */
+export let logger = createBaseLogger();
+
+/**
+ * Define the logger config, this will override the logger instance with the given options
+ * @param options - The logger options
+ */
+export const defineLoggerConfig = (options?: LoggerOptions) => {
+  logger = pino(options);
 };

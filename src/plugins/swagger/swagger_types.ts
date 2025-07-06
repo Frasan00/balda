@@ -76,6 +76,8 @@ export type SwaggerRouteOptions = {
   description?: string;
   /** Deprecated flag */
   deprecated?: boolean;
+  /** Exclude from swagger */
+  excludeFromSwagger?: boolean;
 };
 
 export type Security =

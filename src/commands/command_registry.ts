@@ -1,8 +1,8 @@
-import { createLogger } from "../logger/logger";
 import { glob } from "glob";
 import type { Command } from "./base_command";
 import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import GenerateCommand from "src/commands/base_commands/generate_command";
+import { logger } from "src/logger/logger";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -21,7 +21,7 @@ import GenerateCommand from "src/commands/base_commands/generate_command";
 export class CommandRegistry {
   private commands: Map<string, typeof Command>;
   static commandsPattern = "commands/**/*.{ts,js}";
-  static logger = createLogger({ level: "debug" });
+  static logger = logger;
 
   /**
    * Private constructor to prevent direct instantiation

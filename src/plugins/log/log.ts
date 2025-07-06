@@ -1,4 +1,4 @@
-import { createLogger } from "src/logger/logger";
+import { logger } from "src/logger/logger";
 import type { LogOptions } from "src/plugins/log/log_types";
 import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
 import type { NextFunction } from "src/server/http/next";
@@ -10,21 +10,12 @@ import type { Response } from "src/server/http/response";
  * @warning Only json objects and strings are logged from the request and response.
  */
 export const log = (options?: LogOptions): ServerRouteMiddleware => {
-  const logger = createLogger({
-    formatters: {
-      level: (label) => {
-        return { level: label };
-      },
-    },
-    ...options?.pinoOptions,
-  });
-
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = req.body;
-
       if (options?.logRequest ?? true) {
         logger.info({
+          type: "request",
           requestId: req.id,
           method:
             (options?.requestPayload?.method ?? true) ? req.method : undefined,
@@ -35,7 +26,7 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
               ? req.headers
               : undefined,
           body:
-            (options?.requestPayload?.body ?? true)
+            (options?.requestPayload?.body ?? false)
               ? returnIfObjectOrString(body)
               : undefined,
         });
@@ -45,9 +36,17 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
 
       if (options?.logResponse ?? true) {
         logger.info({
+          type: "response",
           requestId: req.id,
-          status: res.responseStatus,
-          body: returnIfObjectOrString(res.getBody()),
+          status: options?.responsePayload?.status ?? res.responseStatus,
+          body:
+            (options?.responsePayload?.body ?? false)
+              ? returnIfObjectOrString(res.getBody())
+              : undefined,
+          headers:
+            (options?.responsePayload?.headers ?? false)
+              ? res.headers
+              : undefined,
         });
       }
     } catch (error) {
