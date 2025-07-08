@@ -45,7 +45,8 @@ import type {
 import { MockServer } from "src/mock/mock_server";
 import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import { routeNotFoundError } from "src/errors/errors_constants";
+import { RouteNotFoundError } from "src/errors/route_not_found";
+import { errorFactory } from "src/errors/error_factory";
 
 /**
  * The server class that is used to create and manage the server
@@ -454,7 +455,7 @@ export class Server implements ServerInterface {
   }
 
   /**
-   * Registers the not found routes for all routes
+   * Registers a not found route for all routes that are not defined
    * @internal
    */
   private registerNotFoundRoutes(): void {
@@ -462,9 +463,10 @@ export class Server implements ServerInterface {
       "GET",
       "*",
       [],
-      (_req, res) => {
-        res.status(404).json({
-          error: routeNotFoundError.error,
+      (req, res) => {
+        const notFoundError = new RouteNotFoundError(req.url, req.method);
+        res.notFound({
+          ...errorFactory(notFoundError),
         });
       },
       {
@@ -476,9 +478,10 @@ export class Server implements ServerInterface {
       "POST",
       "*",
       [],
-      (_req, res) => {
-        res.status(404).json({
-          error: routeNotFoundError.error,
+      (req, res) => {
+        const notFoundError = new RouteNotFoundError(req.url, req.method);
+        res.notFound({
+          ...errorFactory(notFoundError),
         });
       },
       {
@@ -490,9 +493,10 @@ export class Server implements ServerInterface {
       "PUT",
       "*",
       [],
-      (_req, res) => {
-        res.status(404).json({
-          error: routeNotFoundError.error,
+      (req, res) => {
+        const notFoundError = new RouteNotFoundError(req.url, req.method);
+        res.notFound({
+          ...errorFactory(notFoundError),
         });
       },
       {
@@ -504,9 +508,10 @@ export class Server implements ServerInterface {
       "PATCH",
       "*",
       [],
-      (_req, res) => {
-        res.status(404).json({
-          error: routeNotFoundError.error,
+      (req, res) => {
+        const notFoundError = new RouteNotFoundError(req.url, req.method);
+        res.notFound({
+          ...errorFactory(notFoundError),
         });
       },
       {
@@ -518,9 +523,10 @@ export class Server implements ServerInterface {
       "DELETE",
       "*",
       [],
-      (_req, res) => {
-        res.status(404).json({
-          error: routeNotFoundError.error,
+      (req, res) => {
+        const notFoundError = new RouteNotFoundError(req.url, req.method);
+        res.notFound({
+          ...errorFactory(notFoundError),
         });
       },
       {

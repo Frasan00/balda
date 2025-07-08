@@ -1,4 +1,4 @@
-import { routeNotFoundError } from "../../errors/errors_constants";
+import { RouteNotFoundError } from "src/errors/route_not_found";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
@@ -10,6 +10,7 @@ import type {
   ServerTapOptions,
 } from "./server_types";
 import { executeMiddlewareChain } from "./server_utils";
+import { errorFactory } from "src/errors/error_factory";
 
 export class ServerBun implements ServerInterface {
   port: number;
@@ -54,9 +55,9 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((_req, res) => {
-              res.status(404).json({
-                error: routeNotFoundError.error,
+            ((req, res) => {
+              res.notFound({
+                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
               });
             }),
           req as Request,

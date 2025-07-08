@@ -1,6 +1,5 @@
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
-import { fileTooLargeError } from "../../errors/errors_constants";
 import type {
   FilePluginOptions,
   FormFile,
@@ -10,6 +9,8 @@ import type { ServerRouteMiddleware } from "../../runtime/native_server/server_t
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
+import { FileTooLargeError } from "src/errors/file_too_large";
+import { errorFactory } from "src/errors/error_factory";
 
 /**
  * Middleware to handle multipart/form-data file uploads.
@@ -127,9 +128,15 @@ export const fileParser = (
 
         if (isFile) {
           if (options?.maxFileSize && part.data.length > options.maxFileSize) {
-            return res
-              .status(fileTooLargeError.status)
-              .json({ error: fileTooLargeError.error });
+            return res.badRequest({
+              ...errorFactory(
+                new FileTooLargeError(
+                  originalName,
+                  part.data.length,
+                  options.maxFileSize,
+                ),
+              ),
+            });
           }
 
           const contentTypeHeader = part.headers

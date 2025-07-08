@@ -1,5 +1,4 @@
 import { extname, join, resolve } from "node:path";
-import { routeNotFoundError } from "../../errors/errors_constants";
 import { mimeTypes } from "../../plugins/static/static_constants";
 import { nativeCwd } from "../../runtime/native_cwd";
 import { nativeFs } from "../../runtime/native_fs";
@@ -10,6 +9,9 @@ import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import { nativeFile } from "src/runtime/native_file";
 import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import { RouteNotFoundError } from "src/errors/route_not_found";
+import { errorFactory } from "src/errors/error_factory";
+import { MethodNotAllowedError } from "src/errors/method_not_allowed";
 
 /**
  * Creates a static file serving middleware and registers all routes for the given path (path + "/*")
@@ -41,7 +43,9 @@ export const serveStatic = (
 
 async function staticFileHandler(req: Request, res: Response, path: string) {
   if (req.method !== "GET" && req.method !== "HEAD") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      ...errorFactory(new MethodNotAllowedError(req.url, req.method)),
+    });
   }
 
   const wildcardPath = req.params["*"] || "";
@@ -50,7 +54,9 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
 
   const stats = await nativeFs.stat(resolvedPath);
   if (!stats.isFile) {
-    return res.notFound(routeNotFoundError.error);
+    return res.notFound({
+      ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+    });
   }
 
   const contentType = getContentType(extname(resolvedPath));

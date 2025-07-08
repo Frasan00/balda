@@ -2040,6 +2040,8 @@
         "npm:bun-types@^1.2.17",
         "npm:eslint@^9.29.0",
         "npm:glob@^11.0.3",
+        "npm:husky@^9.1.7",
+        "npm:lint-staged@^16.1.2",
         "npm:node-gyp@^11.2.0",
         "npm:pino@^9.7.0",
         "npm:prettier@^3.6.2",

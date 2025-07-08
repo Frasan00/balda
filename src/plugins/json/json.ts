@@ -1,10 +1,11 @@
-import { invalidJsonError } from "../../errors/errors_constants";
 import { canHaveBody } from "../../runtime/native_server/server_utils";
 import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { JsonOptions } from "./json_options";
+import { JsonNotValidError } from "src/errors/json_not_valid";
+import { errorFactory } from "src/errors/error_factory";
 
 /**
  * Middleware to parse the JSON body of the request. GET, DELETE and OPTIONS requests are not parsed.
@@ -34,8 +35,8 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
     try {
       req.body = JSON.parse(decodedBody);
     } catch (error) {
-      return res.status(invalidJsonError.status).json({
-        error: invalidJsonError.error,
+      return res.badRequest({
+        ...errorFactory(new JsonNotValidError(decodedBody)),
       });
     }
 

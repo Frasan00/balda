@@ -4,7 +4,6 @@ import {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
-import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
@@ -16,6 +15,8 @@ import type {
   ServerTapOptions,
 } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
+import { RouteNotFoundError } from "src/errors/route_not_found";
+import { errorFactory } from "src/errors/error_factory";
 
 async function pipeReadableStreamToNodeResponse(
   stream: ReadableStream,
@@ -62,7 +63,7 @@ export class ServerNode implements ServerInterface {
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);
-        const request = new Request(this.url, {
+        const request = new Request(`${this.url}${req.url}`, {
           method: req.method,
           body: canHaveBody(req.method)
             ? await this.readRequestBody(req)
@@ -84,8 +85,10 @@ export class ServerNode implements ServerInterface {
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((_req, res) => {
-              res.status(404).json({ error: routeNotFoundError.error });
+            ((req, res) => {
+              res.notFound({
+                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+              });
             }),
           request,
         );
