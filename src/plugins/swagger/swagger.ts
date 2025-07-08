@@ -57,18 +57,17 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const routes = router.getRoutes();
   const paths: Record<string, any> = {};
 
+  const components = {
+    ...globalOptions.components,
+    securitySchemes: globalOptions.securitySchemes || {},
+  };
+
   for (const route of routes) {
     const swaggerOptions: SwaggerRouteOptions | undefined =
       route.swaggerOptions;
+    if (swaggerOptions?.excludeFromSwagger) continue;
 
-    // Skip routes that are explicitly excluded from swagger
-    if (swaggerOptions?.excludeFromSwagger) {
-      continue;
-    }
-
-    if (!paths[route.path]) {
-      paths[route.path] = {};
-    }
+    if (!paths[route.path]) paths[route.path] = {};
     const method = route.method.toLowerCase();
     const operation: any = {
       summary: swaggerOptions?.name || `${method.toUpperCase()} ${route.path}`,
@@ -149,7 +148,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         };
       }
     }
-    // Default response if none provided
+
     if (Object.keys(operation.responses).length === 0) {
       operation.responses["200"] = {
         description: "Successful response",
@@ -161,29 +160,63 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       };
     }
 
+    // First we try route specific security
     if (swaggerOptions?.security) {
-      if (swaggerOptions.security.includes("none")) {
-        operation.security = [];
-      } else {
-        operation.security = swaggerOptions.security.map((sec) => {
-          if (sec === "apiKey") {
-            return { apiKey: [] };
-          }
-          if (sec === "bearer") {
-            return { bearer: [] };
-          }
-          if (sec === "oauth2") {
-            return { oauth2: [] };
-          }
-          if (sec === "openIdConnect") {
-            return { openIdConnect: [] };
-          }
-          return {};
-        });
+      const securityArr: any[] = [];
+      if (!Array.isArray(swaggerOptions.security)) {
+        swaggerOptions.security = [swaggerOptions.security];
       }
+
+      for (const sec of swaggerOptions.security) {
+        if (sec.type === "bearer") {
+          if (!components.securitySchemes.bearer) {
+            components.securitySchemes.bearer = {
+              type: "http",
+              scheme: "bearer",
+              bearerFormat: sec.bearerFormat || "JWT",
+              description: sec.description,
+            } as any;
+          }
+          securityArr.push({ bearer: [] });
+        } else if (sec.type === "apiKey") {
+          // Use sec.name as the scheme name
+          if (!components.securitySchemes[sec.name]) {
+            components.securitySchemes[sec.name] = {
+              type: "apiKey",
+              name: sec.name,
+              in: sec.in,
+              description: sec.description,
+            };
+          }
+          securityArr.push({ [sec.name]: [] });
+        } else if (sec.type === "oauth2") {
+          const schemeName = sec.name || "oauth2";
+          if (!components.securitySchemes[schemeName]) {
+            components.securitySchemes[schemeName] = {
+              type: "oauth2",
+              flows: sec.flows,
+              description: sec.description,
+            };
+          }
+          securityArr.push({ [schemeName]: [] });
+        } else if (sec.type === "openIdConnect") {
+          const schemeName = sec.name || "openIdConnect";
+          if (!components.securitySchemes[schemeName]) {
+            components.securitySchemes[schemeName] = {
+              type: "openIdConnect",
+              openIdConnectUrl: sec.openIdConnectUrl,
+              description: sec.description,
+            };
+          }
+          securityArr.push({ [schemeName]: [] });
+        }
+      }
+      if (securityArr.length) operation.security = securityArr;
+    } else if (globalOptions.security) {
+      // If no route specific security, we use the global security
+      operation.security = globalOptions.security;
     }
 
-    // Attach to path/method
     paths[route.path][method] = operation;
   }
 
@@ -197,7 +230,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     },
     servers: globalOptions.servers?.map((url) => ({ url })) || [{ url: "/" }],
     paths,
-    components: globalOptions.components || {},
+    components,
     security: globalOptions.security || [],
     tags: globalOptions.tags
       ? Object.entries(globalOptions.tags).map(([name, config]) => ({

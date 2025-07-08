@@ -24,13 +24,13 @@ export type SwaggerGlobalOptions = {
   /** Components (schemas, responses, parameters, etc.) */
   components?: Record<string, any>;
   /** Security schemes (OpenAPI 3.0 style) */
-  securitySchemes?: Record<string, SecurityScheme>;
+  securitySchemes?: Record<string, Security>;
   /** OpenID Connect configuration (discovery document) */
   openIdConnect?: OpenIDConnectConfig;
   /** API tags */
   tags?: Record<string, any>;
   /** Global security requirements */
-  security?: Array<Record<string, string[]>>;
+  security?: Security[];
   /** External documentation */
   externalDocs?: {
     description?: string;
@@ -71,7 +71,7 @@ export type SwaggerRouteOptions = {
   /** Errors for this route */
   errors?: Record<number, TSchema>;
   /** Security requirements for this route */
-  security?: Array<Security>;
+  security?: Security[] | Security;
   /** Description of the route */
   description?: string;
   /** Deprecated flag */
@@ -79,13 +79,6 @@ export type SwaggerRouteOptions = {
   /** Exclude from swagger */
   excludeFromSwagger?: boolean;
 };
-
-export type Security =
-  | "apiKey"
-  | "none"
-  | "bearer"
-  | "oauth2"
-  | "openIdConnect";
 
 export type OAuth2Flows = {
   implicit?: OAuth2Flow;
@@ -120,13 +113,35 @@ export type OpenIDConnectConfig = {
   codeChallengeMethodsSupported?: string[];
 };
 
-export type SecurityScheme = {
-  type: "apiKey" | "http" | "oauth2" | "openIdConnect" | "mutualTLS";
+export type Security =
+  | BearerOptions
+  | ApiKeyOptions
+  | OAuth2Options
+  | OpenIdConnectOptions;
+
+type BearerOptions = {
+  type: "bearer";
+  bearerFormat?: string;
+  description?: string;
+};
+
+type ApiKeyOptions = {
+  type: "apiKey";
+  name: string;
+  in: "header" | "query" | "cookie";
+  description?: string;
+};
+
+type OAuth2Options = {
+  type: "oauth2";
+  flows: OAuth2Flows;
   description?: string;
   name?: string;
-  in?: "header" | "query" | "cookie";
-  scheme?: string;
-  bearerFormat?: string;
-  flows?: OAuth2Flows;
-  openIdConnectUrl?: string;
+};
+
+type OpenIdConnectOptions = {
+  type: "openIdConnect";
+  openIdConnectUrl: string;
+  description?: string;
+  name?: string;
 };
