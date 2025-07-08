@@ -9,7 +9,7 @@ const server = new Server({
 });
 
 server.get("/", (_req, res) => {
-  res.text("Hello, world!");
+  res.json({ message: "Hello, world!" });
 });
 
 server.listen(({ port, host }) => {

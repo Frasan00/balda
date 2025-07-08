@@ -53,15 +53,27 @@ export class ServerBun implements ServerInterface {
 
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],
-          match?.handler ?? ((_req, res) => {
-            res.status(404).json({
-              error: routeNotFoundError.error,
-            });
-          }),
+          match?.handler ??
+            ((_req, res) => {
+              res.status(404).json({
+                error: routeNotFoundError.error,
+              });
+            }),
           req as Request,
         );
 
-        return response.nativeResponse;
+        const responseHeaders = response.headers;
+        if (responseHeaders["Content-Type"] === "application/json") {
+          return Response.json(response.getBody(), {
+            status: response.responseStatus,
+            headers: response.headers,
+          });
+        }
+
+        return new Response(response.getBody(), {
+          status: response.responseStatus,
+          headers: response.headers,
+        });
       },
       ...(rest as any),
     });

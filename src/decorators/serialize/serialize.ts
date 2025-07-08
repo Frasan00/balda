@@ -10,7 +10,10 @@ const SERIALIZE_METADATA = Symbol("serializeMetadata");
 
 export const serialize = (schema: TSchema, options?: SerializeOptions) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    let meta = MetadataStore.get(target, propertyKey) || { middlewares: [], route: {} };
+    let meta = MetadataStore.get(target, propertyKey) || {
+      middlewares: [],
+      route: {},
+    };
     if (!meta.documentation) {
       meta.documentation = {};
     }
@@ -32,7 +35,7 @@ export const serialize = (schema: TSchema, options?: SerializeOptions) => {
 
     descriptor.value[SERIALIZE_METADATA][status] = {
       schema,
-      safe: options?.safe ?? true
+      safe: options?.safe ?? true,
     };
 
     if (!descriptor.value[SERIALIZE_WRAPPED]) {
@@ -52,7 +55,11 @@ export const serialize = (schema: TSchema, options?: SerializeOptions) => {
             res.send(validateSchema(schema, body, safe));
           } catch (error) {
             if (error instanceof ValidationError) {
-              res.internalServerError({ received: body, schema, error: error.errors });
+              res.internalServerError({
+                received: body,
+                schema,
+                error: error.errors,
+              });
               return;
             }
 

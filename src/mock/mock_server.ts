@@ -29,7 +29,7 @@ export class MockServer {
   async request<T>(
     method: HttpMethod,
     path: string,
-    options: MockServerOptions = {}
+    options: MockServerOptions = {},
   ): Promise<MockResponse<T>> {
     const { headers = {}, query = {}, cookies = {}, ip } = options;
     this.validateOptions(options);
@@ -55,7 +55,7 @@ export class MockServer {
 
       const multipartBody = await this.formDataToMultipart(
         options.formData,
-        boundary
+        boundary,
       );
       body = multipartBody;
     }
@@ -66,7 +66,7 @@ export class MockServer {
     }
 
     const url = new URL(
-      `http://${this.server.host}:${this.server.port}${path}`
+      `http://${this.server.host}:${this.server.port}${path}`,
     );
     url.search = new URLSearchParams(query).toString();
 
@@ -90,10 +90,7 @@ export class MockServer {
       await executeMiddlewareChain(route.middleware, route.handler, req, res);
       return new MockResponse(res);
     } catch (error) {
-      logger.error(
-        `Error processing mock request ${method} ${path}:`,
-        error
-      );
+      logger.error(`Error processing mock request ${method} ${path}:`, error);
       const errorRes = new Response(500);
       errorRes.json({
         error: "Internal server error",
@@ -105,35 +102,35 @@ export class MockServer {
 
   async get<T>(
     path: string,
-    options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">
+    options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">,
   ): Promise<MockResponse<T>> {
     return this.request("GET", path, options);
   }
 
   async post<T>(
     path: string,
-    options?: MockServerOptions
+    options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("POST", path, options);
   }
 
   async put<T>(
     path: string,
-    options?: MockServerOptions
+    options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("PUT", path, options);
   }
 
   async patch<T>(
     path: string,
-    options?: MockServerOptions
+    options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("PATCH", path, options);
   }
 
   async delete<T>(
     path: string,
-    options?: Omit<MockServerOptions, "body" | "formData">
+    options?: Omit<MockServerOptions, "body" | "formData">,
   ): Promise<MockResponse<T>> {
     return this.request("DELETE", path, options);
   }
@@ -143,7 +140,7 @@ export class MockServer {
    */
   private async formDataToMultipart(
     formData: FormData,
-    boundary: string
+    boundary: string,
   ): Promise<Uint8Array> {
     const encoder = new TextEncoder();
     const buffers: Uint8Array[] = [];

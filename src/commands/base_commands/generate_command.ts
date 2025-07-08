@@ -33,11 +33,11 @@ export default class GenerateCommand extends Command {
     this.path = join(this.path, `${this.name}.ts`);
     await nativeFs.writeFile(
       this.path,
-      new TextEncoder().encode(commandTemplate)
+      new TextEncoder().encode(commandTemplate),
     );
 
     this.logger.info(
-      `Command ${this.name} created successfully at ${this.path}`
+      `Command ${this.name} created successfully at ${this.path}`,
     );
   }
 

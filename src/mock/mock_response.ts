@@ -20,7 +20,7 @@ export class MockResponse<T = any> {
   assertStatus(status: number): this {
     if (this.response.responseStatus !== status) {
       throw new Error(
-        `Expected status ${status}, but got ${this.response.responseStatus}`
+        `Expected status ${status}, but got ${this.response.responseStatus}`,
       );
     }
     return this;
@@ -29,7 +29,7 @@ export class MockResponse<T = any> {
   assertHeader(header: string, value: string): this {
     if (this.response.headers[header] !== value) {
       throw new Error(
-        `Expected header ${header} to be ${value}, but got ${this.response.headers[header]}`
+        `Expected header ${header} to be ${value}, but got ${this.response.headers[header]}`,
       );
     }
     return this;
@@ -38,7 +38,7 @@ export class MockResponse<T = any> {
   assertHeaderExists(header: string): this {
     if (!(header in this.response.headers)) {
       throw new Error(
-        `Expected header ${header} to exist, but it was not found`
+        `Expected header ${header} to exist, but it was not found`,
       );
     }
     return this;
@@ -47,7 +47,7 @@ export class MockResponse<T = any> {
   assertHeaderNotExists(header: string): this {
     if (header in this.response.headers) {
       throw new Error(
-        `Expected header ${header} to not exist, but it was found with value: ${this.response.headers[header]}`
+        `Expected header ${header} to not exist, but it was found with value: ${this.response.headers[header]}`,
       );
     }
     return this;

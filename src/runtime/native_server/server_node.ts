@@ -4,7 +4,6 @@ import {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
-import { Readable } from "node:stream";
 import { routeNotFoundError } from "../../errors/errors_constants";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
@@ -18,12 +17,9 @@ import type {
 } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
 
-/**
- * Handles chunk reading, writing, and error handling for ReadableStream responses.
- */
 async function pipeReadableStreamToNodeResponse(
   stream: ReadableStream,
-  res: ServerResponse
+  res: ServerResponse,
 ) {
   const reader = stream.getReader();
   try {
@@ -54,20 +50,19 @@ export class ServerNode implements ServerInterface {
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
+
     this.runtimeServer = createServer(
       async (
         req: IncomingMessage,
-        httpResponse: ServerResponse
+        httpResponse: ServerResponse,
       ): Promise<void> => {
-        // User input handler
         if (this.tapOptions) {
           const { options } = this.tapOptions as NodeTapOptions;
           await options?.(req);
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);
-        const requestUrl = `http://${req.headers.host}${req.url}`;
-        const request = new Request(requestUrl, {
+        const request = new Request(this.url, {
           method: req.method,
           body: canHaveBody(req.method)
             ? await this.readRequestBody(req)
@@ -81,37 +76,39 @@ export class ServerNode implements ServerInterface {
         }
 
         request.ip = forwardedFor ?? req.socket.remoteAddress;
-        const url = new URL(requestUrl);
-        request.query = Object.fromEntries(url.searchParams.entries());
+
+        const [_, search = ""] = req.url?.split("?", 2) ?? [];
+        request.query = Object.fromEntries(new URLSearchParams(search));
         request.params = match?.params ?? {};
 
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],
-          match?.handler ?? ((_req, res) => {
-            res.status(404).json({
-              error: routeNotFoundError.error,
-            });
-          }),
-
-          request
+          match?.handler ??
+            ((_req, res) => {
+              res.status(404).json({ error: routeNotFoundError.error });
+            }),
+          request,
         );
 
-        httpResponse.writeHead(response.responseStatus, response.headers);
-
-        if (response.nativeResponse.body instanceof Readable) {
-          response.nativeResponse.body.pipe(httpResponse);
-          return;
-        } else if (response.nativeResponse.body instanceof ReadableStream) {
-          pipeReadableStreamToNodeResponse(
-            response.nativeResponse.body,
-            httpResponse
-          );
-
+        let body = response.getBody();
+        if (body instanceof ReadableStream) {
+          pipeReadableStreamToNodeResponse(body, httpResponse);
           return;
         }
 
-        httpResponse.end(response.nativeResponse.body);
-      }
+        if (response.headers["Content-Type"] === "application/json") {
+          body = JSON.stringify(body);
+        } else if (typeof body === "string") {
+          body = body;
+        } else if (body instanceof Buffer || body instanceof Uint8Array) {
+          body = body;
+        } else {
+          body = String(body);
+        }
+
+        httpResponse.writeHead(response.responseStatus, response.headers);
+        httpResponse.end(body);
+      },
     );
   }
 
@@ -134,13 +131,9 @@ export class ServerNode implements ServerInterface {
   private async readRequestBody(req: IncomingMessage): Promise<string> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      req.on("data", (chunk) => {
-        chunks.push(Buffer.from(chunk));
-      });
+      req.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
       req.on("error", reject);
-      req.on("end", () => {
-        resolve(Buffer.concat(chunks).toString());
-      });
+      req.on("end", () => resolve(Buffer.concat(chunks).toString()));
     });
   }
 }

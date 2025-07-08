@@ -15,7 +15,7 @@ import type { Response } from "../../server/http/response";
  * @param options.parameterLimit Maximum number of parameters to parse. Defaults to 1000.
  */
 export const urlencoded = (
-  options?: UrlEncodedOptions
+  options?: UrlEncodedOptions,
 ): ServerRouteMiddleware => {
   const opts: Required<UrlEncodedOptions> = {
     limit: 1024 * 1024,
@@ -54,13 +54,13 @@ export const urlencoded = (
  */
 async function parseUrlEncodedBody(
   req: Request,
-  opts: Required<UrlEncodedOptions>
+  opts: Required<UrlEncodedOptions>,
 ): Promise<void> {
   const arrayBuffer = req.rawBody!;
 
   if (arrayBuffer.byteLength > opts.limit) {
     throw new Error(
-      `Body size ${arrayBuffer.byteLength} exceeds limit ${opts.limit}`
+      `Body size ${arrayBuffer.byteLength} exceeds limit ${opts.limit}`,
     );
   }
 
@@ -75,13 +75,13 @@ async function parseUrlEncodedBody(
  */
 function parseUrlEncodedString(
   str: string,
-  opts: Required<UrlEncodedOptions>
+  opts: Required<UrlEncodedOptions>,
 ): Record<string, any> {
   const result: Record<string, any> = {};
   const searchParams = new URLSearchParams(str);
   if (searchParams.size > opts.parameterLimit) {
     throw new Error(
-      `Too many parameters: ${searchParams.size} exceeds limit ${opts.parameterLimit}`
+      `Too many parameters: ${searchParams.size} exceeds limit ${opts.parameterLimit}`,
     );
   }
 
@@ -106,7 +106,7 @@ function parseUrlEncodedString(
 function setNestedValue(
   obj: Record<string, any>,
   key: string,
-  value: string
+  value: string,
 ): void {
   const keys = key.match(/\[([^\]]*)\]/g);
   if (!keys) {

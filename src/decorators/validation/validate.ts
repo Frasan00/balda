@@ -3,7 +3,10 @@ import { ValidationError } from "ajv";
 import { MetadataStore } from "../../metadata_store";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
-import type { CustomValidationError, ValidationOptions } from "./validate_types";
+import type {
+  CustomValidationError,
+  ValidationOptions,
+} from "./validate_types";
 
 /**
  * Decorator to validate request data using TypeBox schemas.

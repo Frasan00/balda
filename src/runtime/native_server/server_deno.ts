@@ -51,15 +51,27 @@ export class ServerDeno implements ServerInterface {
 
         const res = await executeMiddlewareChain(
           match?.middleware ?? [],
-          match?.handler ?? ((_req, res) => {
-            res.status(404).json({
-              error: routeNotFoundError.error,
-            });
-          }),
+          match?.handler ??
+            ((_req, res) => {
+              res.status(404).json({
+                error: routeNotFoundError.error,
+              });
+            }),
           req as Request,
         );
 
-        return res.nativeResponse;
+        const responseHeaders = res.headers;
+        if (responseHeaders["Content-Type"] === "application/json") {
+          return Response.json(res.getBody(), {
+            status: res.responseStatus,
+            headers: res.headers,
+          });
+        }
+
+        return new Response(res.getBody(), {
+          status: res.responseStatus,
+          headers: res.headers,
+        });
       },
       ...rest,
     });

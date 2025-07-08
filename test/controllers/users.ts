@@ -6,7 +6,8 @@ import { del } from "src/decorators/handlers/del";
 import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import { serialize } from "src/decorators/serialize/serialize";
-import { Type, Static } from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
+import type { Static } from "@sinclair/typebox";
 import { validate } from "src/index";
 
 const users = [
@@ -45,7 +46,9 @@ export class UsersController {
 
   @get("/:id")
   @serialize(UserResponse)
-  @serialize(Type.Object({ error: Type.Literal("User not found") }), { status: 404 })
+  @serialize(Type.Object({ error: Type.Literal("User not found") }), {
+    status: 404,
+  })
   async show(req: Request, res: Response) {
     const user = users.find((user) => user.id === Number(req.params.id));
     if (!user) {
@@ -57,12 +60,14 @@ export class UsersController {
 
   @post("/")
   @validate.body(UserResponse)
-  @serialize(Type.Object({ error: Type.Literal("User already exists") }), { status: 409 })
+  @serialize(Type.Object({ error: Type.Literal("User already exists") }), {
+    status: 409,
+  })
   @serialize(UserResponse)
   async create(
     _req: Request,
     res: Response,
-    body: Static<typeof UserResponse>
+    body: Static<typeof UserResponse>,
   ) {
     const alreadyExists = users.find((user) => user.email === body.email);
     if (alreadyExists) {
@@ -75,7 +80,9 @@ export class UsersController {
 
   @patch("/:id")
   @validate.body(Type.Partial(UserResponse))
-  @serialize(Type.Object({ error: Type.Literal("User not found") }), { status: 404 })
+  @serialize(Type.Object({ error: Type.Literal("User not found") }), {
+    status: 404,
+  })
   @serialize(UserResponse)
   async update(req: Request, res: Response, body: Static<typeof UserResponse>) {
     const user = users.find((user) => user.id === Number(req.params.id));

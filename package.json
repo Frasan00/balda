@@ -29,7 +29,8 @@
     "test": "vitest",
     "test:bun": "bun test",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/bun": "^1.2.17",
@@ -39,6 +40,8 @@
     "autocannon": "^8.0.0",
     "bun-types": "^1.2.17",
     "eslint": "^9.29.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "node-gyp": "^11.2.0",
     "prettier": "^3.6.2",
     "socket.io": "^4.8.1",
@@ -52,6 +55,9 @@
   },
   "bin": {
     "balda": "lib/cli.js"
+  },
+  "lint-staged": {
+    "*.ts": ["prettier --write"]
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.37",
