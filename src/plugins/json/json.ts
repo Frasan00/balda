@@ -21,13 +21,11 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
     const arrayBuffer = req.rawBody;
 
     if (!arrayBuffer) {
-      req.body = {};
       return next();
     }
 
     const byteLength = arrayBuffer.byteLength;
     if (!byteLength) {
-      req.body = {};
       return next();
     }
 
