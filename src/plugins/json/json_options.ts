@@ -7,6 +7,12 @@ export interface JsonOptions {
   sizeLimit?: number;
 
   /**
+   * If true, the JSON body will be parsed as an empty object if it is empty.
+   * Default: false (body will be undefined)
+   */
+  parseEmptyBodyAsObject?: boolean;
+
+  /**
    * The encoding to use when decoding the request body.
    * Default: "utf-8"
    */
