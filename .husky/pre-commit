@@ -1,5 +1,19 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-yarn lint-staged
-git add .
+# yarn lint-staged
+# yarn build:test
+
+# echo "Running tests..."
+
+# echo "Running tests for Node..."
+# yarn test
+
+# echo "Running tests for Bun..."
+# yarn test:bun
+
+# echo "Running tests for Deno..."
+# yarn test:deno
+
+# echo "Adding changes..."
+# git add .

@@ -1,12 +1,12 @@
+import { logger } from "src/logger/logger";
 import { MockResponse } from "src/mock/mock_response";
 import { MockServerOptions } from "src/mock/mock_server_types";
 import { HttpMethod } from "src/runtime/native_server/server_types";
-import { executeMiddlewareChain } from "src/runtime/native_server/server_utils";
+import { canHaveBody, executeMiddlewareChain } from "src/runtime/native_server/server_utils";
 import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import { router } from "src/server/router/router";
 import type { Server } from "src/server/server";
-import { logger } from "src/logger/logger";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
@@ -49,6 +49,10 @@ export class MockServer {
     let body = options.body;
     let contentType = "application/json";
 
+    if (body && typeof body === "object" && !(body instanceof Uint8Array) && !(body instanceof ArrayBuffer)) {
+      body = JSON.stringify(body);
+    }
+
     if (options.formData) {
       const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
       contentType = `multipart/form-data; boundary=${boundary}`;
@@ -72,7 +76,7 @@ export class MockServer {
 
     const req = new Request(url.toString(), {
       method: method.toUpperCase(),
-      body,
+      body: canHaveBody(method) ? body : undefined,
       headers: {
         "content-type": contentType,
         ...headers,
@@ -84,10 +88,8 @@ export class MockServer {
     req.cookies = cookies;
     req.ip = ip;
 
-    const res = new Response();
-
     try {
-      await executeMiddlewareChain(route.middleware, route.handler, req, res);
+      const res = await executeMiddlewareChain(route.middleware, route.handler, req);
       return new MockResponse(res);
     } catch (error) {
       logger.error(`Error processing mock request ${method} ${path}:`, error);

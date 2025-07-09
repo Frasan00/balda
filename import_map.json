@@ -1,6 +1,7 @@
 {
   "imports": {
     "src/": "./src/",
-    "test/": "./test/"
+    "test/": "./test/",
+    "path": "node:path"
   }
 }

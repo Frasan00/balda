@@ -1,4 +1,4 @@
-import type { Server as HttpServer, IncomingMessage } from "http";
+import type { Server as HttpServer, IncomingMessage } from "node:http";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";

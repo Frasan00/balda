@@ -1,11 +1,11 @@
-import { canHaveBody } from "../../runtime/native_server/server_utils";
+import { errorFactory } from "src/errors/error_factory";
+import { JsonNotValidError } from "src/errors/json_not_valid";
 import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
+import { canHaveBody } from "../../runtime/native_server/server_utils";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { JsonOptions } from "./json_options";
-import { JsonNotValidError } from "src/errors/json_not_valid";
-import { errorFactory } from "src/errors/error_factory";
 
 /**
  * Middleware to parse the JSON body of the request. GET, DELETE and OPTIONS requests are not parsed.
@@ -18,25 +18,44 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
     }
 
     const sizeLimit = options?.sizeLimit ?? 5 * 1024 * 1024;
-    const customErrorMessage = {
-      status: 413,
-      message: "ERR_REQUEST_BODY_TOO_LARGE",
-      ...options?.customErrorMessage,
-    };
-
     const arrayBuffer = req.rawBody;
-    if (arrayBuffer && arrayBuffer.byteLength > sizeLimit) {
+
+    if (!arrayBuffer) {
+      req.body = {};
+      return next();
+    }
+
+    const byteLength = arrayBuffer.byteLength;
+    if (!byteLength) {
+      req.body = {};
+      return next();
+    }
+
+    if (byteLength > sizeLimit) {
+      const customErrorMessage = {
+        status: 413,
+        message: "ERR_REQUEST_BODY_TOO_LARGE",
+        ...options?.customErrorMessage,
+      };
+
       return res.status(customErrorMessage.status).json({
         error: customErrorMessage.message,
       });
     }
 
-    const decodedBody = new TextDecoder().decode(arrayBuffer);
     try {
+      const encoding = options?.encoding ?? "utf-8";
+      const decodedBody = new TextDecoder(encoding).decode(arrayBuffer);
       req.body = JSON.parse(decodedBody);
     } catch (error) {
+      if (error instanceof SyntaxError) {
+        return res.badRequest({
+          ...errorFactory(new JsonNotValidError("Invalid JSON syntax")),
+        });
+      }
+
       return res.badRequest({
-        ...errorFactory(new JsonNotValidError(decodedBody)),
+        ...errorFactory(new JsonNotValidError("Invalid request body encoding")),
       });
     }
 
@@ -44,17 +63,36 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
   };
 };
 
-function isJsonRequest(req: Request) {
-  const applicationJsonRegex = /^application\/json/;
-  let contentType =
-    req.headers.get("content-type") ?? req.headers.get("Content-Type");
-  if (!contentType || !contentType.length) {
+function isJsonRequest(req: Request): boolean {
+  const contentType = getContentType(req);
+  if (!contentType) {
     return false;
   }
 
-  if (Array.isArray(contentType)) {
-    contentType = contentType[0];
+  const mimeType = parseMimeType(contentType);
+  return mimeType === "application/json";
+}
+
+function getContentType(req: Request): string | null {
+  const contentType = req.headers.get("content-type") ?? req.headers.get("Content-Type");
+  if (!contentType) {
+    return null;
   }
 
-  return applicationJsonRegex.test(contentType ?? "");
+  if (Array.isArray(contentType)) {
+    return contentType[0] || null;
+  }
+
+  return contentType;
+}
+
+function parseMimeType(contentType: string): string {
+  const trimmed = contentType.trim();
+  const semicolonIndex = trimmed.indexOf(";");
+
+  if (semicolonIndex === -1) {
+    return trimmed.toLowerCase();
+  }
+
+  return trimmed.substring(0, semicolonIndex).trim().toLowerCase();
 }

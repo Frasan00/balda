@@ -445,8 +445,8 @@ export class Server implements ServerInterface {
     }
 
     await this.importControllers();
-    this.registerNotFoundRoutes();
     this.applyPlugins(this.options.plugins);
+    this.registerNotFoundRoutes();
     if (this.globalMiddlewares.length) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
     }

@@ -47,7 +47,3 @@ server.setErrorHandler((_req, res, next, error) => {
 });
 
 export const mockServer = await server.getMockServer();
-
-server.listen(({ url }) => {
-  logger.info(`Server is running on ${url}`);
-});

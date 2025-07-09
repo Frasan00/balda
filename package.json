@@ -28,6 +28,7 @@
     "format": "prettier --write \"**/*.ts\"",
     "test": "vitest",
     "test:bun": "bun test",
+    "test:deno": "deno task test",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "prepare": "husky"
