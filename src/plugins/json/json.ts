@@ -74,7 +74,8 @@ function isJsonRequest(req: Request): boolean {
 }
 
 function getContentType(req: Request): string | null {
-  const contentType = req.headers.get("content-type") ?? req.headers.get("Content-Type");
+  const contentType =
+    req.headers.get("content-type") ?? req.headers.get("Content-Type");
   if (!contentType) {
     return null;
   }

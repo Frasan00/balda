@@ -2,7 +2,10 @@ import { logger } from "src/logger/logger";
 import { MockResponse } from "src/mock/mock_response";
 import { MockServerOptions } from "src/mock/mock_server_types";
 import { HttpMethod } from "src/runtime/native_server/server_types";
-import { canHaveBody, executeMiddlewareChain } from "src/runtime/native_server/server_utils";
+import {
+  canHaveBody,
+  executeMiddlewareChain,
+} from "src/runtime/native_server/server_utils";
 import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import { router } from "src/server/router/router";
@@ -49,7 +52,12 @@ export class MockServer {
     let body = options.body;
     let contentType = "application/json";
 
-    if (body && typeof body === "object" && !(body instanceof Uint8Array) && !(body instanceof ArrayBuffer)) {
+    if (
+      body &&
+      typeof body === "object" &&
+      !(body instanceof Uint8Array) &&
+      !(body instanceof ArrayBuffer)
+    ) {
       body = JSON.stringify(body);
     }
 
@@ -89,7 +97,11 @@ export class MockServer {
     req.ip = ip;
 
     try {
-      const res = await executeMiddlewareChain(route.middleware, route.handler, req);
+      const res = await executeMiddlewareChain(
+        route.middleware,
+        route.handler,
+        req,
+      );
       return new MockResponse(res);
     } catch (error) {
       logger.error(`Error processing mock request ${method} ${path}:`, error);
