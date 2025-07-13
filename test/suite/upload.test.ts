@@ -12,7 +12,6 @@ describe("FileUploadController", () => {
     });
 
     expect(res.assertStatus(200));
-    console.log(res.body());
     expect(res.body()).toEqual({
       originalName: "test.txt",
       filename: "file",
