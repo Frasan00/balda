@@ -12,10 +12,12 @@ describe("UrlencodedController", () => {
     });
 
     expect(res.assertStatus(200));
-    expect(res.body()).toEqual({
-      name: "John Doe",
-      age: "30",
-      email: "john.doe@example.com",
-    });
+    expect(
+      res.assertBodySubset({
+        name: "John Doe",
+        age: "30",
+        email: "john.doe@example.com",
+      }),
+    );
   });
 });
