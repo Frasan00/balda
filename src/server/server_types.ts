@@ -97,7 +97,7 @@ export interface ServerInterface {
    * server.tmpPath("my-app"); // -> ${cwd}/tmp/my-app
    * ```
    */
-  tmpDir: (append?: string) => string;
+  tmpDir: (...append: string[]) => string;
 
   /**
    * Adds a GET route to the server, useful for defining simple global routes, use decorators to define more complex routes

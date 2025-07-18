@@ -1,4 +1,9 @@
-export class InMemoryStorage {
+export interface InMemoryStorageInterface {
+  get: (key: string) => Promise<number>;
+  set: (key: string, value: number) => Promise<void>;
+}
+
+export class InMemoryStorage implements InMemoryStorageInterface {
   private storage: Map<string, number> = new Map();
   private windowMs: number;
 
@@ -25,9 +30,4 @@ export class InMemoryStorage {
   protected async delete(key: string): Promise<void> {
     this.storage.delete(key);
   }
-}
-
-export interface InMemoryStorageInterface {
-  get: (key: string) => Promise<number>;
-  set: (key: string, value: number) => Promise<void>;
 }

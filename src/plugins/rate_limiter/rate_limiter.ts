@@ -49,7 +49,6 @@ export const rateLimiter = (
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = baseKeyOptions.type === "ip" ? req.ip : baseKeyOptions.key(req);
-
     const value = await storage.get(key!);
     if (value >= baseKeyOptions.limit!) {
       return res.status(baseKeyOptions.statusCode!).json({
@@ -58,6 +57,6 @@ export const rateLimiter = (
     }
 
     await storage.set(key!, value + 1);
-    await next();
+    return next();
   };
 };

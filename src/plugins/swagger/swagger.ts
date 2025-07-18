@@ -24,6 +24,7 @@ export const swagger = (
     tags: [],
     components: {},
     securitySchemes: {},
+    models: {},
   };
 
   if (typeof globalOptions !== "boolean") {
@@ -60,6 +61,14 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const components = {
     ...globalOptions.components,
     securitySchemes: globalOptions.securitySchemes || {},
+    schemas: globalOptions.models
+      ? {
+          ...(globalOptions.components?.schemas || {}),
+          ...globalOptions.models,
+        }
+      : globalOptions.components?.schemas
+        ? { ...globalOptions.components.schemas }
+        : undefined,
   };
 
   for (const route of routes) {
@@ -109,10 +118,29 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
 
     if (swaggerOptions?.requestBody) {
+      let routeBodyContentType = "application/json";
+      if (swaggerOptions.bodyType === "form-data") {
+        routeBodyContentType = "multipart/form-data";
+      } else if (swaggerOptions.bodyType === "urlencoded") {
+        routeBodyContentType = "application/x-www-form-urlencoded";
+      }
       operation.requestBody = {
         content: {
-          "application/json": {
+          [routeBodyContentType]: {
             schema: typeboxToOpenAPI(swaggerOptions.requestBody),
+          },
+        },
+        required: true,
+      };
+    } else if (
+      swaggerOptions?.bodyType &&
+      (swaggerOptions.bodyType.includes("form-data") ||
+        swaggerOptions.bodyType.includes("urlencoded"))
+    ) {
+      operation.requestBody = {
+        content: {
+          [swaggerOptions.bodyType]: {
+            schema: { type: "object" },
           },
         },
         required: true,

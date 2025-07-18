@@ -6,6 +6,36 @@ import type { TSchema } from "@sinclair/typebox/type";
 export type SwaggerUIType = "standard" | "redoc" | "rapidoc";
 
 /**
+ * Type of request body for a route
+ */
+export type SwaggerBodyType = "json" | "form-data" | "urlencoded";
+
+/**
+ * JSONSchema type for OpenAPI/AJV-compatible schemas
+ */
+export type JSONSchema = {
+  $id?: string;
+  $schema?: string;
+  type?: string | string[];
+  properties?: Record<string, JSONSchema>;
+  items?: JSONSchema | JSONSchema[];
+  required?: string[];
+  enum?: any[];
+  allOf?: JSONSchema[];
+  oneOf?: JSONSchema[];
+  anyOf?: JSONSchema[];
+  not?: JSONSchema;
+  additionalProperties?: boolean | JSONSchema;
+  description?: string;
+  format?: string;
+  default?: any;
+  title?: string;
+  definitions?: Record<string, JSONSchema>;
+  // ... (add more as needed for OpenAPI/AJV)
+  [key: string]: any;
+};
+
+/**
  * Global documentation options for the API (OpenAPI/Swagger style)
  */
 export type SwaggerGlobalOptions = {
@@ -52,6 +82,10 @@ export type SwaggerGlobalOptions = {
       url?: string;
     };
   };
+  /**
+   * OpenAPI models to be shown in the documentation. Must be valid OpenAPI/AJV JSONSchema objects.
+   */
+  models?: Record<string, JSONSchema>;
 };
 
 /**
@@ -78,6 +112,10 @@ export type SwaggerRouteOptions = {
   deprecated?: boolean;
   /** Exclude from swagger */
   excludeFromSwagger?: boolean;
+  /**
+   * The request body type for this route. Allowed values: 'json', 'form-data', 'urlencoded'. Defaults to 'json'.
+   */
+  bodyType?: SwaggerBodyType;
 };
 
 export type OAuth2Flows = {

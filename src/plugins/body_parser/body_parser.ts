@@ -22,6 +22,6 @@ export const bodyParser = (): ServerRouteMiddleware => {
       enumerable: true,
     });
 
-    await next();
+    return next();
   };
 };

@@ -1,11 +1,16 @@
+import { Type } from "@sinclair/typebox";
 import { controller, middleware, post } from "../../src/index";
 import { Request } from "../../src/server/http/request";
 import { Response } from "../../src/server/http/response";
 import { fileParser } from "src/plugins/file/file";
 
+const FileUploadBody = Type.Object({
+  file: Type.Uint8Array(),
+});
+
 @controller("/file")
 export class FileUploadController {
-  @post("/upload")
+  @post("/upload", { bodyType: "form-data", requestBody: FileUploadBody })
   @middleware(fileParser())
   async file(req: Request, res: Response) {
     const file = req.file("file");

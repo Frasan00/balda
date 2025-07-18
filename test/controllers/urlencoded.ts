@@ -5,7 +5,7 @@ import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 
 @controller("/urlencoded")
 export class UrlencodedController {
-  @post("/")
+  @post("/", { bodyType: "urlencoded" })
   @middleware(urlencoded())
   async urlencoded(req: Request, res: Response) {
     res.ok(req.body);

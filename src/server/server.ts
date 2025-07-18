@@ -58,11 +58,7 @@ export class Server implements ServerInterface {
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
   private options: Required<ServerOptions>;
-  private controllerImportBlacklistedPaths: string[] = [
-    "node_modules",
-    "dist",
-    ".config",
-  ];
+  private controllerImportBlacklistedPaths: string[] = ["node_modules"];
 
   /**
    * The constructor for the server
@@ -111,10 +107,10 @@ export class Server implements ServerInterface {
     return this.serverConnector.host;
   }
 
-  tmpDir(append?: string): string {
+  tmpDir(...append: string[]): string {
     const baseTmpDir = "tmp";
     if (append) {
-      return join(baseTmpDir, append);
+      return join(baseTmpDir, ...append);
     }
 
     return join(nativeCwd.getCwd(), baseTmpDir);
@@ -221,7 +217,6 @@ export class Server implements ServerInterface {
   }
 
   getNodeServer(): RuntimeServerMap<"node"> {
-    // TODO: BaldaError implementation
     if (runtime.type !== "node") {
       throw new Error(
         "Server is not using node runtime, you can't call `.getNodeServer()`",
@@ -436,7 +431,7 @@ export class Server implements ServerInterface {
   }
 
   /**
-   * Initializes the server by importing the controllers and applying the plugins, it's idempotent, it will not re-import the controllers or apply the plugins if the server was already initialized
+   * Initializes the server by importing the controllers and applying the plugins, it's idempotent, it will not re-import the controllers or apply the plugins if the server was already initialized (e.g. mockServer init)
    * @internal
    */
   private async bootstrap(): Promise<void> {
