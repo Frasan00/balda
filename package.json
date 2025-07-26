@@ -16,6 +16,9 @@
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {
+    "test:cron": "tsx test/cron/index.ts",
+    "test:cron:bun": "bun run --watch test/cron/index.ts",
+    "test:cron:deno": "deno task test:cron",
     "benchmark": "tsx test/benchmark/index.ts",
     "benchmark:bun": "bun run --watch test/benchmark/index.ts",
     "benchmark:deno": "deno task benchmark",
@@ -31,7 +34,10 @@
     "test:deno": "deno task test",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:dev": "cd docs && yarn start",
+    "docs:build": "cd docs && yarn build",
+    "docs:serve": "cd docs && yarn serve"
   },
   "devDependencies": {
     "@types/bun": "^1.2.17",
@@ -63,6 +69,14 @@
     "ajv-formats": "^3.0.1",
     "glob": "^11.0.3",
     "pino": "^9.7.0"
+  },
+  "peerDependencies": {
+    "node-cron": "^4.1.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "node-cron": true
+    }
   },
   "tags": [
     "framework",

@@ -2,6 +2,10 @@
   "imports": {
     "src/": "./src/",
     "test/": "./test/",
-    "path": "node:path"
+    "path": "node:path",
+    "glob": "npm:glob",
+    "node:path": "node:path",
+    "node:fs": "node:fs",
+    "node-cron": "npm:node-cron"
   }
 }

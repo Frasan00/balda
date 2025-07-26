@@ -20,6 +20,7 @@ import type { Response } from "./http/response";
 import type { MockServer } from "src/mock/mock_server";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 import type { swagger } from "../plugins/swagger/swagger";
+import type { CronService } from "src/cron/cron";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -190,6 +191,26 @@ export interface ServerInterface {
    * ```
    */
   exit: (code?: number) => void;
+
+  /**
+   * Sets the global cron error handler
+   * @param globalErrorHandler - The global cron error handler
+   */
+  setGlobalCronErrorHandler: (
+    globalErrorHandler: (
+      ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
+    ) => void,
+  ) => void;
+
+  /**
+   * Starts the registered cron jobs
+   * @param cronJobPatterns - The cron job patterns to that will be imported and registered before starting the cron jobs
+   * @param onStart - The callback to be called when the cron jobs are started
+   */
+  startRegisteredCrons: (
+    cronJobPatterns?: string[],
+    onStart?: () => void,
+  ) => Promise<void>;
 }
 
 export type StandardMethodOptions = {

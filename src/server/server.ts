@@ -47,6 +47,7 @@ import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 import { RouteNotFoundError } from "src/errors/route_not_found";
 import { errorFactory } from "src/errors/error_factory";
+import { CronService } from "src/cron/cron";
 
 /**
  * The server class that is used to create and manage the server
@@ -290,6 +291,27 @@ export class Server implements ServerInterface {
       }
     });
   }
+
+  setGlobalCronErrorHandler(
+    globalErrorHandler: (
+      ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
+    ) => void,
+  ): void {
+    CronService.globalErrorHandler = globalErrorHandler;
+  }
+
+  startRegisteredCrons = async (
+    cronJobPatterns?: string[],
+    onStart?: () => void,
+  ) => {
+    if (cronJobPatterns?.length) {
+      await CronService.massiveImportCronJobs(cronJobPatterns);
+    }
+
+    CronService.run().then(() => {
+      onStart?.();
+    });
+  };
 
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {

@@ -13,6 +13,7 @@ export * from "./server/http/next";
 export * from "./server/http/request";
 export * from "./server/http/response";
 export * from "./server/server";
+export * from "./server/server_types";
 
 // Plugins
 export * from "./plugins/cors/cors";
@@ -29,4 +30,7 @@ export * from "./plugins/urlencoded/urlencoded";
 // Router
 import type { ClientRouter } from "./server/router/router_type";
 import { router as routerInstance } from "./server/router/router";
+/**
+ * Main router instance that handles all route registrations inside the balda server
+ */
 export const router = routerInstance as ClientRouter;
