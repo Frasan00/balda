@@ -2,6 +2,7 @@ import { glob } from "glob";
 import type { Command } from "./base_command";
 import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import GenerateCommand from "src/commands/base_commands/generate_command";
+import GenerateCronCommand from "./base_commands/generate_cron";
 import { logger } from "src/logger/logger";
 
 /**
@@ -72,7 +73,11 @@ export class CommandRegistry {
       }
     }
 
-    const baseCommands = [GeneratePluginCommand, GenerateCommand];
+    const baseCommands = [
+      GeneratePluginCommand,
+      GenerateCommand,
+      GenerateCronCommand,
+    ];
     for (const command of baseCommands) {
       this.commands.set(command.commandName, command);
     }
