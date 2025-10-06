@@ -73,8 +73,6 @@ export class CronService {
       allFiles.push(...files);
     }
 
-    console.log(allFiles);
-
     await Promise.all(
       allFiles.map(async (file) => {
         await import(file).catch((error) => {
