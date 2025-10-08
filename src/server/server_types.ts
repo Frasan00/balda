@@ -1,14 +1,21 @@
+import type { CronService } from "src/cron/cron";
+import type { MockServer } from "src/mock/mock_server";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
-import { FilePluginOptions } from "src/plugins/file/file_types";
+import type { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { LogOptions } from "src/plugins/log/log_types";
 import type {
   RateLimiterKeyOptions,
   StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
+import type { SessionOptions } from "src/plugins/session/session_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
+import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
+import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
+import type { swagger } from "../plugins/swagger/swagger";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
@@ -17,10 +24,6 @@ import type {
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
-import type { MockServer } from "src/mock/mock_server";
-import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import type { swagger } from "../plugins/swagger/swagger";
-import type { CronService } from "src/cron/cron";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -35,6 +38,9 @@ export type ServerPlugin = {
     keyOptions?: RateLimiterKeyOptions;
     storageOptions?: StorageOptions;
   };
+  trustProxy?: TrustProxyOptions;
+  timeout?: TimeoutOptions;
+  session?: SessionOptions;
 };
 
 export interface ServerOptions {
@@ -158,6 +164,13 @@ export interface ServerInterface {
    * @param cb - The callback to be called when the signal event is received
    */
   on: (event: SignalEvent, cb: () => void) => void;
+
+  /**
+   * Register a signal event listener to the server, this is useful for handling signals like SIGINT, SIGTERM, etc.
+   * @param event - The signal event to listen for
+   * @param cb - The callback to be called when the signal event is received
+   */
+  once: (event: SignalEvent, cb: () => void) => void;
 
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered

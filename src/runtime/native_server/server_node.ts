@@ -4,6 +4,8 @@ import {
   IncomingMessage,
   ServerResponse,
 } from "node:http";
+import { errorFactory } from "src/errors/error_factory";
+import { RouteNotFoundError } from "src/errors/route_not_found";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
@@ -15,8 +17,6 @@ import type {
   ServerTapOptions,
 } from "./server_types";
 import { canHaveBody, executeMiddlewareChain } from "./server_utils";
-import { RouteNotFoundError } from "src/errors/route_not_found";
-import { errorFactory } from "src/errors/error_factory";
 
 async function pipeReadableStreamToNodeResponse(
   stream: ReadableStream,
@@ -99,12 +99,12 @@ export class ServerNode implements ServerInterface {
           return;
         }
 
-        if (response.headers["Content-Type"] === "application/json") {
-          body = JSON.stringify(body);
+        if (body instanceof Buffer || body instanceof Uint8Array) {
+          body = body;
         } else if (typeof body === "string") {
           body = body;
-        } else if (body instanceof Buffer || body instanceof Uint8Array) {
-          body = body;
+        } else if (response.headers["Content-Type"] === "application/json") {
+          body = JSON.stringify(body);
         } else {
           body = String(body);
         }

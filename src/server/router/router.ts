@@ -152,6 +152,57 @@ export class Router {
     return { middleware: node.middleware, handler: node.handler, params };
   }
 
+  get(
+    path: string,
+    middleware: ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ) {
+    return this.addOrUpdate("GET", path, middleware, handler, swaggerOptions);
+  }
+
+  post(
+    path: string,
+    middleware: ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ) {
+    return this.addOrUpdate("POST", path, middleware, handler, swaggerOptions);
+  }
+
+  patch(
+    path: string,
+    middleware: ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ) {
+    return this.addOrUpdate("PATCH", path, middleware, handler, swaggerOptions);
+  }
+
+  put(
+    path: string,
+    middleware: ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ) {
+    return this.addOrUpdate("PUT", path, middleware, handler, swaggerOptions);
+  }
+
+  delete(
+    path: string,
+    middleware: ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ) {
+    return this.addOrUpdate(
+      "DELETE",
+      path,
+      middleware,
+      handler,
+      swaggerOptions,
+    );
+  }
+
   /**
    * Apply global middlewares to all routes
    * @param middlewares - The middlewares to apply
@@ -171,4 +222,5 @@ export class Router {
   }
 }
 
+/** Main singleton router instance */
 export const router = new Router();

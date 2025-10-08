@@ -1,5 +1,4 @@
 import { CookieOptions } from "src/plugins/cookie/cookie_types";
-import { NativeResponse } from "../../runtime/native_response";
 import { nativeFile } from "src/runtime/native_file";
 import { getContentType } from "src/plugins/static/static";
 
@@ -403,14 +402,14 @@ export class Response {
   }
 
   /**
-   * Set a cookie for the response, does nothing if the cookie middleware is not registered
+   * Set a cookie for the response, cookie middleware must be registered in order to use this function
    */
-  cookie(_name: string, _value: string, _options?: CookieOptions): void {}
+  cookie?(_name: string, _value: string, _options?: CookieOptions): void;
 
   /**
-   * Clear a cookie for the response, does nothing if the cookie middleware is not registered
+   * Clear a cookie for the response, cookie middleware must be registered in order to use this function
    */
-  clearCookie(_name: string, _options?: CookieOptions): void {}
+  clearCookie?(_name: string, _options?: CookieOptions): void;
 
   /**
    * Get the body of the response

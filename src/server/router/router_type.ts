@@ -18,4 +18,7 @@ export interface Route {
 /**
  * The client router is a subset of the router that is used to define routes on library level by the end user.
  */
-export type ClientRouter = Omit<Router, "applyGlobalMiddlewaresToAllRoutes">;
+export type ClientRouter = Omit<
+  Router,
+  "applyGlobalMiddlewaresToAllRoutes" | "addOrUpdate"
+>;

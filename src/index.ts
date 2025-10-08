@@ -26,6 +26,9 @@ export * from "./plugins/log/log";
 export * from "./plugins/file/file";
 export * from "./plugins/helmet/helmet";
 export * from "./plugins/urlencoded/urlencoded";
+export * from "./plugins/session/session";
+export * from "./plugins/trust_proxy/trust_proxy";
+export * from "./plugins/timeout/timeout";
 
 // Router
 import type { ClientRouter } from "./server/router/router_type";

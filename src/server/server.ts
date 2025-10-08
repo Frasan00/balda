@@ -1,5 +1,9 @@
 import { glob } from "glob";
 import { join } from "node:path";
+import { CronService } from "src/cron/cron";
+import { errorFactory } from "src/errors/error_factory";
+import { RouteNotFoundError } from "src/errors/route_not_found";
+import { MockServer } from "src/mock/mock_server";
 import { cookie } from "src/plugins/cookie/cookie";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import { log } from "src/plugins/log/log";
@@ -9,7 +13,15 @@ import type {
   RateLimiterKeyOptions,
   StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
+import { session } from "src/plugins/session/session";
+import type { SessionOptions } from "src/plugins/session/session_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import { timeout as timeoutMw } from "src/plugins/timeout/timeout";
+import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
+import { trustProxy } from "src/plugins/trust_proxy/trust_proxy";
+import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
+import { urlencoded } from "src/plugins/urlencoded/urlencoded";
+import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
 import { logger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
@@ -42,12 +54,7 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
-import { MockServer } from "src/mock/mock_server";
-import { urlencoded } from "src/plugins/urlencoded/urlencoded";
-import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import { RouteNotFoundError } from "src/errors/route_not_found";
-import { errorFactory } from "src/errors/error_factory";
-import { CronService } from "src/cron/cron";
+import type { Route } from "src/server/router/router_type";
 
 /**
  * The server class that is used to create and manage the server
@@ -106,6 +113,10 @@ export class Server implements ServerInterface {
 
   get host(): string {
     return this.serverConnector.host;
+  }
+
+  get routes(): Route[] {
+    return router.getRoutes();
   }
 
   tmpDir(...append: string[]): string {
@@ -267,6 +278,24 @@ export class Server implements ServerInterface {
       case "bun":
       case "node":
         process.on(event, cb);
+        break;
+      case "deno":
+        Deno.addSignalListener(event as Deno.Signal, cb);
+        break;
+      default:
+        throw new Error(
+          `Unsupported runtime: ${runtime.type}, only node, bun and deno are supported`,
+        );
+    }
+  }
+
+  once(event: SignalEvent, cb: () => void): void;
+  once(event: string, cb: () => void): void;
+  once(event: SignalEvent | string, cb: () => void): void {
+    switch (runtime.type) {
+      case "bun":
+      case "node":
+        process.once(event, cb);
         break;
       case "deno":
         Deno.addSignalListener(event as Deno.Signal, cb);
@@ -444,6 +473,15 @@ export class Server implements ServerInterface {
           break;
         case "urlencoded":
           this.use(urlencoded(pluginOptions as UrlEncodedOptions));
+          break;
+        case "trustProxy":
+          this.use(trustProxy(pluginOptions as TrustProxyOptions));
+          break;
+        case "timeout":
+          this.use(timeoutMw(pluginOptions as TimeoutOptions));
+          break;
+        case "session":
+          this.use(session(pluginOptions as SessionOptions));
           break;
         default:
           logger.warn(`Unknown plugin ${pluginName}`);

@@ -31,7 +31,7 @@ export const cookie = (
 
       for (const [name, value] of Object.entries(rawCookies)) {
         if (opts.sign && opts.secret) {
-          const verified = verifySignedCookie(value, opts.secret);
+          const verified = await verifySignedCookie(value, opts.secret);
           if (verified !== false) {
             req.cookies[name] = verified;
           }
@@ -65,7 +65,9 @@ export const cookie = (
 function parseCookies(cookieString: string): Record<string, string> {
   const cookies: Record<string, string> = {};
 
-  if (!cookieString) return cookies;
+  if (!cookieString) {
+    return cookies;
+  }
 
   const pairs = cookieString.split(";");
 
@@ -82,13 +84,13 @@ function parseCookies(cookieString: string): Record<string, string> {
 /**
  * Set a cookie on the response
  */
-function setCookie(
+async function setCookie(
   res: Response,
   name: string,
   value: string,
   options: CookieOptions,
   middlewareOptions: Required<CookieMiddlewareOptions>,
-): void {
+): Promise<void> {
   let cookieValue = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
 
   // Add domain
@@ -131,9 +133,8 @@ function setCookie(
     cookieValue += `; Priority=${options.priority}`;
   }
 
-  // Sign cookie if enabled
   if (middlewareOptions.sign && middlewareOptions.secret) {
-    cookieValue = signCookie(cookieValue, middlewareOptions.secret);
+    cookieValue = await signCookie(cookieValue, middlewareOptions.secret);
   }
 
   // Set the Set-Cookie header
@@ -167,31 +168,67 @@ function clearCookie(
 }
 
 /**
- * Simple cookie signing (in production, use a proper crypto library)
+ * Sign a cookie value with HMAC-SHA256 using the secret
  */
-function signCookie(value: string, secret: string): string {
-  // This is a simple hash implementation
-  // In production, you should use a proper crypto library like crypto-js or Node.js crypto
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    const char = value.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
+async function signCookie(value: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const valueData = encoder.encode(value);
 
-  const signature = Math.abs(hash).toString(36);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, valueData);
+
+  const signatureArray = new Uint8Array(signatureBuffer);
+  const signature = Array.from(signatureArray)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
   return `${value}.${signature}`;
 }
 
 /**
  * Verify a signed cookie
  */
-function verifySignedCookie(value: string, secret: string): string | false {
+async function verifySignedCookie(
+  value: string,
+  secret: string,
+): Promise<string | false> {
   const parts = value.split(".");
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) {
+    return false;
+  }
 
   const [cookieValue, signature] = parts;
-  const expectedSignature = signCookie(cookieValue, secret).split(".")[1];
+
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const valueData = encoder.encode(cookieValue);
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const expectedSignatureBuffer = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    valueData,
+  );
+
+  const expectedSignatureArray = new Uint8Array(expectedSignatureBuffer);
+  const expectedSignature = Array.from(expectedSignatureArray)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 
   return signature === expectedSignature ? cookieValue : false;
 }

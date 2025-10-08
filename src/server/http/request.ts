@@ -67,35 +67,66 @@ export class Request extends NativeRequest {
       return request.files.find((file) => file.formName === fieldName) ?? null;
     };
 
+    request.files = [];
+    request.saveSession = async () => {};
+    request.destroySession = async () => {};
+    request.session = {};
     request.cookies = {};
-
     request.cookie = (name: string) => {
       return request.cookies[name];
     };
-
-    request.files = [];
 
     return request;
   }
 
   /**
-   * The file of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
+   * The file of the request.
+   * @fileParser middleware is required
    */
   file: (fieldName: string) => FormFile | null = (fieldName: string) => {
     return this.files.find((file) => file.formName === fieldName) ?? null;
   };
 
   /**
-   * The cookies of the request. Only available if the cookie middleware is used.
+   * The cookies of the request.
+   * @cookie middleware is required
    */
   cookies: Record<string, string> = {};
 
   /**
-   * The cookie of the request. Only available if the cookie middleware is used.
+   * The cookie of the request.
+   * @cookie middleware is required
    */
   cookie: (name: string) => string | undefined = (name: string) => {
     return this.cookies[name];
   };
+
+  /**
+   * tells if the request has timed out.
+   * @timeout middleware is required
+   */
+  timeout?: boolean;
+
+  /**
+   * The session of the request. Uses cookies to send the session id
+   * @cookie middleware is required
+   * @session middleware is required
+   */
+  session?: Record<string, any> = undefined;
+
+  /**
+   * The session of the request. Uses cookies to send the session id
+   * @cookie middleware is required
+   * @session middleware is required
+   */
+  saveSession: () => Promise<void> = async () => {};
+
+  /**
+   * The session of the request.
+   * @cookie middleware is required
+   * @session middleware is required
+   */
+  destroySession: () => Promise<void> = async () => {};
 
   /**
    * The ip address of the request.

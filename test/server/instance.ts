@@ -46,6 +46,18 @@ const serverBuilder = new Server({
     log: {
       logResponse: true,
     },
+    session: {
+      secret: "secret",
+      ttl: 60 * 60 * 24,
+    },
+    timeout: {
+      ms: 10000,
+    },
+    trustProxy: {
+      trust: true,
+      header: "x-forwarded-for",
+      hop: "first",
+    },
   },
 });
 
