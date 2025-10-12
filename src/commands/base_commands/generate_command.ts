@@ -31,6 +31,14 @@ export default class GenerateCommand extends Command {
   static async handle(): Promise<void> {
     const commandTemplate = this.getCommandTemplate();
     this.path = join(this.path, `${this.name}.ts`);
+
+    if (!(await nativeFs.exists(join(process.cwd(), this.path)))) {
+      await nativeFs.mkdir(
+        join(process.cwd(), this.path.split("/").slice(0, -1).join("/")),
+        { recursive: true },
+      );
+    }
+
     await nativeFs.writeFile(
       this.path,
       new TextEncoder().encode(commandTemplate),

@@ -31,6 +31,14 @@ export default class GeneratePluginCommand extends Command {
   static async handle(): Promise<void> {
     const pluginTemplate = this.getPluginTemplate();
     this.pluginPath = join(this.pluginPath, `${this.pluginName}.ts`);
+
+    if (!(await nativeFs.exists(join(process.cwd(), this.pluginPath)))) {
+      await nativeFs.mkdir(
+        join(process.cwd(), this.pluginPath.split("/").slice(0, -1).join("/")),
+        { recursive: true },
+      );
+    }
+
     await nativeFs.writeFile(
       this.pluginPath,
       new TextEncoder().encode(pluginTemplate),
