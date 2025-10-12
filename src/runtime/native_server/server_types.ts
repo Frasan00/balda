@@ -4,7 +4,13 @@ import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
 
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+export type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "PATCH"
+  | "OPTIONS";
 
 export type RuntimeServer =
   | HttpServer

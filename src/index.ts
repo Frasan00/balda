@@ -34,6 +34,6 @@ export * from "./plugins/timeout/timeout";
 import type { ClientRouter } from "./server/router/router_type";
 import { router as routerInstance } from "./server/router/router";
 /**
- * Main router instance that handles all route registrations inside the balda server
+ * Singleton main router instance that handles all route registrations inside the balda server
  */
 export const router = routerInstance as ClientRouter;

@@ -1,6 +1,35 @@
 import { runtime } from "./runtime";
 
 class NativeFs {
+  async mkdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+    switch (runtime.type) {
+      case "bun":
+      case "node":
+        const fs = await import("fs/promises");
+        await fs.mkdir(path, { recursive: options?.recursive ?? false });
+        break;
+      case "deno":
+        await Deno.mkdir(path, { recursive: options?.recursive ?? false });
+        break;
+    }
+  }
+
+  async exists(path: string): Promise<boolean> {
+    switch (runtime.type) {
+      case "node":
+        const fs = await import("fs");
+        return fs.existsSync(path);
+      case "bun":
+        return Bun.file(path).exists();
+      case "deno":
+        return Deno.stat(path)
+          .then(() => true)
+          .catch(() => false);
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
+
   async readFile(path: string): Promise<Uint8Array> {
     switch (runtime.type) {
       case "node":

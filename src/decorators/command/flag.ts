@@ -11,7 +11,7 @@ import type {
 } from "src/decorators/command/command_decorator_types";
 import { MetadataStore } from "src/metadata_store";
 
-export const flag = <T extends FlagType>(options: FlagOptions<T>) => {
+const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
   return (target: any, propertyKey: string) => {
     const currentCommandName = getCalledCommandName();
     // If the called command is not the same as the command class, skip the decorator
@@ -78,3 +78,20 @@ export const flag = <T extends FlagType>(options: FlagOptions<T>) => {
     });
   };
 };
+
+/** Shorthand decorator for boolean flags */
+flagDecorator.boolean = (options: Omit<FlagOptions<"boolean">, "type">) => {
+  return flagDecorator({ ...options, type: "boolean" });
+};
+
+/** Shorthand decorator for string flags */
+flagDecorator.string = (options: Omit<FlagOptions<"string">, "type">) => {
+  return flagDecorator({ ...options, type: "string" });
+};
+
+/** Shorthand decorator for number flags */
+flagDecorator.number = (options: Omit<FlagOptions<"number">, "type">) => {
+  return flagDecorator({ ...options, type: "number" });
+};
+
+export const flag = flagDecorator;

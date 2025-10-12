@@ -24,6 +24,7 @@ import type {
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
+import type { ClientRouter } from "src/server/router/router_type";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -54,6 +55,8 @@ export interface ServerOptions {
   plugins?: ServerPlugin;
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;
+  /** Whether to use the body parser plugin, by default it is true, it is really recommended to use it */
+  useBodyParser?: boolean;
   /**
    * The swagger options to apply to the server, by default swagger plugin is applied with standard options, you can pass a boolean to enable or disable the plugin or you can pass an object to apply custom options to the plugin
    * @example
@@ -97,6 +100,11 @@ export interface ServerInterface {
   tapOptions?: ServerTapOptions;
 
   /**
+   * Main singleton router instance of the server
+   */
+  router: ClientRouter;
+
+  /**
    * The path to the temporary directory, you can append a path to the temporary directory to get a new path.
    * It uses the current working directory of the runtime to get the base path.
    * @example
@@ -107,29 +115,39 @@ export interface ServerInterface {
   tmpDir: (...append: string[]) => string;
 
   /**
-   * Adds a GET route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   * Shorthand for the server.router.get method
    */
   get: (...args: any[]) => void;
 
   /**
-   * Adds a POST route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   * Shorthand for the server.router.post method
    */
   post: (...args: any[]) => void;
 
   /**
-   * Adds a PUT route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   * Shorthand for the server.router.put method
    */
   put: (...args: any[]) => void;
 
   /**
-   * Adds a PATCH route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   * Shorthand for the server.router.patch method
    */
   patch: (...args: any[]) => void;
 
   /**
-   * Adds a DELETE route to the server, useful for defining simple global routes, use decorators to define more complex routes
+   * Shorthand for the server.router.delete method
    */
   delete: (...args: any[]) => void;
+
+  /**
+   * Shorthand for the server.router.options method
+   */
+  options: (...args: any[]) => void;
+
+  /**
+   * Shorthand for the server.router.group method
+   */
+  group: (...args: any[]) => void;
 
   /**
    * Get the node server instance, you must be using node runtime to use this method

@@ -4,6 +4,8 @@ import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import GenerateCommand from "src/commands/base_commands/generate_command";
 import GenerateCronCommand from "./base_commands/generate_cron";
 import { logger } from "src/logger/logger";
+import InitCommand from "./base_commands/init_command";
+import ListCommand from "./base_commands/list_command";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -77,7 +79,10 @@ export class CommandRegistry {
       GeneratePluginCommand,
       GenerateCommand,
       GenerateCronCommand,
+      InitCommand,
+      ListCommand,
     ];
+
     for (const command of baseCommands) {
       this.commands.set(command.commandName, command);
     }

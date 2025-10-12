@@ -5,7 +5,7 @@ import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 
 /**
- * Middleware to parse the body of the request. GET, DELETE and OPTIONS requests are not parsed. Used internally by the server. Will always be applied.
+ * Middleware to parse the body of the request. GET, DELETE and OPTIONS requests are not parsed. Used internally by the server.
  * @internal
  */
 export const bodyParser = (): ServerRouteMiddleware => {

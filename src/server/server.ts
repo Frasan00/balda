@@ -44,7 +44,7 @@ import type {
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import { runtime } from "../runtime/runtime";
-import { router } from "./router/router";
+import { Router, router } from "./router/router";
 import { PROTECTED_KEYS } from "./server_constants";
 import type {
   ServerErrorHandler,
@@ -54,7 +54,8 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
-import type { Route } from "src/server/router/router_type";
+import type { ClientRouter, Route } from "src/server/router/router_type";
+import { NativeEnv } from "test/native_env";
 
 /**
  * The server class that is used to create and manage the server
@@ -62,18 +63,20 @@ import type { Route } from "src/server/router/router_type";
 export class Server implements ServerInterface {
   isListening: boolean;
 
+  readonly router: ClientRouter = router;
+
   private wasInitialized: boolean;
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
-  private options: Required<ServerOptions>;
+  private serverOptions: Required<ServerOptions>;
   private controllerImportBlacklistedPaths: string[] = ["node_modules"];
 
   /**
    * The constructor for the server
    * @warning Routes will only be defined after calling the `listen` method so you're free to define middlewares before calling it
    * @param options - The options for the server
-   * @param options.port - The port to listen on, defaults to 80
-   * @param options.host - The hostname to listen on, defaults to 0.0.0.0
+   * @param options.port - The port to listen on, if not provided, it will use the PORT environment variable, if not provided, it will default to 80
+   * @param options.host - The hostname to listen on, if not provided, it will use the HOST environment variable, if not provided, it will default to 0.0.0.0
    * @param options.controllerPatterns - The patterns to match for controllers, defaults to an empty array
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
    * @param options.logger - The logger to use for the server, by default a default logger is used
@@ -81,24 +84,27 @@ export class Server implements ServerInterface {
    */
   constructor(options?: ServerOptions) {
     this.wasInitialized = false;
-    this.options = {
-      port: options?.port ?? 80,
-      host: options?.host ?? "0.0.0.0",
+    this.serverOptions = {
+      port: options?.port ?? Number(new NativeEnv().get("PORT")) ?? 80,
+      host: options?.host ?? new NativeEnv().get("HOST") ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? [],
       plugins: options?.plugins ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
+      useBodyParser: options?.useBodyParser ?? true,
     };
 
     this.serverConnector = new ServerConnector({
       routes: [],
-      port: this.options.port,
-      host: this.options.host,
-      tapOptions: this.options.tapOptions,
+      port: this.serverOptions.port,
+      host: this.serverOptions.host,
+      tapOptions: this.serverOptions.tapOptions,
       runtime: runtime.type,
     });
 
-    this.use(bodyParser());
+    if (this.serverOptions.useBodyParser) {
+      this.use(bodyParser());
+    }
 
     this.isListening = false;
   }
@@ -228,6 +234,47 @@ export class Server implements ServerInterface {
     router.addOrUpdate("DELETE", path, middlewares, handler, swaggerOptions);
   }
 
+  options(path: string, handler: ServerRouteHandler): void;
+  options(
+    path: string,
+    options: StandardMethodOptions,
+    handler: ServerRouteHandler,
+  ): void;
+  options(
+    path: string,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler,
+  ): void {
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
+        maybeHandler,
+      );
+
+    router.addOrUpdate("OPTIONS", path, middlewares, handler, swaggerOptions);
+  }
+
+  group(
+    path: string,
+    middleware: ServerRouteMiddleware[] | ServerRouteMiddleware,
+    cb: (router: ClientRouter) => void,
+  ): void;
+  group(path: string, cb: (router: ClientRouter) => void): void;
+  group(
+    path: string,
+    middlewareOrCb:
+      | ServerRouteMiddleware[]
+      | ServerRouteMiddleware
+      | ((router: ClientRouter) => void),
+    maybeCb?: (router: ClientRouter) => void,
+  ): void {
+    this.router.group(
+      path,
+      middlewareOrCb as ServerRouteMiddleware[] | ServerRouteMiddleware,
+      maybeCb as (router: ClientRouter) => void,
+    );
+  }
+
   getNodeServer(): RuntimeServerMap<"node"> {
     if (runtime.type !== "node") {
       throw new Error(
@@ -352,8 +399,8 @@ export class Server implements ServerInterface {
     this.bootstrap().then(() => {
       this.serverConnector.listen();
       this.isListening = true;
-      if (this.options.swagger) {
-        swagger(this.options.swagger);
+      if (this.serverOptions.swagger) {
+        swagger(this.serverOptions.swagger);
       }
 
       cb?.({
@@ -379,7 +426,7 @@ export class Server implements ServerInterface {
   }
 
   private async importControllers(): Promise<void> {
-    const controllerPatterns = this.options.controllerPatterns;
+    const controllerPatterns = this.serverOptions.controllerPatterns;
     let controllerPaths = await Promise.all(
       controllerPatterns.map(async (pattern) => {
         return glob(pattern, {
@@ -500,7 +547,7 @@ export class Server implements ServerInterface {
     }
 
     await this.importControllers();
-    this.applyPlugins(this.options.plugins);
+    this.applyPlugins(this.serverOptions.plugins);
     this.registerNotFoundRoutes();
     if (this.globalMiddlewares.length) {
       router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
