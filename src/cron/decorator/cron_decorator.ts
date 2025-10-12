@@ -14,12 +14,22 @@ export const cron = (
   schedule: CronScheduleParams[0],
   options?: CronScheduleParams[2],
 ) => {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const originalMethod = descriptor.value;
+
+    const wrappedMethod = async (...args: any[]) => {
+      const instance = new target.constructor();
+      return await originalMethod.apply(instance, args);
+    };
+
     CronService.register(
       `${target.constructor.name}.${propertyKey}`,
       schedule,
-      originalMethod.bind(target),
+      wrappedMethod,
       options,
     );
 

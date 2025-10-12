@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -68,7 +68,7 @@
     "@sinclair/typebox": "^0.34.37",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "glob": "^11.0.3",
+    "glob": "^10.4.5",
     "pino": "^9.7.0"
   },
   "peerDependencies": {

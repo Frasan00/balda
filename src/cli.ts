@@ -53,23 +53,31 @@ export const cli = async () => {
   }
 };
 
-// Node needs to be handled differently because it does not natively support typescript
 if (typeof process !== "undefined") {
-  // Allows to import typescript esm files in node.js on the fly
-  import("node:module")
-    .then(({ register }) => {
-      register("ts-node/esm", import.meta.url);
-      cli().catch((err) => {
-        CommandRegistry.logger.error(err);
+  // Try to run CLI without ts-node first
+  cli().catch(async (err) => {
+    if (
+      err?.message?.includes("SyntaxError") ||
+      err?.code === "ERR_UNKNOWN_FILE_EXTENSION"
+    ) {
+      try {
+        const { register } = await import("node:module");
+        register("ts-node/esm", import.meta.url);
+        cli().catch((retryErr) => {
+          CommandRegistry.logger.error(retryErr);
+          process.exit(1);
+        });
+      } catch (registerErr) {
+        CommandRegistry.logger.error(
+          `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: npm install -D ts-node`,
+        );
         process.exit(1);
-      });
-    })
-    .catch(() => {
-      CommandRegistry.logger.error(
-        `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: npm install -D ts-node`,
-      );
+      }
+    } else {
+      CommandRegistry.logger.error(err);
       process.exit(1);
-    });
+    }
+  });
 } else {
   cli().catch((err) => {
     CommandRegistry.logger.error(err);
