@@ -40,3 +40,4 @@ todo.md
 vitest.config.ts
 tsconfig.json
 .nvmrc
+deno.lock
