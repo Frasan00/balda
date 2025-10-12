@@ -12,21 +12,16 @@ export default class GenerateCommand extends Command {
     "Example: npx balda generate-command my-command -p src/commands",
   ];
 
+  /**
+   * The path where the command will be generated
+   */
+  static path = "src/commands";
+
   @arg({
     description: "The name of the command to generate",
     required: true,
   })
   static name: string;
-
-  @flag({
-    description: "The path to the command to generate, default is src/commands",
-    type: "string",
-    aliases: "p",
-    name: "path",
-    required: false,
-    defaultValue: "src/commands",
-  })
-  static path: string;
 
   static async handle(): Promise<void> {
     const commandTemplate = this.getCommandTemplate();

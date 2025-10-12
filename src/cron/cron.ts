@@ -71,7 +71,7 @@ export class CronService {
 
     for (const pattern of cronJobPatterns) {
       const files = await glob(pattern, {
-        absolute: false,
+        absolute: true,
         cwd: nativeCwd.getCwd(),
       });
 

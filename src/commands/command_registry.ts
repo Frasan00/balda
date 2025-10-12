@@ -55,7 +55,7 @@ export class CommandRegistry {
     CommandRegistry.logger.info(`Loading commands from ${commandsPattern}`);
 
     const commandFiles = await glob(commandsPattern, {
-      absolute: false,
+      absolute: true,
       cwd: nativeCwd.getCwd(),
     });
 

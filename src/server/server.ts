@@ -430,7 +430,7 @@ export class Server implements ServerInterface {
     let controllerPaths = await Promise.all(
       controllerPatterns.map(async (pattern) => {
         return glob(pattern, {
-          absolute: false,
+          absolute: true,
           cwd: nativeCwd.getCwd(),
         });
       }),
