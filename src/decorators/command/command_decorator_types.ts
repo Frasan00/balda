@@ -61,5 +61,5 @@ export type FlagOptions<T extends FlagType> = {
    * A function to parse the flag value.
    * @default The value is returned as is.
    */
-  parse?: (value: string) => string;
+  parse?: (value: any) => InferFlagType<T>;
 };

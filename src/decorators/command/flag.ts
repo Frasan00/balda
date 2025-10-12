@@ -41,6 +41,12 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
       for (const flagName of possibleNames) {
         if (flagName in parsedFlags) {
           resolvedFlagValue = parsedFlags[flagName] as InferFlagType<T>;
+
+          if (options.type === "boolean") {
+            resolvedFlagValue = Boolean(resolvedFlagValue) as InferFlagType<T>;
+          } else if (options.type === "number") {
+            resolvedFlagValue = Number(resolvedFlagValue) as InferFlagType<T>;
+          }
           break;
         }
       }

@@ -54,7 +54,7 @@ export abstract class Command {
    * Enhanced help flag handler with rich formatting and command information
    */
   static handleHelpFlag(flags: FlagSchema): void {
-    const helpFlags = ["-h", "--help", "-?", "--usage"];
+    const helpFlags = ["-h", "--help"];
     const hasHelpFlag = Object.keys(flags).some((flag) =>
       helpFlags.includes(flag),
     );
@@ -118,7 +118,6 @@ export abstract class Command {
       "",
       `${colors.subtitle}Options:${colors.reset}`,
       `  ${colors.flag}-h, --help${colors.reset}     Show this help message`,
-      `  ${colors.flag}-?, --usage${colors.reset}    Show usage information`,
       "",
       `${colors.subtitle}Command Options:${colors.reset}`,
       `  ${colors.flag}keepAlive${colors.reset}      ${(options?.keepAlive ?? false) ? colors.success + "Enabled" + colors.reset : colors.error + "Disabled" + colors.reset}`,
