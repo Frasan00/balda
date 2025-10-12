@@ -8,6 +8,10 @@ export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
 export * from "./decorators/validation/validate";
 
+// Commands
+export * from "./commands/command_registry";
+export * from "./commands/base_command";
+
 // Server
 export * from "./server/http/next";
 export * from "./server/http/request";
