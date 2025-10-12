@@ -59,6 +59,19 @@ export class CommandRegistry {
       cwd: nativeCwd.getCwd(),
     });
 
+    // if even one file is ts check if ts-node is installed
+    if (commandFiles.some((file) => file.endsWith(".ts"))) {
+      try {
+        const { register } = await import("node:module");
+        register("ts-node/esm", import.meta.url);
+      } catch {
+        CommandRegistry.logger.error(
+          `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: \`npm install -D ts-node\``,
+        );
+        process.exit(1);
+      }
+    }
+
     for (const commandFile of commandFiles) {
       const command = await import(commandFile)
         .then((module) => {

@@ -69,7 +69,7 @@ if (typeof process !== "undefined") {
         });
       } catch (registerErr) {
         CommandRegistry.logger.error(
-          `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: npm install -D ts-node`,
+          `Failed to register ts-node/esm, you need to install it in your project in order to use typescript in the cli\ntry running: \`npm install -D ts-node\``,
         );
         process.exit(1);
       }
