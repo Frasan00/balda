@@ -47,6 +47,11 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
           } else if (options.type === "number") {
             resolvedFlagValue = Number(resolvedFlagValue) as InferFlagType<T>;
           }
+
+          if (options.parse) {
+            resolvedFlagValue = options.parse(resolvedFlagValue);
+          }
+
           break;
         }
       }
