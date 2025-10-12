@@ -7,6 +7,8 @@ export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
 export * from "./decorators/middleware/middleware";
 export * from "./decorators/validation/validate";
+export * from "./decorators/command/arg";
+export * from "./decorators/command/flag";
 
 // Commands
 export * from "./commands/command_registry";

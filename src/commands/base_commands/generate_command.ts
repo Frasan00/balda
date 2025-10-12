@@ -48,7 +48,7 @@ export default class GenerateCommand extends Command {
 
 export default class extends Command {
   static commandName = "${this.name}";
-  static description = "${this.description}";
+  static description = "Command description";
 
   static options: CommandOptions = {
     // Define your command options here
