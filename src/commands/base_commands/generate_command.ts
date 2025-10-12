@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { Command } from "src/commands/base_command";
 import { arg } from "src/decorators/command/arg";
-import { flag } from "src/decorators/command/flag";
 import { nativeFs } from "src/runtime/native_fs";
 
 export default class GenerateCommand extends Command {
@@ -45,13 +44,16 @@ export default class GenerateCommand extends Command {
   }
 
   static getCommandTemplate() {
-    return `import { Command } from "balda-js";
+    return `import { Command, CommandOptions } from "balda-js";
 
 export default class extends Command {
   static commandName = "${this.name}";
   static description = "${this.description}";
 
-  static options = {};
+  static options: CommandOptions = {
+    // Define your command options here
+    stayAlive: false,
+  };
 
   static async handle(): Promise<void> {
     // Implement your command logic here

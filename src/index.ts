@@ -11,6 +11,7 @@ export * from "./decorators/validation/validate";
 // Commands
 export * from "./commands/command_registry";
 export * from "./commands/base_command";
+export * from "./commands/command_types";
 
 // Server
 export * from "./server/http/next";
