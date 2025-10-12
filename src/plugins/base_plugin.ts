@@ -7,7 +7,7 @@ import type { ServerRouteMiddleware } from "src/runtime/native_server/server_typ
  *
  * @example
  * ```ts
- * import { Server, BasePlugin } from "balda";
+ * import { Server, BasePlugin } from "balda-js";
  *
  * export class MyPlugin extends BasePlugin {
  *   async handle(): Promise<ServerRouteMiddleware> {

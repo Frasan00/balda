@@ -42,7 +42,7 @@ export default class GenerateCommand extends Command {
   }
 
   static getCommandTemplate() {
-    return `import { Command } from "balda";
+    return `import { Command } from "balda-js";
 
 export default class extends Command {
   static commandName = "${this.name}";

@@ -12,7 +12,7 @@ type GetHandler = (req: Request, res: Response, ...args: any[]) => any;
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
- * import { get, controller, Request, Response } from "balda";
+ * import { get, controller, Request, Response } from "balda-js";
  *
  * @controller("/api")
  * class MyController {

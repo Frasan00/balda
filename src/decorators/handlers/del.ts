@@ -12,7 +12,7 @@ type DelHandler = (req: Request, res: Response, ...args: any[]) => any;
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
- * import { del, controller, Request, Response } from "balda";
+ * import { del, controller, Request, Response } from "balda-js";
  *
  * @controller("/api")
  * class MyController {

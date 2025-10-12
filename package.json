@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -16,6 +16,7 @@
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {
+    "publish": "yarn build:prod && npm publish --access public",
     "test:cron": "tsx test/cron/index.ts",
     "test:cron:bun": "bun run --watch test/cron/index.ts",
     "test:cron:deno": "deno task test:cron",

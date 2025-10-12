@@ -14,6 +14,7 @@ export * from "./server/http/request";
 export * from "./server/http/response";
 export * from "./server/server";
 export * from "./server/server_types";
+export * from "./runtime/native_server/server_types";
 
 // Plugins
 export * from "./plugins/cors/cors";
