@@ -36,29 +36,61 @@ class NativeArgs {
     return args.slice(scriptIndex + 1);
   }
 
-  /**
-   * Finds the index of the actual script being executed
-   * Handles cases like: node script.js, tsx script.ts, ts-node script.ts, yarn, yarn run, npx, etc.
-   */
   private findScriptIndex(args: string[]): number {
-    const scriptPatterns = [
-      /\.(js|ts|mjs|cjs)$/,
-      /^(tsx|ts-node|node|bun|yarn|npx|pnpm|npm)$/,
-    ];
+    if (args.length >= 3 && args[1].includes(".bin/")) {
+      return 1;
+    }
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
+      const argBasename = arg.split("/").pop() || arg;
 
       if (arg.startsWith("-")) {
         continue;
       }
 
-      if (arg === "yarn" && i + 1 < args.length && args[i + 1] === "run") {
+      if (
+        argBasename === "yarn" &&
+        i + 1 < args.length &&
+        args[i + 1] === "run"
+      ) {
         return i + 1;
       }
 
-      const isScript = scriptPatterns.some((pattern) => pattern.test(arg));
-      if (isScript) {
+      if (argBasename === "npx" && i + 1 < args.length) {
+        return i + 1;
+      }
+
+      if (argBasename === "yarn" || argBasename === "pnpm") {
+        return i;
+      }
+
+      if (
+        argBasename === "npm" &&
+        i + 1 < args.length &&
+        args[i + 1] === "run"
+      ) {
+        return i + 1;
+      }
+
+      if (
+        argBasename === "bun" &&
+        i + 1 < args.length &&
+        args[i + 1] === "run"
+      ) {
+        return i + 1;
+      }
+
+      if (/\.(js|ts|mjs|cjs)$/.test(arg)) {
+        return i;
+      }
+
+      if (/^(tsx|ts-node|node|bun)$/.test(argBasename)) {
+        for (let j = i + 1; j < args.length; j++) {
+          if (!args[j].startsWith("-") && /\.(js|ts|mjs|cjs)$/.test(args[j])) {
+            return j;
+          }
+        }
         return i;
       }
     }
