@@ -24,7 +24,7 @@ import ListCommand from "./base_commands/list_command";
  */
 export class CommandRegistry {
   private commands: Map<string, typeof Command>;
-  static commandsPattern = "commands/**/*.{ts,js}";
+  static commandsPattern = "src/commands/**/*.{ts,js}";
   static logger = logger;
 
   /**
