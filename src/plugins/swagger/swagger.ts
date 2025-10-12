@@ -1,4 +1,4 @@
-import { TSchema } from "@sinclair/typebox/type";
+import type { TSchema } from "@sinclair/typebox/type";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,

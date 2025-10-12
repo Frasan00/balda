@@ -1,8 +1,8 @@
 import {
   createServer,
-  Server as HttpServer,
-  IncomingMessage,
-  ServerResponse,
+  type Server as HttpServer,
+  type IncomingMessage,
+  type ServerResponse,
 } from "node:http";
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";

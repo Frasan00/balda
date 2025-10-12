@@ -1,9 +1,10 @@
 import { glob } from "glob";
-import type { Command } from "./base_command";
-import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import GenerateCommand from "src/commands/base_commands/generate_command";
-import GenerateCronCommand from "./base_commands/generate_cron";
+import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import { logger } from "src/logger/logger";
+import { nativeCwd } from "src/runtime/native_cwd";
+import type { Command } from "./base_command";
+import GenerateCronCommand from "./base_commands/generate_cron";
 import InitCommand from "./base_commands/init_command";
 import ListCommand from "./base_commands/list_command";
 
@@ -52,7 +53,11 @@ export class CommandRegistry {
 
   async loadCommands(commandsPattern: string) {
     CommandRegistry.logger.info(`Loading commands from ${commandsPattern}`);
-    const commandFiles = await glob(commandsPattern);
+
+    const commandFiles = await glob(commandsPattern, {
+      absolute: false,
+      cwd: nativeCwd.getCwd(),
+    });
 
     for (const commandFile of commandFiles) {
       const command = await import(commandFile)

@@ -1,8 +1,9 @@
 import { glob } from "glob";
-import { type TaskContext } from "node-cron";
+import type { TaskContext } from "node-cron";
 import { CronSchedule, CronScheduleParams } from "src/cron/cron.types";
 import { BaldaError } from "src/errors/balda_error";
 import { logger } from "src/logger/logger";
+import { nativeCwd } from "src/runtime/native_cwd";
 
 export class CronService {
   static scheduledJobs: CronSchedule[] = [];
@@ -69,7 +70,11 @@ export class CronService {
     const allFiles: string[] = [];
 
     for (const pattern of cronJobPatterns) {
-      const files = await glob(pattern);
+      const files = await glob(pattern, {
+        absolute: false,
+        cwd: nativeCwd.getCwd(),
+      });
+
       allFiles.push(...files);
     }
 
