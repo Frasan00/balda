@@ -5,8 +5,11 @@ export * from "./decorators/handlers/get";
 export * from "./decorators/handlers/patch";
 export * from "./decorators/handlers/post";
 export * from "./decorators/handlers/put";
+export * from "./decorators/serialize/serialize";
+export * from "./decorators/serialize/serialize_types";
 export * from "./decorators/middleware/middleware";
 export * from "./decorators/validation/validate";
+export * from "./decorators/validation/validate_types";
 export * from "./decorators/command/arg";
 export * from "./decorators/command/flag";
 

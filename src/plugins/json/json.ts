@@ -10,6 +10,7 @@ import type { JsonOptions } from "./json_options";
 /**
  * Middleware to parse the JSON body of the request. GET, DELETE and OPTIONS requests are not parsed.
  * @param options - The options for the JSON middleware.
+ * @param options.sizeLimit - The maximum size of the JSON body in bytes. Default: 5mb
  */
 export const json = (options?: JsonOptions): ServerRouteMiddleware => {
   return async (req: Request, res: Response, next: NextFunction) => {
