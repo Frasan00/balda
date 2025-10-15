@@ -104,7 +104,10 @@ export class MockServer {
       );
       return new MockResponse(res);
     } catch (error) {
-      logger.error(`Error processing mock request ${method} ${path}:`, error);
+      logger.error(
+        { error },
+        `Error processing mock request ${method} ${path}:`,
+      );
       const errorRes = new Response(500);
       errorRes.json({
         error: "Internal server error",

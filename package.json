@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -50,6 +50,7 @@
     "eslint": "^9.29.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
+    "node-cron": "^4.2.1",
     "node-gyp": "^11.2.0",
     "prettier": "^3.6.2",
     "socket.io": "^4.8.1",
@@ -65,11 +66,11 @@
     "balda": "lib/cli.js"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.34.37",
+    "@sinclair/typebox": "^0.34.41",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "glob": "^10.4.5",
-    "pino": "^9.7.0"
+    "glob": "^11.0.3",
+    "pino": "^10.0.0"
   },
   "peerDependencies": {
     "node-cron": "^4.1.0"
