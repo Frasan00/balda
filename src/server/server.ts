@@ -44,7 +44,7 @@ import type {
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import { runtime } from "../runtime/runtime";
-import { Router, router } from "./router/router";
+import { router } from "./router/router";
 import { PROTECTED_KEYS } from "./server_constants";
 import type {
   ServerErrorHandler,
@@ -419,14 +419,21 @@ export class Server implements ServerInterface {
   /**
    * Returns a mock server instance that can be used to test the server without starting it
    * It will import the controllers and apply the plugins to the mock server
+   * @param options - The options for the mock server
+   * @param options.controllerPatterns - Custom controller patterns to import if the mock server must not be initialized with the same controller patterns as the server
    */
-  async getMockServer(): Promise<MockServer> {
-    await this.bootstrap();
+  async getMockServer(
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ): Promise<MockServer> {
+    await this.bootstrap(options);
     return new MockServer(this);
   }
 
-  private async importControllers(): Promise<void> {
-    const controllerPatterns = this.serverOptions.controllerPatterns;
+  private async importControllers(
+    customControllerPatterns?: string[],
+  ): Promise<void> {
+    const controllerPatterns =
+      customControllerPatterns ?? this.serverOptions.controllerPatterns;
     let controllerPaths = await Promise.all(
       controllerPatterns.map(async (pattern) => {
         return glob(pattern, {
@@ -542,12 +549,14 @@ export class Server implements ServerInterface {
    * Initializes the server by importing the controllers and applying the plugins, it's idempotent, it will not re-import the controllers or apply the plugins if the server was already initialized (e.g. mockServer init)
    * @internal
    */
-  private async bootstrap(): Promise<void> {
+  private async bootstrap(
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ): Promise<void> {
     if (this.wasInitialized) {
       return;
     }
 
-    await this.importControllers();
+    await this.importControllers(options?.controllerPatterns);
     this.applyPlugins(this.serverOptions.plugins);
     this.registerNotFoundRoutes();
     if (this.globalMiddlewares.length) {

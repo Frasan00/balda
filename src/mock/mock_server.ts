@@ -15,7 +15,7 @@ import type { Server } from "src/server/server";
  * Allows to mock server requests without needing to start the server, useful for testing purposes
  */
 export class MockServer {
-  private readonly server: Server;
+  readonly server: Server;
 
   constructor(server: Server) {
     this.server = server;
@@ -29,7 +29,7 @@ export class MockServer {
    * @param options - Request options including body, headers, query params, etc.
    * @throws {Error} - If more than one of body, formData, urlencoded is provided
    */
-  async request<T>(
+  async request<T = any>(
     method: HttpMethod,
     path: string,
     options: MockServerOptions = {},
@@ -114,35 +114,35 @@ export class MockServer {
     }
   }
 
-  async get<T>(
+  async get<T = any>(
     path: string,
     options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">,
   ): Promise<MockResponse<T>> {
     return this.request("GET", path, options);
   }
 
-  async post<T>(
+  async post<T = any>(
     path: string,
     options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("POST", path, options);
   }
 
-  async put<T>(
+  async put<T = any>(
     path: string,
     options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("PUT", path, options);
   }
 
-  async patch<T>(
+  async patch<T = any>(
     path: string,
     options?: MockServerOptions,
   ): Promise<MockResponse<T>> {
     return this.request("PATCH", path, options);
   }
 
-  async delete<T>(
+  async delete<T = any>(
     path: string,
     options?: Omit<MockServerOptions, "body" | "formData">,
   ): Promise<MockResponse<T>> {
