@@ -19,6 +19,7 @@ import type { swagger } from "../plugins/swagger/swagger";
 import type {
   RuntimeServerMap,
   ServerListenCallback,
+  ServerRouteHandler,
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
@@ -199,6 +200,11 @@ export interface ServerInterface {
    * @param errorHandler - The error handler to be applied to all routes
    */
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
+  /**
+   * Set the not found handler for the server
+   * @param notFoundHandler - The not found handler to be applied to all routes
+   */
+  setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests

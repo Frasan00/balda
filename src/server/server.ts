@@ -22,6 +22,8 @@ import { trustProxy } from "src/plugins/trust_proxy/trust_proxy";
 import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
 import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
+import type { ClientRouter, Route } from "src/server/router/router_type";
+import { NativeEnv } from "test/native_env";
 import { logger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
@@ -54,8 +56,6 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
-import type { ClientRouter, Route } from "src/server/router/router_type";
-import { NativeEnv } from "test/native_env";
 
 /**
  * The server class that is used to create and manage the server
@@ -70,6 +70,7 @@ export class Server implements ServerInterface {
   private globalMiddlewares: ServerRouteMiddleware[] = [];
   private serverOptions: Required<ServerOptions>;
   private controllerImportBlacklistedPaths: string[] = ["node_modules"];
+  private notFoundHandler?: ServerRouteHandler;
 
   /**
    * The constructor for the server
@@ -368,6 +369,20 @@ export class Server implements ServerInterface {
     });
   }
 
+  /**
+   * Sets a custom handler for 404 Not Found responses.
+   * If not set, the default RouteNotFoundError will be used.
+   *
+   * @param notFoundHandler - Optional handler to customize 404 responses
+   * @example
+   * server.setNotFoundHandler((req, res) => {
+   *   res.status(404).json({ error: "Custom not found message" });
+   * });
+   */
+  setNotFoundHandler(notFoundHandler?: ServerRouteHandler): void {
+    this.notFoundHandler = notFoundHandler;
+  }
+
   setGlobalCronErrorHandler(
     globalErrorHandler: (
       ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
@@ -567,83 +582,38 @@ export class Server implements ServerInterface {
   }
 
   /**
+   * Handles not found routes by delegating to custom handler or default error response
+   * @internal
+   */
+  private handleNotFound: ServerRouteHandler = (req, res) => {
+    if (this.notFoundHandler) {
+      this.notFoundHandler(req, res);
+      return;
+    }
+
+    const notFoundError = new RouteNotFoundError(req.url, req.method);
+    res.notFound({
+      ...errorFactory(notFoundError),
+    });
+  };
+
+  /**
    * Registers a not found route for all routes that are not defined
    * @internal
    */
   private registerNotFoundRoutes(): void {
-    router.addOrUpdate(
+    const methods = [
       "GET",
-      "*",
-      [],
-      (req, res) => {
-        const notFoundError = new RouteNotFoundError(req.url, req.method);
-        res.notFound({
-          ...errorFactory(notFoundError),
-        });
-      },
-      {
-        excludeFromSwagger: true,
-      },
-    );
-
-    router.addOrUpdate(
       "POST",
-      "*",
-      [],
-      (req, res) => {
-        const notFoundError = new RouteNotFoundError(req.url, req.method);
-        res.notFound({
-          ...errorFactory(notFoundError),
-        });
-      },
-      {
-        excludeFromSwagger: true,
-      },
-    );
-
-    router.addOrUpdate(
       "PUT",
-      "*",
-      [],
-      (req, res) => {
-        const notFoundError = new RouteNotFoundError(req.url, req.method);
-        res.notFound({
-          ...errorFactory(notFoundError),
-        });
-      },
-      {
-        excludeFromSwagger: true,
-      },
-    );
-
-    router.addOrUpdate(
       "PATCH",
-      "*",
-      [],
-      (req, res) => {
-        const notFoundError = new RouteNotFoundError(req.url, req.method);
-        res.notFound({
-          ...errorFactory(notFoundError),
-        });
-      },
-      {
-        excludeFromSwagger: true,
-      },
-    );
-
-    router.addOrUpdate(
       "DELETE",
-      "*",
-      [],
-      (req, res) => {
-        const notFoundError = new RouteNotFoundError(req.url, req.method);
-        res.notFound({
-          ...errorFactory(notFoundError),
-        });
-      },
-      {
+      "OPTIONS",
+    ] as const;
+    for (const method of methods) {
+      router.addOrUpdate(method, "*", [], this.handleNotFound, {
         excludeFromSwagger: true,
-      },
-    );
+      });
+    }
   }
 }
