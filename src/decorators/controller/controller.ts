@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import type { HttpMethod } from "../../runtime/native_server/server_types";
-import { MetadataStore } from "../../metadata_store";
-import { router } from "../../server/router/router";
 import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import { MetadataStore } from "../../metadata_store";
+import type { HttpMethod } from "../../runtime/native_server/server_types";
+import { router } from "../../server/router/router";
 
 /**
  * Decorator to mark a class as a controller, routes defined in the controller will be registered at import time when calling the `listen` method.
@@ -20,12 +20,14 @@ export const controller = (
     const classMeta = MetadataStore.get(target.prototype, "__class__");
     const classMiddlewares = classMeta?.middlewares || [];
     const metaMap = MetadataStore.getAll(target.prototype);
+    const instance = new target();
+
     for (const [propertyKey, meta] of metaMap.entries()) {
       if (!meta.route) {
         continue;
       }
 
-      const handler = target.prototype[propertyKey];
+      const handler = target.prototype[propertyKey].bind(instance);
       const fullPath = path ? join(path, meta.route.path) : meta.route.path;
 
       // Prepend class-level middlewares before route-level
