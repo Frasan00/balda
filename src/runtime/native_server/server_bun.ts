@@ -50,7 +50,7 @@ export class ServerBun implements ServerInterface {
           server.requestIP(req)?.address;
 
         // User input handler
-        await fetch?.call(this, req, server);
+        await fetch?.call(this, req as unknown as Request, server);
 
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],

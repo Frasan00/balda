@@ -74,7 +74,8 @@ export type ServerListenCallback = ({
  * Custom bun fetch call to be used as an hook inside Bun.serve method
  */
 type CustomBunFetch = (
-  ...options: Parameters<Bun.ServeOptions["fetch"]>
+  req: Request,
+  server: Bun.Server<unknown>,
 ) => Promise<void> | void;
 
 /**
@@ -83,8 +84,6 @@ type CustomBunFetch = (
 type CustomDenoFetch = (
   ...options: Parameters<Parameters<typeof Deno.serve>[0]["handler"]>
 ) => Promise<void> | void;
-
-type BunServeOptions = Bun.ServeFunctionOptions<unknown, any>;
 
 /**
  * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests
