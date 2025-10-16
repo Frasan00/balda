@@ -75,7 +75,7 @@ export type ServerListenCallback = ({
  */
 type CustomBunFetch = (
   req: Request,
-  server: Bun.Server<unknown>,
+  server: Bun.Server,
 ) => Promise<void> | void;
 
 /**
