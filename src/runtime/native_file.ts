@@ -2,10 +2,10 @@ import { runtime } from "./runtime";
 import fs from "node:fs/promises";
 
 class NativeFile {
-  file(path: string): any {
+  async file(path: string): Promise<Buffer | Uint8Array | ArrayBuffer> {
     switch (runtime.type) {
       case "bun":
-        return Bun.file(path);
+        return Bun.file(path).arrayBuffer();
       case "node":
         return fs.readFile(path);
       case "deno":

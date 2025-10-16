@@ -1,10 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { MemorySessionStore } from "src/plugins/session/session_store";
 import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
 import type { NextFunction } from "src/server/http/next";
 import type { Request } from "src/server/http/request";
 import type { Response } from "src/server/http/response";
 import type { SessionOptions, SessionStore } from "./session_types";
+import { nativeCrypto } from "src/runtime/native_crypto";
 
 /**
  * Session plugin middleware, used to store the session in the request and response objects
@@ -34,7 +34,7 @@ export const session = (options?: SessionOptions): ServerRouteMiddleware => {
     let sess = sid ? await store.get(sid) : undefined;
 
     if (!sid || !sess) {
-      sid ||= randomUUID();
+      sid ||= nativeCrypto.randomUUID();
       sess ||= {};
       await store.set(sid, sess, ttl);
       res.cookie?.(name, sid, cookieDefaults);

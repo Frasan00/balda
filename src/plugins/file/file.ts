@@ -1,5 +1,3 @@
-import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
 import type {
   FilePluginOptions,
   FormFile,
@@ -11,6 +9,8 @@ import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import { FileTooLargeError } from "src/errors/file_too_large";
 import { errorFactory } from "src/errors/error_factory";
+import { nativePath } from "src/runtime/native_path";
+import { nativeOs } from "src/runtime/native_os";
 
 /**
  * Middleware to handle multipart/form-data file uploads.
@@ -147,8 +147,11 @@ export const fileParser = (
             ? contentTypeHeader.split(":")[1].trim()
             : "application/octet-stream";
 
-          const extension = extname(originalName);
-          const tmpPath = join(tmpdir(), `${randomString(10)}${extension}`);
+          const extension = nativePath.extName(originalName);
+          const tmpPath = nativePath.join(
+            await nativeOs.tmpdir(),
+            `${randomString(10)}${extension}`,
+          );
           await nativeFs.writeFile(tmpPath, part.data);
           tmpPaths.push(tmpPath);
 

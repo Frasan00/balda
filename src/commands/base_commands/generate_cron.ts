@@ -1,8 +1,8 @@
-import { join } from "node:path";
 import { Command } from "src/commands/base_command";
 import { arg } from "src/decorators/command/arg";
 import { flag } from "src/decorators/command/flag";
 import { nativeFs } from "src/runtime/native_fs";
+import { nativePath } from "src/runtime/native_path";
 
 export default class GenerateCron extends Command {
   static commandName = "generate-cron";
@@ -30,7 +30,7 @@ export default class GenerateCron extends Command {
 
   static async handle(): Promise<void> {
     const cronTemplate = this.getCronTemplate();
-    this.path = join(this.path, `${this.fileName}.ts`);
+    this.path = nativePath.join(this.path, `${this.fileName}.ts`);
     await nativeFs.writeFile(this.path, new TextEncoder().encode(cronTemplate));
 
     this.logger.info(

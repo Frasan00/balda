@@ -19,7 +19,11 @@ export type RuntimeServer =
 
 export type RuntimeServerMap<T extends RunTimeType> = T extends "node"
   ? HttpServer
-  : never;
+  : T extends "bun"
+    ? ReturnType<typeof Bun.serve>
+    : T extends "deno"
+      ? ReturnType<typeof Deno.serve>
+      : never;
 
 export interface ServerConnectInput {
   /** The port to listen on, defaults to 80 */
@@ -64,7 +68,7 @@ export type ServerListenCallback = ({
   port: number;
   host: string;
   url: string;
-}) => void;
+}) => Promise<void> | void;
 
 /**
  * Custom bun fetch call to be used as an hook inside Bun.serve method

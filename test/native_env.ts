@@ -13,4 +13,21 @@ export class NativeEnv {
         throw new Error(`Unsupported runtime: ${runtime.type}`);
     }
   }
+
+  getEnvironment(): Record<string, string> {
+    switch (runtime.type) {
+      case "node":
+        return Object.fromEntries(
+          Object.entries(process.env).filter(
+            ([_, value]) => value !== undefined,
+          ),
+        ) as Record<string, string>;
+      case "bun":
+        return Object.fromEntries(
+          Object.entries(Bun.env).filter(([_, value]) => value !== undefined),
+        ) as Record<string, string>;
+      case "deno":
+        return Deno.env.toObject();
+    }
+  }
 }

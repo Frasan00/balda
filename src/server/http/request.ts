@@ -2,7 +2,7 @@ import { type Static, type TSchema, Type } from "@sinclair/typebox";
 import type { FormFile } from "src/plugins/file/file_types";
 import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
-import { randomUUID } from "node:crypto";
+import { nativeCrypto } from "src/runtime/native_crypto";
 
 /**
  * The request object.
@@ -161,7 +161,7 @@ export class Request extends NativeRequest {
    */
   get id(): string {
     if (!this._id) {
-      this._id = randomUUID();
+      this._id = nativeCrypto.randomUUID();
     }
 
     return this._id;

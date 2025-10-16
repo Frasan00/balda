@@ -1,15 +1,28 @@
 import { runtime } from "./runtime";
 
 class NativeFs {
-  async mkdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+  async mkdir(
+    path: string,
+    options?: { recursive?: boolean; mode?: number | string },
+  ): Promise<void> {
     switch (runtime.type) {
       case "bun":
       case "node":
-        const fs = await import("fs/promises");
-        await fs.mkdir(path, { recursive: options?.recursive ?? false });
+        const fs = await import("node:fs/promises");
+        await fs.mkdir(path, {
+          recursive: options?.recursive ?? false,
+          mode: options?.mode,
+        });
         break;
       case "deno":
-        await Deno.mkdir(path, { recursive: options?.recursive ?? false });
+        if (typeof options?.mode === "string") {
+          options.mode = Number.parseInt(options.mode);
+        }
+
+        await Deno.mkdir(path, {
+          recursive: options?.recursive ?? false,
+          mode: options?.mode,
+        });
         break;
     }
   }

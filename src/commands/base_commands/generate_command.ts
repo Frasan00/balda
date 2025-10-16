@@ -1,7 +1,7 @@
-import { join } from "node:path";
 import { Command } from "src/commands/base_command";
 import { arg } from "src/decorators/command/arg";
 import { nativeFs } from "src/runtime/native_fs";
+import { nativePath } from "src/runtime/native_path";
 
 export default class GenerateCommand extends Command {
   static commandName = "generate-command";
@@ -24,11 +24,14 @@ export default class GenerateCommand extends Command {
 
   static async handle(): Promise<void> {
     const commandTemplate = this.getCommandTemplate();
-    this.path = join(this.path, `${this.name}.ts`);
+    this.path = nativePath.join(this.path, `${this.name}.ts`);
 
-    if (!(await nativeFs.exists(join(process.cwd(), this.path)))) {
+    if (!(await nativeFs.exists(nativePath.join(process.cwd(), this.path)))) {
       await nativeFs.mkdir(
-        join(process.cwd(), this.path.split("/").slice(0, -1).join("/")),
+        nativePath.join(
+          process.cwd(),
+          this.path.split("/").slice(0, -1).join("/"),
+        ),
         { recursive: true },
       );
     }

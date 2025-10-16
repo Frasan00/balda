@@ -106,6 +106,11 @@ export interface ServerInterface {
   router: ClientRouter;
 
   /**
+   * Get the environment variables of the server using the native environment variables of the current runtime
+   */
+  getEnvironment: () => Record<string, string>;
+
+  /**
    * The path to the temporary directory, you can append a path to the temporary directory to get a new path.
    * It uses the current working directory of the runtime to get the base path.
    * @example
@@ -114,6 +119,18 @@ export interface ServerInterface {
    * ```
    */
   tmpDir: (...append: string[]) => string;
+
+  /**
+   * Create a new directory
+   * @param path - The path to the directory
+   * @param options - The options to create the directory
+   * @param options.recursive - Whether to create the directory recursively
+   * @param options.mode - The mode of the directory
+   */
+  mkdir: (
+    path: string,
+    options?: { recursive?: boolean; mode?: number | string },
+  ) => Promise<void>;
 
   /**
    * Shorthand for the server.router.get method
@@ -157,6 +174,18 @@ export interface ServerInterface {
   getNodeServer: () => RuntimeServerMap<"node">;
 
   /**
+   * Get the bun server instance, you must be using bun runtime to use this method
+   * @throws if the runtime is not bun
+   */
+  getBunServer: () => RuntimeServerMap<"bun">;
+
+  /**
+   * Get the deno server instance, you must be using deno runtime to use this method
+   * @throws if the runtime is not deno
+   */
+  getDenoServer: () => RuntimeServerMap<"deno">;
+
+  /**
    * Embed the given key into the server instance, this is useful for embedding the server with custom context inside the server instance, you can extend the server with your own properties to type it
    * @param key - The key to embed
    * @param value - The value to embed
@@ -182,19 +211,20 @@ export interface ServerInterface {
    * @param event - The signal event to listen for
    * @param cb - The callback to be called when the signal event is received
    */
-  on: (event: SignalEvent, cb: () => void) => void;
+  on: (event: SignalEvent, cb: () => Promise<void> | void) => void;
 
   /**
    * Register a signal event listener to the server, this is useful for handling signals like SIGINT, SIGTERM, etc.
    * @param event - The signal event to listen for
    * @param cb - The callback to be called when the signal event is received
    */
-  once: (event: SignalEvent, cb: () => void) => void;
+  once: (event: SignalEvent, cb: () => Promise<void> | void) => void;
 
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
    */
   use: (middleware: ServerRouteMiddleware) => void;
+
   /**
    * Set the error handler for the server
    * @param errorHandler - The error handler to be applied to all routes

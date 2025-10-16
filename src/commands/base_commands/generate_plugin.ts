@@ -1,8 +1,8 @@
-import { join } from "node:path";
 import { Command } from "src/commands/base_command";
 import { arg } from "src/decorators/command/arg";
 import { flag } from "src/decorators/command/flag";
 import { nativeFs } from "src/runtime/native_fs";
+import { nativePath } from "src/runtime/native_path";
 
 export default class GeneratePluginCommand extends Command {
   static commandName = "generate-plugin";
@@ -30,11 +30,16 @@ export default class GeneratePluginCommand extends Command {
 
   static async handle(): Promise<void> {
     const pluginTemplate = this.getPluginTemplate();
-    this.pluginPath = join(this.pluginPath, `${this.pluginName}.ts`);
+    this.pluginPath = nativePath.join(this.pluginPath, `${this.pluginName}.ts`);
 
-    if (!(await nativeFs.exists(join(process.cwd(), this.pluginPath)))) {
+    if (
+      !(await nativeFs.exists(nativePath.join(process.cwd(), this.pluginPath)))
+    ) {
       await nativeFs.mkdir(
-        join(process.cwd(), this.pluginPath.split("/").slice(0, -1).join("/")),
+        nativePath.join(
+          process.cwd(),
+          this.pluginPath.split("/").slice(0, -1).join("/"),
+        ),
         { recursive: true },
       );
     }

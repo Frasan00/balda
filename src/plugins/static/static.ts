@@ -1,4 +1,4 @@
-import { extname, join, resolve } from "node:path";
+import { nativePath } from "src/runtime/native_path";
 import { errorFactory } from "src/errors/error_factory";
 import { MethodNotAllowedError } from "src/errors/method_not_allowed";
 import { RouteNotFoundError } from "src/errors/route_not_found";
@@ -49,8 +49,8 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
   }
 
   const wildcardPath = req.params["*"] || "";
-  const filePath = join(path, wildcardPath);
-  const resolvedPath = resolve(nativeCwd.getCwd(), filePath);
+  const filePath = nativePath.join(path, wildcardPath);
+  const resolvedPath = nativePath.resolve(nativeCwd.getCwd(), filePath);
 
   try {
     const stats = await nativeFs.stat(resolvedPath);
@@ -68,7 +68,7 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
     throw error;
   }
 
-  const contentType = getContentType(extname(resolvedPath));
+  const contentType = getContentType(nativePath.extName(resolvedPath));
   res.setHeader("Content-Type", contentType);
   const fileContent = await nativeFile.file(resolvedPath);
   res.raw(fileContent);

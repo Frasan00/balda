@@ -1,5 +1,4 @@
 import { glob } from "glob";
-import { join } from "node:path";
 import { CronService } from "src/cron/cron";
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
@@ -37,6 +36,7 @@ import type { JsonOptions } from "../plugins/json/json_options";
 import { serveStatic } from "../plugins/static/static";
 import { swagger } from "../plugins/swagger/swagger";
 import { nativeCwd } from "../runtime/native_cwd";
+import { nativePath } from "../runtime/native_path";
 import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
   RuntimeServerMap,
@@ -56,6 +56,7 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
+import { nativeFs } from "src/runtime/native_fs";
 
 /**
  * The server class that is used to create and manage the server
@@ -126,13 +127,20 @@ export class Server implements ServerInterface {
     return router.getRoutes();
   }
 
+  getEnvironment(): Record<string, string> {
+    return new NativeEnv().getEnvironment();
+  }
+
   tmpDir(...append: string[]): string {
     const baseTmpDir = "tmp";
-    if (append) {
-      return join(baseTmpDir, ...append);
-    }
+    return nativePath.join(baseTmpDir, ...append);
+  }
 
-    return join(nativeCwd.getCwd(), baseTmpDir);
+  async mkdir(
+    path: string,
+    options?: { recursive?: boolean; mode?: number | string },
+  ): Promise<void> {
+    await nativeFs.mkdir(path, options);
   }
 
   get(path: string, handler: ServerRouteHandler): void;
@@ -286,6 +294,26 @@ export class Server implements ServerInterface {
     return this.serverConnector.getServer("node");
   }
 
+  getBunServer(): RuntimeServerMap<"bun"> {
+    if (runtime.type !== "bun") {
+      throw new Error(
+        "Server is not using bun runtime, you can't call `.getBunServer()`",
+      );
+    }
+
+    return this.serverConnector.getServer("bun");
+  }
+
+  getDenoServer(): RuntimeServerMap<"deno"> {
+    if (runtime.type !== "deno") {
+      throw new Error(
+        "Server is not using deno runtime, you can't call `.getDenoServer()`",
+      );
+    }
+
+    return this.serverConnector.getServer("deno");
+  }
+
   embed(key: string, value: any): void {
     if (typeof key !== "string" || key.trim() === "") {
       throw new Error(
@@ -319,9 +347,9 @@ export class Server implements ServerInterface {
     }
   }
 
-  on(event: SignalEvent, cb: () => void): void;
-  on(event: string, cb: () => void): void;
-  on(event: SignalEvent | string, cb: () => void): void {
+  on(event: SignalEvent, cb: () => Promise<void> | void): void;
+  on(event: string, cb: () => Promise<void> | void): void;
+  on(event: SignalEvent | string, cb: () => Promise<void> | void): void {
     switch (runtime.type) {
       case "bun":
       case "node":
@@ -337,9 +365,9 @@ export class Server implements ServerInterface {
     }
   }
 
-  once(event: SignalEvent, cb: () => void): void;
-  once(event: string, cb: () => void): void;
-  once(event: SignalEvent | string, cb: () => void): void {
+  once(event: SignalEvent, cb: () => Promise<void> | void): void;
+  once(event: string, cb: () => Promise<void> | void): void;
+  once(event: SignalEvent | string, cb: () => Promise<void> | void): void {
     switch (runtime.type) {
       case "bun":
       case "node":
