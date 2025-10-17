@@ -31,6 +31,16 @@ export default class GenerateCron extends Command {
   static async handle(): Promise<void> {
     const cronTemplate = this.getCronTemplate();
     this.path = nativePath.join(this.path, `${this.fileName}.ts`);
+    if (!(await nativeFs.exists(nativePath.join(process.cwd(), this.path)))) {
+      await nativeFs.mkdir(
+        nativePath.join(
+          process.cwd(),
+          this.path.split("/").slice(0, -1).join("/"),
+        ),
+        { recursive: true },
+      );
+    }
+
     await nativeFs.writeFile(this.path, new TextEncoder().encode(cronTemplate));
 
     this.logger.info(

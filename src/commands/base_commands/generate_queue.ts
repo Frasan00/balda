@@ -46,6 +46,17 @@ export default class GenerateQueueCommand extends Command {
       this.path,
       `${toLowerSnakeCase(this.queueName)}.ts`,
     );
+
+    if (!(await nativeFs.exists(nativePath.join(process.cwd(), this.path)))) {
+      await nativeFs.mkdir(
+        nativePath.join(
+          process.cwd(),
+          this.path.split("/").slice(0, -1).join("/"),
+        ),
+        { recursive: true },
+      );
+    }
+
     await nativeFs.writeFile(
       this.path,
       new TextEncoder().encode(queueTemplate),

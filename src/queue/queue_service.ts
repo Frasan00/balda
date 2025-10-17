@@ -35,9 +35,8 @@ export class QueueService {
       return;
     }
 
-    for (const { name, topic, handler, provider } of this
-      .scheduledSubscribers) {
-      logger.info(`Subscribing to queue: ${String(topic)} with ${name}`);
+    for (const { topic, handler, provider } of this.scheduledSubscribers) {
+      logger.info(`Subscribing to queue: ${String(topic)}`);
       const pubsub = QueueManager.getProvider(provider);
       await pubsub.subscribe(topic, handler as any);
     }
