@@ -13,6 +13,8 @@ import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
 import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
+import type { ClientRouter } from "src/server/router/router_type";
+import { SyncOrAsync } from "src/type_util";
 import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
 import type { swagger } from "../plugins/swagger/swagger";
@@ -25,7 +27,6 @@ import type {
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
 import type { Response } from "./http/response";
-import type { ClientRouter } from "src/server/router/router_type";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -75,7 +76,7 @@ export type ServerErrorHandler = (
   res: Response,
   next: NextFunction,
   error: Error,
-) => void | Promise<void>;
+) => SyncOrAsync;
 
 export interface ServerInterface {
   /**
@@ -104,6 +105,21 @@ export interface ServerInterface {
    * Main singleton router instance of the server
    */
   router: ClientRouter;
+
+  /**
+   * Hash the given data using the native hash function of the current runtime
+   * @param data - The data to hash
+   * @returns The hashed data
+   */
+  hash: (data: string) => Promise<string>;
+
+  /**
+   * Compare the given data with the given hash using the native hash function of the current runtime
+   * @param hash - The hash to compare the data with
+   * @param data - The data to compare with the hash
+   * @returns Whether the data matches the hash
+   */
+  compareHash: (hash: string, data: string) => Promise<boolean>;
 
   /**
    * Get the environment variables of the server using the native environment variables of the current runtime
@@ -211,14 +227,14 @@ export interface ServerInterface {
    * @param event - The signal event to listen for
    * @param cb - The callback to be called when the signal event is received
    */
-  on: (event: SignalEvent, cb: () => Promise<void> | void) => void;
+  on: (event: SignalEvent, cb: () => SyncOrAsync) => void;
 
   /**
    * Register a signal event listener to the server, this is useful for handling signals like SIGINT, SIGTERM, etc.
    * @param event - The signal event to listen for
    * @param cb - The callback to be called when the signal event is received
    */
-  once: (event: SignalEvent, cb: () => Promise<void> | void) => void;
+  once: (event: SignalEvent, cb: () => SyncOrAsync) => void;
 
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
@@ -276,6 +292,16 @@ export interface ServerInterface {
    */
   startRegisteredCrons: (
     cronJobPatterns?: string[],
+    onStart?: () => void,
+  ) => Promise<void>;
+
+  /**
+   * Starts the registered queue handlers
+   * @param queueHandlerPatterns - The queue handler patterns to import and register before starting
+   * @param onStart - The callback to be called after subscribers are started
+   */
+  startRegisteredQueues: (
+    queueHandlerPatterns?: string[],
     onStart?: () => void,
   ) => Promise<void>;
 }

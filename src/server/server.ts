@@ -21,8 +21,12 @@ import { trustProxy } from "src/plugins/trust_proxy/trust_proxy";
 import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
 import { urlencoded } from "src/plugins/urlencoded/urlencoded";
 import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
+import { QueueService } from "src/queue/queue_service";
+import { NativeEnv } from "src/runtime/native_env";
+import { nativeFs } from "src/runtime/native_fs";
+import { nativeHash } from "src/runtime/native_hash";
 import type { ClientRouter, Route } from "src/server/router/router_type";
-import { NativeEnv } from "test/native_env";
+import { SyncOrAsync } from "src/type_util";
 import { logger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
@@ -56,7 +60,6 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
-import { nativeFs } from "src/runtime/native_fs";
 
 /**
  * The server class that is used to create and manage the server
@@ -72,6 +75,7 @@ export class Server implements ServerInterface {
   private serverOptions: Required<ServerOptions>;
   private controllerImportBlacklistedPaths: string[] = ["node_modules"];
   private notFoundHandler?: ServerRouteHandler;
+  private readonly nativeEnv: NativeEnv = new NativeEnv();
 
   /**
    * The constructor for the server
@@ -87,8 +91,8 @@ export class Server implements ServerInterface {
   constructor(options?: ServerOptions) {
     this.wasInitialized = false;
     this.serverOptions = {
-      port: options?.port ?? Number(new NativeEnv().get("PORT")) ?? 80,
-      host: options?.host ?? new NativeEnv().get("HOST") ?? "0.0.0.0",
+      port: options?.port ?? Number(this.nativeEnv.get("PORT")) ?? 80,
+      host: options?.host ?? this.nativeEnv.get("HOST") ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? [],
       plugins: options?.plugins ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
@@ -124,11 +128,19 @@ export class Server implements ServerInterface {
   }
 
   get routes(): Route[] {
-    return router.getRoutes();
+    return router.getRoutes() || [];
+  }
+
+  async hash(data: string): Promise<string> {
+    return nativeHash.hash(data);
+  }
+
+  async compareHash(hash: string, data: string): Promise<boolean> {
+    return nativeHash.compare(hash, data);
   }
 
   getEnvironment(): Record<string, string> {
-    return new NativeEnv().getEnvironment();
+    return this.nativeEnv.getEnvironment();
   }
 
   tmpDir(...append: string[]): string {
@@ -347,9 +359,9 @@ export class Server implements ServerInterface {
     }
   }
 
-  on(event: SignalEvent, cb: () => Promise<void> | void): void;
-  on(event: string, cb: () => Promise<void> | void): void;
-  on(event: SignalEvent | string, cb: () => Promise<void> | void): void {
+  on(event: SignalEvent, cb: () => SyncOrAsync): void;
+  on(event: string, cb: () => SyncOrAsync): void;
+  on(event: SignalEvent | string, cb: () => SyncOrAsync): void {
     switch (runtime.type) {
       case "bun":
       case "node":
@@ -365,9 +377,9 @@ export class Server implements ServerInterface {
     }
   }
 
-  once(event: SignalEvent, cb: () => Promise<void> | void): void;
-  once(event: string, cb: () => Promise<void> | void): void;
-  once(event: SignalEvent | string, cb: () => Promise<void> | void): void {
+  once(event: SignalEvent, cb: () => SyncOrAsync): void;
+  once(event: string, cb: () => SyncOrAsync): void;
+  once(event: SignalEvent | string, cb: () => SyncOrAsync): void {
     switch (runtime.type) {
       case "bun":
       case "node":
@@ -428,6 +440,24 @@ export class Server implements ServerInterface {
     }
 
     CronService.run().then(() => {
+      onStart?.();
+    });
+  };
+
+  /**
+   * Starts the registered queue handlers
+   * @param queueHandlerPatterns - The queue handler patterns to import and register before starting
+   * @param onStart - The callback to be called after subscribers are started
+   */
+  startRegisteredQueues = async (
+    queueHandlerPatterns?: string[],
+    onStart?: () => void,
+  ) => {
+    if (queueHandlerPatterns?.length) {
+      await QueueService.massiveImportQueues(queueHandlerPatterns);
+    }
+
+    QueueService.run().then(() => {
       onStart?.();
     });
   };

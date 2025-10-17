@@ -1,3 +1,4 @@
+import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
@@ -10,7 +11,6 @@ import type {
   ServerTapOptions,
 } from "./server_types";
 import { executeMiddlewareChain } from "./server_utils";
-import { errorFactory } from "src/errors/error_factory";
 
 export class ServerBun implements ServerInterface {
   port: number;
@@ -26,6 +26,7 @@ export class ServerBun implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
+    this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
   }
 
@@ -78,6 +79,7 @@ export class ServerBun implements ServerInterface {
       },
       ...(rest as any),
     });
+
     this.url = this.runtimeServer.url.toString();
   }
 

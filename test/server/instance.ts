@@ -1,6 +1,6 @@
-import { NativeEnv } from "test/native_env";
-import { Server } from "../../src/server/server";
 import { defineLoggerConfig, logger } from "src/logger/logger";
+import { NativeEnv } from "src/runtime/native_env";
+import { Server } from "../../src/server/server";
 
 defineLoggerConfig({
   level: "debug",

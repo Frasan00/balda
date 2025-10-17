@@ -30,3 +30,13 @@ export const levenshteinDistance = (str1: string, str2: string): number => {
 
   return matrix[str2.length][str1.length];
 };
+
+export const toLowerSnakeCase = (str: string): string => {
+  return str
+    .toLowerCase()
+    .replace(/[-_.]/g, "_")
+    .replace(/([A-Z])/g, "_$1")
+    .replace(/^_+/, "")
+    .replace(/_+$/, "")
+    .toLowerCase();
+};

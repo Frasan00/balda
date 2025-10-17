@@ -1,0 +1,32 @@
+services:
+  redis:
+    image: redis:7.0
+    container_name: balda-js-redis
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass root
+
+  sqs:
+    image: softwaremill/elasticmq
+    container_name: balda-js-sqs
+    ports:
+      - "9324:9324" # API
+      - "9325:9325" # UI
+    environment:
+      - JAVA_OPTS=-Dconfig.file=/opt/elasticmq.conf
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+
+  postgres:
+    image: postgres:17.4
+    container_name: balda-js-postgres
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: database
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root

@@ -3,6 +3,7 @@ import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
+import { SyncOrAsync } from "src/type_util";
 
 export type HttpMethod =
   | "GET"
@@ -42,12 +43,9 @@ export type ServerRouteMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => void | Promise<void>;
+) => SyncOrAsync;
 
-export type ServerRouteHandler = (
-  req: Request,
-  res: Response,
-) => void | Promise<void>;
+export type ServerRouteHandler = (req: Request, res: Response) => SyncOrAsync;
 
 export interface ServerRoute {
   /** The path for the route */
@@ -68,22 +66,19 @@ export type ServerListenCallback = ({
   port: number;
   host: string;
   url: string;
-}) => Promise<void> | void;
+}) => SyncOrAsync;
 
 /**
  * Custom bun fetch call to be used as an hook inside Bun.serve method
  */
-type CustomBunFetch = (
-  req: Request,
-  server: Bun.Server,
-) => Promise<void> | void;
+type CustomBunFetch = (req: Request, server: Bun.Server<any>) => SyncOrAsync;
 
 /**
  * Custom deno fetch call to be used as an hook inside Deno.serve method
  */
 type CustomDenoFetch = (
   ...options: Parameters<Parameters<typeof Deno.serve>[0]["handler"]>
-) => Promise<void> | void;
+) => SyncOrAsync;
 
 /**
  * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests
