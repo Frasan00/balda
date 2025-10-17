@@ -1,6 +1,20 @@
 import { defineConfig } from "tsup";
 
-const external = ["glob", "pino", "ajv", "ajv-formats"];
+const external = [
+  "glob",
+  "pino",
+  "ajv",
+  "ajv-formats",
+  "@aws-sdk/client-sqs",
+  "sqs-consumer",
+  "bullmq",
+  "ioredis",
+  "pg",
+  "pg-boss",
+  "ws",
+  "socket.io",
+  "node-cron",
+];
 
 export default defineConfig([
   {
@@ -11,17 +25,21 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     external,
+    splitting: false,
+    treeshake: true,
   },
   {
     entry: ["src/cli.ts"],
     outDir: "lib",
     format: ["esm"],
-    dts: true,
+    dts: false,
     sourcemap: true,
     clean: true,
     external,
     banner: {
       js: "#!/usr/bin/env node",
     },
+    splitting: false,
+    treeshake: true,
   },
 ]);
