@@ -41,6 +41,7 @@ export * from "./queue/pub";
 export * from "./queue/queue";
 export * from "./queue/queue_config";
 export * from "./queue/queue_types";
+export * from "./queue/queue_service";
 
 // Logger
 export * from "./logger/logger";
