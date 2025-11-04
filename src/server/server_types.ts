@@ -26,6 +26,7 @@ import type {
   ServerTapOptions,
 } from "../runtime/native_server/server_types";
 import type { NextFunction } from "./http/next";
+import type { Request } from "./http/request";
 import type { Response } from "./http/response";
 
 export type ServerPlugin = {

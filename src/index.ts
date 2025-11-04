@@ -40,8 +40,8 @@ export type {
 export * from "./queue/pub";
 export * from "./queue/queue";
 export * from "./queue/queue_config";
-export * from "./queue/queue_types";
 export * from "./queue/queue_service";
+export * from "./queue/queue_types";
 
 // Logger
 export * from "./logger/logger";
@@ -76,6 +76,10 @@ export * from "./plugins/static/static";
 export * from "./plugins/timeout/timeout";
 export * from "./plugins/trust_proxy/trust_proxy";
 export * from "./plugins/urlencoded/urlencoded";
+
+// Policy
+export * from "./server/policy/policy_manager";
+export * from "./server/policy/policy_types";
 
 // Router
 import { router as routerInstance } from "./server/router/router";

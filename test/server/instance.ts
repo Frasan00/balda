@@ -1,6 +1,19 @@
 import { defineLoggerConfig, logger } from "src/logger/logger";
 import { NativeEnv } from "src/runtime/native_env";
+import { PolicyManager } from "src/server/policy/policy_manager";
 import { Server } from "../../src/server/server";
+
+export const policyManager = new PolicyManager({
+  test: {
+    adminRoute: async (user: { id: string; name: string; role: string }) => {
+      if (user.role === "admin") {
+        return true;
+      }
+
+      return false;
+    },
+  },
+});
 
 defineLoggerConfig({
   level: "debug",
