@@ -11,7 +11,8 @@ export type HttpMethod =
   | "PUT"
   | "DELETE"
   | "PATCH"
-  | "OPTIONS";
+  | "OPTIONS"
+  | "HEAD";
 
 export type RuntimeServer =
   | HttpServer

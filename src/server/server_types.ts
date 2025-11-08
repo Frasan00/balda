@@ -180,6 +180,11 @@ export interface ServerInterface {
   options: (...args: any[]) => void;
 
   /**
+   * Shorthand for the server.router.head method
+   */
+  head: (...args: any[]) => void;
+
+  /**
    * Shorthand for the server.router.group method
    */
   group: (...args: any[]) => void;

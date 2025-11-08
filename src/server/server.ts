@@ -275,6 +275,26 @@ export class Server implements ServerInterface {
     router.addOrUpdate("OPTIONS", path, middlewares, handler, swaggerOptions);
   }
 
+  head(path: string, handler: ServerRouteHandler): void;
+  head(
+    path: string,
+    options: StandardMethodOptions,
+    handler: ServerRouteHandler,
+  ): void;
+  head(
+    path: string,
+    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler,
+  ): void {
+    const { middlewares, handler, swaggerOptions } =
+      this.extractOptionsAndHandlerFromRouteRegistration(
+        optionsOrHandler,
+        maybeHandler,
+      );
+
+    router.addOrUpdate("HEAD", path, middlewares, handler, swaggerOptions);
+  }
+
   group(
     path: string,
     middleware: ServerRouteMiddleware[] | ServerRouteMiddleware,

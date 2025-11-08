@@ -439,6 +439,50 @@ export class Router {
   }
 
   /**
+   * Register an HEAD route under this router's base path.
+   */
+  head(
+    path: string,
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ): void;
+  head(
+    path: string,
+    middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
+    handler: ServerRouteHandler,
+    swaggerOptions?: SwaggerRouteOptions,
+  ): void;
+  head(
+    path: string,
+    middlewareOrHandler:
+      | ServerRouteMiddleware
+      | ServerRouteMiddleware[]
+      | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+    maybeSwagger?: SwaggerRouteOptions,
+  ): void {
+    const fullPath = this.joinPath(path);
+    const isHandlerOnly =
+      typeof middlewareOrHandler === "function" &&
+      (middlewareOrHandler as Function).length !== 3;
+    const handler = (
+      isHandlerOnly
+        ? (middlewareOrHandler as ServerRouteHandler)
+        : (maybeHandler as ServerRouteHandler)
+    ) as ServerRouteHandler;
+    const provided = isHandlerOnly
+      ? []
+      : Array.isArray(middlewareOrHandler)
+        ? middlewareOrHandler
+        : [middlewareOrHandler as ServerRouteMiddleware];
+    const middlewares = [...this.middlewares, ...provided];
+    const swaggerOptions = (
+      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
+    ) as SwaggerRouteOptions | undefined;
+    this.addOrUpdate("HEAD", fullPath, middlewares, handler, swaggerOptions);
+  }
+
+  /**
    * Create a grouped router that shares a base path and middlewares.
    * The callback receives a child router where routes are defined; routes
    * are then merged back into the parent with the composed base path and middlewares.
