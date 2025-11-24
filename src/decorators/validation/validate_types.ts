@@ -1,4 +1,4 @@
-import type { TSchema } from "@sinclair/typebox";
+import type { ZodType } from "zod";
 
 export interface CustomValidationError {
   status?: number;
@@ -9,15 +9,15 @@ export interface ValidationOptions {
   /**
    * The schema to validate the request body against
    */
-  body?: TSchema;
+  body?: ZodType;
   /**
    * The schema to validate the query parameters against
    */
-  query?: TSchema;
+  query?: ZodType;
   /**
    * The schema to validate both body and query against
    */
-  all?: TSchema;
+  all?: ZodType;
   /**
    * Whether to use safe validation (returns original data if validation fails instead of throwing)
    * @default false

@@ -2,7 +2,6 @@
   "version": "5",
   "specifiers": {
     "npm:@aws-sdk/client-sqs@^3.911.0": "3.913.0",
-    "npm:@sinclair/typebox@~0.34.41": "0.34.41",
     "npm:@types/bun@^1.2.17": "1.2.17",
     "npm:@types/deno@^2.3.0": "2.3.0",
     "npm:@types/node@^24.0.10": "24.0.10",
@@ -38,7 +37,8 @@
     "npm:typescript@^5.8.3": "5.8.3",
     "npm:vitest@*": "3.2.4_@types+node@24.0.10_vite@7.0.3__@types+node@24.0.10__tsx@4.20.3__picomatch@4.0.2_tsx@4.20.3",
     "npm:vitest@^3.2.4": "3.2.4_@types+node@24.0.10_vite@7.0.3__@types+node@24.0.10__tsx@4.20.3__picomatch@4.0.2_tsx@4.20.3",
-    "npm:ws@^8.18.2": "8.18.3"
+    "npm:ws@^8.18.2": "8.18.3",
+    "npm:zod@^4.1.13": "4.1.13"
   },
   "npm": {
     "@assemblyscript/loader@0.19.23": {
@@ -882,9 +882,6 @@
       "integrity": "sha512-J8o22LuF0kTe7m+8PvW9wk3/bRq5+mRo5Dqo6+vXb7otCm3TPhYOJqOaQtGU9YMWQSL3krMnoOxMr0+9E6F3Ug==",
       "os": ["win32"],
       "cpu": ["x64"]
-    },
-    "@sinclair/typebox@0.34.41": {
-      "integrity": "sha512-6gS8pZzSXdyRHTIqoqSVknxolr1kzfy4/CeDnrzsVz8TTIWUbOBr6gnzOmTYJ3eXQNh4IYHIGi5aIL7sOZ2G/g=="
     },
     "@smithy/abort-controller@4.2.3": {
       "integrity": "sha512-xWL9Mf8b7tIFuAlpjKtRPnHrR8XVrwTj5NPYO/QwZPtc0SDLsPxb56V5tzi5yspSMytISHybifez+4jlrx0vkQ==",
@@ -3621,13 +3618,15 @@
     },
     "yocto-queue@0.1.0": {
       "integrity": "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="
+    },
+    "zod@4.1.13": {
+      "integrity": "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="
     }
   },
   "workspace": {
     "packageJson": {
       "dependencies": [
         "npm:@aws-sdk/client-sqs@^3.911.0",
-        "npm:@sinclair/typebox@~0.34.41",
         "npm:@types/bun@^1.2.17",
         "npm:@types/deno@^2.3.0",
         "npm:@types/node@^24.0.10",
@@ -3657,7 +3656,8 @@
         "npm:tsx@^4.20.3",
         "npm:typescript@^5.8.3",
         "npm:vitest@^3.2.4",
-        "npm:ws@^8.18.2"
+        "npm:ws@^8.18.2",
+        "npm:zod@^4.1.13"
       ]
     }
   }

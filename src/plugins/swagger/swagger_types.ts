@@ -1,4 +1,4 @@
-import type { TSchema } from "@sinclair/typebox/type";
+import type { ZodType } from "zod";
 
 /**
  * Type of Swagger UI to use
@@ -85,7 +85,7 @@ export type SwaggerGlobalOptions = {
   /**
    * OpenAPI models to be shown in the documentation. Must be valid OpenAPI/AJV JSONSchema objects.
    */
-  models?: Record<string, JSONSchema>;
+  models?: Record<string, JSONSchema> | JSONSchema[];
 };
 
 /**
@@ -97,13 +97,13 @@ export type SwaggerRouteOptions = {
   /** Name of the route */
   name?: string;
   /** Query parameters schema */
-  query?: TSchema;
+  query?: ZodType;
   /** Request body schema */
-  requestBody?: TSchema;
+  requestBody?: ZodType;
   /** Responses for this route */
-  responses?: Record<number, TSchema>;
+  responses?: Record<number, ZodType>;
   /** Errors for this route */
-  errors?: Record<number, TSchema>;
+  errors?: Record<number, ZodType>;
   /** Security requirements for this route */
   security?: Security[] | Security;
   /** Description of the route */

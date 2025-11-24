@@ -1,11 +1,11 @@
-import { Type } from "@sinclair/typebox";
+import z from "zod";
 import { controller, middleware, post } from "../../src/index";
 import { Request } from "../../src/server/http/request";
 import { Response } from "../../src/server/http/response";
 import { fileParser } from "src/plugins/file/file";
 
-const FileUploadBody = Type.Object({
-  file: Type.Uint8Array(),
+const FileUploadBody = z.object({
+  file: z.instanceof(Uint8Array),
 });
 
 @controller("/file")

@@ -1,8 +1,8 @@
-import { type Static, type TSchema, Type } from "@sinclair/typebox";
 import type { FormFile } from "src/plugins/file/file_types";
 import { validateSchema } from "../../validator/validator";
 import { NativeRequest } from "../../runtime/native_request";
 import { nativeCrypto } from "src/runtime/native_crypto";
+import { z, type ZodType } from "zod";
 
 /**
  * The request object.
@@ -23,34 +23,34 @@ export class Request extends NativeRequest {
    * Enrich native request with validation methods.
    */
   static enrichRequest(request: Request): Request {
-    request.validate = <T extends TSchema>(
-      inputSchema: T | ((schema: typeof Type) => T),
+    request.validate = <T extends ZodType>(
+      inputSchema: T | ((schema: typeof z) => T),
       safe: boolean = false,
-    ): Static<T> => {
+    ): z.infer<T> => {
       if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(Type);
+        inputSchema = inputSchema(z);
       }
 
       return validateSchema(inputSchema, request.body || {}, safe);
     };
 
-    request.validateQuery = <T extends TSchema>(
-      inputSchema: T | ((schema: typeof Type) => T),
+    request.validateQuery = <T extends ZodType>(
+      inputSchema: T | ((schema: typeof z) => T),
       safe: boolean = false,
-    ): Static<T> => {
+    ): z.infer<T> => {
       if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(Type);
+        inputSchema = inputSchema(z);
       }
 
       return validateSchema(inputSchema, request.query || {}, safe);
     };
 
-    request.validateAll = <T extends TSchema>(
-      inputSchema: T | ((schema: typeof Type) => T),
+    request.validateAll = <T extends ZodType>(
+      inputSchema: T | ((schema: typeof z) => T),
       safe: boolean = false,
-    ): Static<T> => {
+    ): z.infer<T> => {
       if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(Type);
+        inputSchema = inputSchema(z);
       }
 
       return validateSchema(
@@ -177,12 +177,12 @@ export class Request extends NativeRequest {
    * @param inputSchema - The schema to validate the body against.
    * @param safe - If true, the function will return the original body if the validation fails instead of throwing an error.
    */
-  validate<T extends TSchema>(
-    inputSchema: T | ((schema: typeof Type) => T),
+  validate<T extends ZodType>(
+    inputSchema: T | ((schema: typeof z) => T),
     safe: boolean = false,
-  ): Static<T> {
+  ): z.infer<T> {
     if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(Type);
+      inputSchema = inputSchema(z);
     }
 
     return validateSchema(inputSchema, this.body || {}, safe);
@@ -191,12 +191,12 @@ export class Request extends NativeRequest {
   /**
    * Validates the query string of the request.
    */
-  validateQuery<T extends TSchema>(
-    inputSchema: T | ((schema: typeof Type) => T),
+  validateQuery<T extends ZodType>(
+    inputSchema: T | ((schema: typeof z) => T),
     safe: boolean = false,
-  ): Static<T> {
+  ): z.infer<T> {
     if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(Type);
+      inputSchema = inputSchema(z);
     }
 
     return validateSchema(inputSchema, this.query || {}, safe);
@@ -205,12 +205,12 @@ export class Request extends NativeRequest {
   /**
    * Validates the body and query string of the request.
    */
-  validateAll<T extends TSchema>(
-    inputSchema: T | ((schema: typeof Type) => T),
+  validateAll<T extends ZodType>(
+    inputSchema: T | ((schema: typeof z) => T),
     safe: boolean = false,
-  ): Static<T> {
+  ): z.infer<T> {
     if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(Type);
+      inputSchema = inputSchema(z);
     }
 
     return validateSchema(

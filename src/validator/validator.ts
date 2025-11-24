@@ -1,6 +1,6 @@
-import { type Static, type TSchema } from "@sinclair/typebox";
 import Ajv, { ValidationError } from "ajv";
 import addFormats from "ajv-formats";
+import { z, type ZodType } from "zod";
 
 const ajv = addFormats(new Ajv(), [
   "date-time",
@@ -24,12 +24,14 @@ const ajv = addFormats(new Ajv(), [
   "iso-time",
 ]);
 
-export const validateSchema = <T extends TSchema>(
+export const validateSchema = <T extends ZodType>(
   inputSchema: T,
-  data: object,
+  data: any,
   safe: boolean = false,
-): Static<T> => {
-  const validate = ajv.compile(inputSchema);
+): any => {
+  const jsonSchema = z.toJSONSchema(inputSchema);
+  const { $schema, ...schemaWithoutMeta } = jsonSchema;
+  const validate = ajv.compile(schemaWithoutMeta);
   if (!validate(data)) {
     if (safe) {
       return data;

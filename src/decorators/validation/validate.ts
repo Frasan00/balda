@@ -1,4 +1,4 @@
-import type { TSchema } from "@sinclair/typebox";
+import type { ZodType } from "zod";
 import { ValidationError } from "ajv";
 import { MetadataStore } from "../../metadata_store";
 import type { Request } from "../../server/http/request";
@@ -123,7 +123,7 @@ const validateDecorator = (
  * @returns The decorator function
  */
 validateDecorator.query = (
-  schema: TSchema,
+  schema: ZodType,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ query: schema, customError });
@@ -135,7 +135,7 @@ validateDecorator.query = (
  * @returns The decorator function
  */
 validateDecorator.body = (
-  schema: TSchema,
+  schema: ZodType,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ body: schema, customError });
@@ -147,7 +147,7 @@ validateDecorator.body = (
  * @returns The decorator function
  */
 validateDecorator.all = (
-  schema: TSchema,
+  schema: ZodType,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ all: schema, customError });

@@ -1,4 +1,4 @@
-import type { TSchema } from "@sinclair/typebox/type";
+import { z, type ZodObject, type ZodType } from "zod";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
@@ -54,9 +54,67 @@ export const swagger = (
   });
 };
 
+function safeToJSONSchema(schema: ZodType): any {
+  try {
+    return z.toJSONSchema(schema);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        "Custom types cannot be represented in JSON Schema",
+      )
+    ) {
+      const def = (schema as any)._def;
+      // todo make this better
+      if (def?.typeName === "ZodInstanceof") {
+        const testFile = new File([], "test");
+        if (schema.safeParse(testFile).success) {
+          return { type: "string", format: "binary" };
+        }
+      }
+
+      if (def?.typeName === "ZodObject" && def?.shape) {
+        const properties: Record<string, any> = {};
+        const required: string[] = [];
+
+        for (const [key, fieldSchema] of Object.entries(def.shape)) {
+          try {
+            properties[key] = safeToJSONSchema(fieldSchema as ZodType);
+            const fieldDef = (fieldSchema as any)._def;
+            if (
+              fieldDef?.typeName !== "ZodOptional" &&
+              fieldDef?.typeName !== "ZodDefault"
+            ) {
+              required.push(key);
+            }
+          } catch {
+            properties[key] = { type: "string", format: "binary" };
+          }
+        }
+
+        return {
+          type: "object",
+          properties,
+          ...(required.length > 0 ? { required } : {}),
+        };
+      }
+
+      return { type: "object", description: "Custom type" };
+    }
+
+    throw error;
+  }
+}
+
 function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const routes = router.getRoutes();
   const paths: Record<string, any> = {};
+  if (Array.isArray(globalOptions.models)) {
+    globalOptions.models = globalOptions.models.reduce((acc, model) => {
+      acc[model.$id || "name"] = model;
+      return acc;
+    }, {});
+  }
 
   const components = {
     ...globalOptions.components,
@@ -89,18 +147,22 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     if (swaggerOptions?.query) {
       if (
         swaggerOptions.query.type === "object" &&
-        swaggerOptions.query.properties
+        (swaggerOptions.query as ZodObject).shape
       ) {
         for (const [name, schema] of Object.entries(
-          swaggerOptions.query.properties,
+          (swaggerOptions.query as ZodObject).shape,
         )) {
           parameters.push({
             name,
             in: "query",
-            required: Array.isArray(swaggerOptions.query.required)
-              ? swaggerOptions.query.required.includes(name)
+            required: Array.isArray(
+              (swaggerOptions.query as ZodObject).shape[name].required,
+            )
+              ? (swaggerOptions.query as ZodObject).shape[
+                  name
+                ].required.includes(name)
               : false,
-            schema: typeboxToOpenAPI(schema as TSchema),
+            schema: safeToJSONSchema(schema as ZodType),
           });
         }
       }
@@ -127,7 +189,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       operation.requestBody = {
         content: {
           [routeBodyContentType]: {
-            schema: typeboxToOpenAPI(swaggerOptions.requestBody),
+            schema: safeToJSONSchema(swaggerOptions.requestBody as ZodType),
           },
         },
         required: true,
@@ -156,7 +218,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
           description: `Response for ${statusCode}`,
           content: {
             "application/json": {
-              schema: typeboxToOpenAPI(schema as TSchema),
+              schema: safeToJSONSchema(schema),
             },
           },
         };
@@ -170,7 +232,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
           description: `Error response for ${statusCode}`,
           content: {
             "application/json": {
-              schema: typeboxToOpenAPI(schema as TSchema),
+              schema: safeToJSONSchema(schema),
             },
           },
         };
@@ -385,24 +447,9 @@ function generateRapiDocUI(
 }
 
 /**
- * Convert a TypeBox TSchema to an OpenAPI 3.0 compatible schema (AJV compliant)
- * This is a shallow conversion, as TypeBox is already mostly JSON Schema compatible
- */
-function typeboxToOpenAPI(
-  schema: TSchema,
-): Omit<TSchema, "$id" | "$schema"> | undefined {
-  if (!schema) {
-    return undefined;
-  }
-
-  const { $id, $schema, ...rest } = schema;
-  return rest;
-}
-
-/**
  * Extract path parameters from a route path (e.g., /users/:id -> [{ name: "id", in: "path", required: true }])
  */
-function extractPathParams(path: string, paramSchema?: TSchema): any[] {
+function extractPathParams(path: string, paramSchema?: ZodType): any[] {
   const params: any[] = [];
   const regex = /:([a-zA-Z0-9_]+)/g;
   let match;
@@ -411,11 +458,12 @@ function extractPathParams(path: string, paramSchema?: TSchema): any[] {
     let schema: Record<string, unknown> = { type: "string" };
     if (
       paramSchema &&
-      paramSchema.type === "object" &&
-      paramSchema.properties &&
-      paramSchema.properties[name]
+      (paramSchema as ZodObject).shape &&
+      (paramSchema as ZodObject).shape[name]
     ) {
-      schema = typeboxToOpenAPI(paramSchema.properties[name]) || {
+      schema = safeToJSONSchema(
+        (paramSchema as ZodObject).shape[name] as ZodType,
+      ) || {
         type: "string",
       };
     }

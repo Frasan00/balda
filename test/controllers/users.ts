@@ -1,42 +1,45 @@
 import { controller } from "src/decorators/controller/controller";
-import { get } from "src/decorators/handlers/get";
-import { post } from "src/decorators/handlers/post";
-import { patch } from "src/decorators/handlers/patch";
 import { del } from "src/decorators/handlers/del";
+import { get } from "src/decorators/handlers/get";
+import { patch } from "src/decorators/handlers/patch";
+import { post } from "src/decorators/handlers/post";
+import { serialize } from "src/decorators/serialize/serialize";
+import { validate } from "src/index";
 import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
-import { serialize } from "src/decorators/serialize/serialize";
-import { Type } from "@sinclair/typebox";
-import type { Static } from "@sinclair/typebox";
-import { validate } from "src/index";
+import z from "zod";
 
 const users = [
   { id: 1, email: "john.doe@example.com", name: "John Doe", age: 20 },
   { id: 2, email: "jane.doe@example.com", name: "Jane Doe", age: 21 },
 ];
 
-const UserIndexQuery = Type.Object({
-  shouldFail: Type.Optional(Type.String({ default: "false" })),
+const UserIndexQuery = z.object({
+  shouldFail: z.string().optional(),
 });
 
-const UserResponse = Type.Object({
-  id: Type.Number(),
-  email: Type.String(),
-  name: Type.String(),
-  age: Type.Number(),
+const UserResponse = z.object({
+  id: z.number(),
+  email: z.string(),
+  name: z.string(),
+  age: z.number(),
 });
 
-const ShouldFailResponse = Type.Object({
-  impossibleField: Type.String(),
+const ShouldFailResponse = z.object({
+  impossibleField: z.string(),
 });
 
 @controller("/users")
 export class UsersController {
   @get("/")
   @validate.query(UserIndexQuery)
-  @serialize(Type.Array(UserResponse))
+  @serialize(z.array(UserResponse))
   @serialize(ShouldFailResponse, { status: 201, safe: false })
-  async index(_req: Request, res: Response, qs: Static<typeof UserIndexQuery>) {
+  async index(
+    _req: Request,
+    res: Response,
+    qs: z.infer<typeof UserIndexQuery>,
+  ) {
     if (qs.shouldFail === "true") {
       return res.created(users);
     }
@@ -45,8 +48,8 @@ export class UsersController {
   }
 
   @get("/:id")
-  @serialize(UserResponse)
-  @serialize(Type.Object({ error: Type.Literal("User not found") }), {
+  @serialize(UserResponse, { safe: false })
+  @serialize(z.object({ error: z.literal("User not found") }), {
     status: 404,
   })
   async show(req: Request, res: Response) {
@@ -60,14 +63,14 @@ export class UsersController {
 
   @post("/")
   @validate.body(UserResponse)
-  @serialize(Type.Object({ error: Type.Literal("User already exists") }), {
+  @serialize(z.object({ error: z.literal("User already exists") }), {
     status: 409,
   })
   @serialize(UserResponse)
   async create(
     _req: Request,
     res: Response,
-    body: Static<typeof UserResponse>,
+    body: z.infer<typeof UserResponse>,
   ) {
     const alreadyExists = users.find((user) => user.email === body.email);
     if (alreadyExists) {
@@ -79,12 +82,16 @@ export class UsersController {
   }
 
   @patch("/:id")
-  @validate.body(Type.Partial(UserResponse))
-  @serialize(Type.Object({ error: Type.Literal("User not found") }), {
+  @validate.body(UserResponse.partial())
+  @serialize(z.object({ error: z.literal("User not found") }), {
     status: 404,
   })
   @serialize(UserResponse)
-  async update(req: Request, res: Response, body: Static<typeof UserResponse>) {
+  async update(
+    req: Request,
+    res: Response,
+    body: z.infer<typeof UserResponse>,
+  ) {
     const user = users.find((user) => user.id === Number(req.params.id));
     if (!user) {
       return res.notFound({ error: "User not found" });
@@ -96,7 +103,7 @@ export class UsersController {
   }
 
   @del("/:id")
-  @serialize(Type.Object({ error: Type.Literal("User not found") }), {
+  @serialize(z.object({ error: z.literal("User not found") }), {
     status: 404,
   })
   async destroy(req: Request, res: Response) {
