@@ -70,7 +70,7 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
 
   const contentType = getContentType(nativePath.extName(resolvedPath));
   res.setHeader("Content-Type", contentType);
-  const fileContent = await nativeFile.file(resolvedPath);
+  const fileContent = nativeFile.file(resolvedPath);
   res.raw(fileContent);
 }
 

@@ -1,5 +1,5 @@
 import { type ServerResponse } from "node:http";
-import { CookieOptions } from "src/plugins/cookie/cookie_types";
+import { type CookieOptions } from "src/plugins/cookie/cookie_types";
 import { getContentType } from "src/plugins/static/static";
 import { nativeFile } from "src/runtime/native_file";
 
@@ -29,7 +29,7 @@ export class Response {
   /**
    * The body of the response
    */
-  private body: any;
+  private body: any | Promise<any>;
 
   constructor(status: number = 200) {
     this.responseStatus = status;
@@ -70,15 +70,7 @@ export class Response {
       typeof body === "boolean" ||
       typeof body === "bigint"
     ) {
-      return this.text(String(body));
-    }
-
-    if (body instanceof Date) {
-      return this.text(body.toISOString());
-    }
-
-    if (body instanceof RegExp) {
-      return this.text(body.toString());
+      return this.raw(body);
     }
 
     if (typeof Buffer !== "undefined" && body instanceof Buffer) {
@@ -95,10 +87,6 @@ export class Response {
       } catch (error) {
         return this.text(String(body));
       }
-    }
-
-    if (typeof body === "function") {
-      return this.text(body.toString());
     }
 
     if (typeof body === "symbol") {
@@ -140,8 +128,8 @@ export class Response {
   /**
    * Send a response with the given HTML, status defaults to 200
    */
-  html(body: string): void {
-    this.body = body;
+  html(htmlString: string): void {
+    this.body = htmlString;
     this.headers = {
       ...this.headers,
       "Content-Type": "text/html",
@@ -162,7 +150,7 @@ export class Response {
   /**
    * Send a response with the given binary with Content-Type of application/octet-stream header, status defaults to 200
    */
-  download(body: Uint8Array): void {
+  download(body: Uint8Array | Buffer): void {
     this.body = body;
     this.headers = {
       ...this.headers,
@@ -171,11 +159,18 @@ export class Response {
   }
 
   /**
-   * Send a response with the given file, status defaults to 200
+   * Send a response with the given file content, status defaults to 200
+   * @param options only affects node and bun environment
    */
-  file(pathToFile: string): void {
+  file(
+    pathToFile: string,
+    options?: {
+      encoding?: string;
+      flag?: string;
+    },
+  ): void {
     const mimeType = getContentType(pathToFile);
-    this.body = nativeFile.file(pathToFile);
+    this.body = nativeFile.file(pathToFile, options);
     this.headers = {
       ...this.headers,
       "Content-Type": mimeType,
@@ -444,6 +439,7 @@ export class Response {
         for await (const chunk of source) {
           controller.enqueue(new TextEncoder().encode(chunk));
         }
+
         controller.close();
       },
     });

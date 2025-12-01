@@ -1,15 +1,23 @@
+import fs from "fs";
 import { runtime } from "./runtime";
-import fs from "node:fs/promises";
+
+export type ReadFileOptions = {
+  encoding?: string;
+  flag?: string;
+};
 
 class NativeFile {
-  async file(path: string): Promise<Buffer | Uint8Array | ArrayBuffer> {
+  file(
+    path: string,
+    options?: ReadFileOptions,
+  ): Buffer | Uint8Array | ArrayBuffer {
     switch (runtime.type) {
+      // We do not use Bun api since we need this operation to be sync
       case "bun":
-        return Bun.file(path).arrayBuffer();
       case "node":
-        return fs.readFile(path);
+        return fs.readFileSync(path, options as any);
       case "deno":
-        return Deno.readFile(path);
+        return Deno.readFileSync(path);
       default:
         throw new Error("Unsupported runtime");
     }

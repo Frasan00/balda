@@ -113,7 +113,8 @@ export class ServerNode implements ServerInterface {
         } else if (typeof body === "string") {
           body = body;
         } else if (
-          responseResult.headers["Content-Type"] === "application/json"
+          responseResult.headers["Content-Type"] === "application/json" &&
+          typeof body !== "string"
         ) {
           body = JSON.stringify(body);
         } else {
