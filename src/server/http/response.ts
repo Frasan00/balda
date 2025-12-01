@@ -424,14 +424,14 @@ export class Response {
    */
   stream(
     source: AsyncGenerator<any> | Generator<any> | ReadableStream,
-    options?: { contentType?: string },
+    options?: { customHeaders?: Record<string, string> },
   ): void {
-    const contentType = options?.contentType ?? "text/event-stream";
     this.headers = {
       ...this.headers,
-      "Content-Type": contentType,
+      "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      ...options?.customHeaders,
     };
 
     if (source instanceof ReadableStream) {
