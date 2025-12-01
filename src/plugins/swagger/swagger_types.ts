@@ -3,7 +3,23 @@ import type { ZodType } from "zod";
 /**
  * Type of Swagger UI to use
  */
-export type SwaggerUIType = "standard" | "redoc" | "rapidoc";
+export type SwaggerUIType =
+  | "standard"
+  | "redoc"
+  | "rapidoc"
+  | "scalar"
+  | "elements"
+  | "custom";
+
+type HTMLString = string;
+
+/**
+ * Custom UI generator function that takes the spec URL and global options and returns HTML
+ */
+export type CustomUIGenerator = (
+  specUrl: string,
+  globalOptions: SwaggerGlobalOptions,
+) => HTMLString;
 
 /**
  * Type of request body for a route
@@ -36,13 +52,11 @@ export type JSONSchema = {
 };
 
 /**
- * Global documentation options for the API (OpenAPI/Swagger style)
+ * Base options shared across all Swagger UI types
  */
-export type SwaggerGlobalOptions = {
+type SwaggerGlobalOptionsBase = {
   /** The path to the swagger documentation, defaults to /docs for the UI and /docs/json for the raw json */
   path?: string;
-  /** Type of Swagger UI to use, one of 'standard', 'redoc', or 'rapidoc'. Defaults to 'standard'. */
-  type?: SwaggerUIType;
   /** API title */
   title?: string;
   /** API description */
@@ -87,6 +101,21 @@ export type SwaggerGlobalOptions = {
    */
   models?: Record<string, JSONSchema> | JSONSchema[];
 };
+
+/**
+ * Global documentation options for the API (OpenAPI/Swagger style)
+ */
+export type SwaggerGlobalOptions =
+  | (SwaggerGlobalOptionsBase & {
+      /** Type of Swagger UI to use, one of 'standard', 'redoc', 'rapidoc', 'scalar', or 'elements'. Defaults to 'standard'. */
+      type?: Exclude<SwaggerUIType, "custom">;
+    })
+  | (SwaggerGlobalOptionsBase & {
+      /** Type of Swagger UI to use. When set to 'custom', customUIGenerator is required. */
+      type: "custom";
+      /** Custom UI generator function. Required when type is 'custom'. Must return a string of HTML that uses the given specUrl. */
+      customUIGenerator: CustomUIGenerator;
+    });
 
 /**
  * Route-specific documentation options (for individual endpoints)

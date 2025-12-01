@@ -5,6 +5,8 @@ import { logger } from "../../src/logger/logger";
  * Minimal server to benchmark the server performance
  */
 const server = new Server({
+  port: 80,
+  host: "0.0.0.0",
   swagger: false,
 });
 

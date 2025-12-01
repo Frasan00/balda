@@ -27,7 +27,7 @@ export const swagger = (
     models: {},
   };
 
-  if (typeof globalOptions !== "boolean") {
+  if (globalOptions && typeof globalOptions !== "boolean") {
     swaggerOptions = {
       ...swaggerOptions,
       ...globalOptions,
@@ -38,12 +38,20 @@ export const swagger = (
   const uiPath = `${swaggerOptions.path}`;
   const jsonPath = `${uiPath}/json`;
 
-  const uiContent =
-    swaggerOptions.type === "redoc"
-      ? generateRedocUI(jsonPath, swaggerOptions)
-      : swaggerOptions.type === "rapidoc"
-        ? generateRapiDocUI(jsonPath, swaggerOptions)
-        : generateSwaggerUI(jsonPath, swaggerOptions);
+  let uiContent: string;
+  if (swaggerOptions.type === "redoc") {
+    uiContent = generateRedocUI(jsonPath, swaggerOptions);
+  } else if (swaggerOptions.type === "rapidoc") {
+    uiContent = generateRapiDocUI(jsonPath, swaggerOptions);
+  } else if (swaggerOptions.type === "scalar") {
+    uiContent = generateScalarUI(jsonPath, swaggerOptions);
+  } else if (swaggerOptions.type === "elements") {
+    uiContent = generateElementsUI(jsonPath, swaggerOptions);
+  } else if (swaggerOptions.type === "custom") {
+    uiContent = swaggerOptions.customUIGenerator(jsonPath, swaggerOptions);
+  } else {
+    uiContent = generateSwaggerUI(jsonPath, swaggerOptions);
+  }
 
   router.addOrUpdate("GET", uiPath, [], (_req, res) => {
     res.html(uiContent);
@@ -402,7 +410,7 @@ function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
   </head>
   <body>
     <redoc spec-url="${specUrl}"></redoc>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+    <script src="https://unpkg.com/redoc/bundles/redoc.standalone.js"></script>
   </body>
 </html>
   `;
@@ -441,6 +449,71 @@ function generateRapiDocUI(
       >
     </rapi-doc>
     <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+  </body>
+</html>
+  `;
+}
+
+function generateScalarUI(
+  specUrl: string,
+  globalOptions: SwaggerGlobalOptions,
+) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="${globalOptions.description}" />
+    <title>${globalOptions.title}</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      type="application/json"
+      data-configuration='{"spec":{"url":"${specUrl}"},"theme":"default"}'
+    ></script>
+    <script src="https://unpkg.com/@scalar/api-reference@latest/dist/browser/standalone.js"></script>
+  </body>
+</html>
+  `;
+}
+
+function generateElementsUI(
+  specUrl: string,
+  globalOptions: SwaggerGlobalOptions,
+) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="${globalOptions.description}" />
+    <title>${globalOptions.title}</title>
+    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements@7.7.9/styles.min.css">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <elements-api
+      apiDescriptionUrl="${specUrl}"
+      router="hash"
+      layout="sidebar"
+    />
+    <script src="https://unpkg.com/@stoplight/elements@7.7.9/web-components.min.js"></script>
   </body>
 </html>
   `;
