@@ -1,7 +1,7 @@
-import { CookieOptions } from "src/plugins/cookie/cookie_types";
-import { nativeFile } from "src/runtime/native_file";
-import { getContentType } from "src/plugins/static/static";
 import { type ServerResponse } from "node:http";
+import { CookieOptions } from "src/plugins/cookie/cookie_types";
+import { getContentType } from "src/plugins/static/static";
+import { nativeFile } from "src/runtime/native_file";
 
 /**
  * The response object.
@@ -175,7 +175,7 @@ export class Response {
    */
   file(pathToFile: string): void {
     const mimeType = getContentType(pathToFile);
-    const file = nativeFile.file(pathToFile);
+    this.body = nativeFile.file(pathToFile);
     this.headers = {
       ...this.headers,
       "Content-Type": mimeType,
@@ -417,6 +417,37 @@ export class Response {
    * Clear a cookie for the response, cookie middleware must be registered in order to use this function
    */
   clearCookie?(_name: string, _options?: CookieOptions): void;
+
+  /**
+   * Stream a response using an async generator or ReadableStream
+   * Sets appropriate headers for Server-Sent Events by default
+   */
+  stream(
+    source: AsyncGenerator<any> | Generator<any> | ReadableStream,
+    options?: { contentType?: string },
+  ): void {
+    const contentType = options?.contentType ?? "text/event-stream";
+    this.headers = {
+      ...this.headers,
+      "Content-Type": contentType,
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    };
+
+    if (source instanceof ReadableStream) {
+      this.body = source;
+      return;
+    }
+
+    this.body = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of source) {
+          controller.enqueue(new TextEncoder().encode(chunk));
+        }
+        controller.close();
+      },
+    });
+  }
 
   /**
    * Get the body of the response
