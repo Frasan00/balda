@@ -7,6 +7,7 @@ import {
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
 import { Request } from "../../server/http/request";
+import { Response } from "../../server/http/response";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
@@ -57,7 +58,7 @@ export class ServerNode implements ServerInterface {
         req: IncomingMessage,
         httpResponse: ServerResponse,
       ): Promise<void> => {
-        if (this.tapOptions) {
+        if (this.tapOptions && this.tapOptions.type === "node") {
           const { options } = this.tapOptions as NodeTapOptions;
           await options?.(req);
         }
@@ -82,7 +83,10 @@ export class ServerNode implements ServerInterface {
         request.query = Object.fromEntries(new URLSearchParams(search));
         request.params = match?.params ?? {};
 
-        const response = await executeMiddlewareChain(
+        const response = new Response();
+        response.nodeResponse = httpResponse;
+
+        const responseResult = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((req, res) => {
@@ -91,9 +95,14 @@ export class ServerNode implements ServerInterface {
               });
             }),
           request,
+          response,
         );
 
-        let body = response.getBody();
+        if (httpResponse.headersSent || httpResponse.writableEnded) {
+          return;
+        }
+
+        let body = responseResult.getBody();
         if (body instanceof ReadableStream) {
           pipeReadableStreamToNodeResponse(body, httpResponse);
           return;
@@ -103,13 +112,18 @@ export class ServerNode implements ServerInterface {
           body = body;
         } else if (typeof body === "string") {
           body = body;
-        } else if (response.headers["Content-Type"] === "application/json") {
+        } else if (
+          responseResult.headers["Content-Type"] === "application/json"
+        ) {
           body = JSON.stringify(body);
         } else {
           body = String(body);
         }
 
-        httpResponse.writeHead(response.responseStatus, response.headers);
+        httpResponse.writeHead(
+          responseResult.responseStatus,
+          responseResult.headers,
+        );
         httpResponse.end(body);
       },
     );

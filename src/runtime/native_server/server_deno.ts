@@ -49,7 +49,10 @@ export class ServerDeno implements ServerInterface {
           info.remoteAddr?.hostname;
 
         // User input handler
-        await handler?.(req, info);
+        const handlerResponse = await handler?.(req, info);
+        if (handlerResponse) {
+          return new Response(null, { status: 426 });
+        }
 
         const res = await executeMiddlewareChain(
           match?.middleware ?? [],

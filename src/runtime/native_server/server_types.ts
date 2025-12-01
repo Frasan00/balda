@@ -1,9 +1,9 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import type { RunTimeType } from "../runtime";
 import { SyncOrAsync } from "src/type_util";
+import type { NextFunction } from "../../server/http/next";
+import type { Request as BaldaRequest } from "../../server/http/request";
+import type { Response as BaldaResponse } from "../../server/http/response";
+import type { RunTimeType } from "../runtime";
 
 export type HttpMethod =
   | "GET"
@@ -41,12 +41,15 @@ export interface ServerConnectInput {
 }
 
 export type ServerRouteMiddleware = (
-  req: Request,
-  res: Response,
+  req: BaldaRequest,
+  res: BaldaResponse,
   next: NextFunction,
 ) => SyncOrAsync;
 
-export type ServerRouteHandler = (req: Request, res: Response) => SyncOrAsync;
+export type ServerRouteHandler = (
+  req: BaldaRequest,
+  res: BaldaResponse,
+) => SyncOrAsync;
 
 export interface ServerRoute {
   /** The path for the route */
@@ -72,14 +75,17 @@ export type ServerListenCallback = ({
 /**
  * Custom bun fetch call to be used as an hook inside Bun.serve method
  */
-type CustomBunFetch = (req: Request, server: Bun.Server<any>) => SyncOrAsync;
+type CustomBunFetch = (
+  req: BaldaRequest,
+  server: Bun.Server<any>,
+) => SyncOrAsync;
 
 /**
  * Custom deno fetch call to be used as an hook inside Deno.serve method
  */
 type CustomDenoFetch = (
   ...options: Parameters<Parameters<typeof Deno.serve>[0]["handler"]>
-) => SyncOrAsync;
+) => SyncOrAsync<Response | void>;
 
 /**
  * The options for the server tap function, allows you to interact with the server behavior before it is used to listen for incoming requests

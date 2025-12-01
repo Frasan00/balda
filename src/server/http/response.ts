@@ -1,6 +1,7 @@
 import { CookieOptions } from "src/plugins/cookie/cookie_types";
 import { nativeFile } from "src/runtime/native_file";
 import { getContentType } from "src/plugins/static/static";
+import { type ServerResponse } from "node:http";
 
 /**
  * The response object.
@@ -9,6 +10,12 @@ import { getContentType } from "src/plugins/static/static";
  * It also contains the methods to send the response.
  */
 export class Response {
+  /**
+   * The node http response object available only on the node runtime, useful for direct response manipulation
+   * @warning undefined on other runtimes since they already use Web API Response object
+   */
+  declare nodeResponse: ServerResponse;
+
   /**
    * The status of the response
    */
