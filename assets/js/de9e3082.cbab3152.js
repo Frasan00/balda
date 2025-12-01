@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[295],{1514:a=>{a.exports=JSON.parse('{"authors":[{"name":"Francesco Sangiovanni","title":"Framework Creator","url":"https://github.com/Frasan00","imageURL":"https://github.com/Frasan00.png","key":"francesco","page":null,"count":0}]}')}}]);
