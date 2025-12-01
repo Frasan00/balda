@@ -2,6 +2,7 @@ import { type ServerResponse } from "node:http";
 import { type CookieOptions } from "src/plugins/cookie/cookie_types";
 import { getContentType } from "src/plugins/static/static";
 import { nativeFile } from "src/runtime/native_file";
+import { nativePath } from "src/runtime/native_path";
 
 /**
  * The response object.
@@ -169,7 +170,8 @@ export class Response {
       flag?: string;
     },
   ): void {
-    const mimeType = getContentType(pathToFile);
+    const ext = nativePath.extName(pathToFile);
+    const mimeType = getContentType(ext);
     this.body = nativeFile.file(pathToFile, options);
     this.headers = {
       ...this.headers,
