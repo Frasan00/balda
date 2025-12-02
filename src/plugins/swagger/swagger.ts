@@ -115,31 +115,46 @@ function safeToJSONSchema(schema: ZodType): any {
 function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const routes = router.getRoutes();
   const paths: Record<string, any> = {};
-  if (Array.isArray(globalOptions.models)) {
-    globalOptions.models = globalOptions.models.reduce(
-      (acc, model, index) => {
-        // Check if it's a Zod schema (has _def property) and convert it
+
+  // Process models - convert Zod schemas to JSON Schema and normalize to Record
+  let processedModels: Record<string, any> | undefined;
+  if (globalOptions.models) {
+    if (Array.isArray(globalOptions.models)) {
+      // Array of models: extract name from $id/title or use index
+      processedModels = globalOptions.models.reduce(
+        (acc, model, index) => {
+          const isZodSchema =
+            model && typeof model === "object" && "_def" in model;
+          const jsonSchema = isZodSchema
+            ? safeToJSONSchema(model as ZodType)
+            : model;
+          const schemaName =
+            jsonSchema.$id || jsonSchema.title || `Model${index}`;
+          acc[schemaName] = jsonSchema;
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
+    } else {
+      // Record of models: use the key as name, convert Zod schemas if needed
+      processedModels = {};
+      for (const [name, model] of Object.entries(globalOptions.models)) {
         const isZodSchema =
           model && typeof model === "object" && "_def" in model;
-        const jsonSchema = isZodSchema
+        processedModels[name] = isZodSchema
           ? safeToJSONSchema(model as ZodType)
           : model;
-        const schemaName =
-          jsonSchema.$id || jsonSchema.title || `Model${index}`;
-        acc[schemaName] = jsonSchema;
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
+      }
+    }
   }
 
   const components = {
     ...globalOptions.components,
     securitySchemes: globalOptions.securitySchemes || {},
-    schemas: globalOptions.models
+    schemas: processedModels
       ? {
           ...(globalOptions.components?.schemas || {}),
-          ...globalOptions.models,
+          ...processedModels,
         }
       : globalOptions.components?.schemas
         ? { ...globalOptions.components.schemas }
