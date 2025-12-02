@@ -116,11 +116,21 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const routes = router.getRoutes();
   const paths: Record<string, any> = {};
   if (Array.isArray(globalOptions.models)) {
-    globalOptions.models = globalOptions.models.reduce((acc, model) => {
-      const fallbackName = `unnamed_model_${Math.random().toString(36).substring(2, 15)}`;
-      acc[model.$id || model.title || model.name || fallbackName] = model;
-      return acc;
-    }, {});
+    globalOptions.models = globalOptions.models.reduce(
+      (acc, model, index) => {
+        // Check if it's a Zod schema (has _def property) and convert it
+        const isZodSchema =
+          model && typeof model === "object" && "_def" in model;
+        const jsonSchema = isZodSchema
+          ? safeToJSONSchema(model as ZodType)
+          : model;
+        const schemaName =
+          jsonSchema.$id || jsonSchema.title || `Model${index}`;
+        acc[schemaName] = jsonSchema;
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
   }
 
   const components = {
