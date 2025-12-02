@@ -5,7 +5,6 @@ import type { ZodType } from "zod";
  */
 export type SwaggerUIType =
   | "standard"
-  | "redoc"
   | "rapidoc"
   | "scalar"
   | "elements"

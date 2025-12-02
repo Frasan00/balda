@@ -24,7 +24,7 @@ import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types"
 import { QueueService } from "src/queue/queue_service";
 import { NativeEnv } from "src/runtime/native_env";
 import { nativeFs } from "src/runtime/native_fs";
-import { nativeHash } from "src/runtime/native_hash";
+import { hash as nativeHash } from "src/runtime/native_hash";
 import type { ClientRouter, Route } from "src/server/router/router_type";
 import { SyncOrAsync } from "src/type_util";
 import { logger } from "../logger/logger";

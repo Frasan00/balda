@@ -114,4 +114,4 @@ class NativeHash {
   }
 }
 
-export const nativeHash = new NativeHash();
+export const hash = new NativeHash();

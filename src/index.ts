@@ -62,6 +62,9 @@ export * from "./server/http/response";
 export * from "./server/server";
 export * from "./server/server_types";
 
+// hash
+export { hash } from "./runtime/native_hash";
+
 // Plugins
 export * from "./plugins/base_plugin";
 export * from "./plugins/cookie/cookie";

@@ -26,7 +26,7 @@ const serverBuilder = new Server({
   host: new NativeEnv().get("HOST") ? new NativeEnv().get("HOST") : "0.0.0.0",
   controllerPatterns: ["./test/controllers/**/*.{ts,js}"],
   swagger: {
-    type: "redoc",
+    type: "standard",
     models: {
       User: {
         type: "object",

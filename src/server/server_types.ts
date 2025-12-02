@@ -48,13 +48,13 @@ export type ServerPlugin = {
 };
 
 export interface ServerOptions {
-  /** The port to listen on, defaults to 80 */
+  /** The port to listen on, uses the PORT env if present, defaults to 80 */
   port?: number;
-  /** The hostname to listen on, defaults to 0.0.0.0 */
+  /** The hostname to listen on, uses the HOST env if present, defaults to 0.0.0.0 */
   host?: string;
   /** Controller patterns to match, defaults to an empty array */
   controllerPatterns?: string[];
-  /** Basic plugins to apply to the server, by default no plugins are applied */
+  /** Basic plugins to apply to all requests, plugins are applied in order based on where they are defined in the `plugins` object, by default no plugins are applied */
   plugins?: ServerPlugin;
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;

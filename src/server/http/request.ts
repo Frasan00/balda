@@ -1,8 +1,8 @@
 import type { FormFile } from "src/plugins/file/file_types";
-import { validateSchema } from "../../validator/validator";
-import { NativeRequest } from "../../runtime/native_request";
 import { nativeCrypto } from "src/runtime/native_crypto";
 import { z, type ZodType } from "zod";
+import { NativeRequest } from "../../runtime/native_request";
+import { validateSchema } from "../../validator/validator";
 
 /**
  * The request object.
@@ -10,7 +10,9 @@ import { z, type ZodType } from "zod";
  * It contains the request body, query parameters, files, cookies, etc.
  * It also contains the validation methods.
  */
-export class Request extends NativeRequest {
+export class Request<
+  Params extends Record<string, string> = any,
+> extends NativeRequest {
   static fromRequest(request: Request | NativeRequest): Request {
     return new Request(request.url, {
       method: request.method,
@@ -140,9 +142,12 @@ export class Request extends NativeRequest {
   files: FormFile[] = [];
 
   /**
-   * The parameters of the request.
+   * The parameters of the request. Can be typed with a generic in the Request object
+   * @example
+   * ```ts
+   * Request<{ id: string }>
    */
-  params: Record<string, string> = {};
+  params: Params = {} as Params;
 
   /**
    * The query parameters of the request.

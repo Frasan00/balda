@@ -39,9 +39,7 @@ export const swagger = (
   const jsonPath = `${uiPath}/json`;
 
   let uiContent: string;
-  if (swaggerOptions.type === "redoc") {
-    uiContent = generateRedocUI(jsonPath, swaggerOptions);
-  } else if (swaggerOptions.type === "rapidoc") {
+  if (swaggerOptions.type === "rapidoc") {
     uiContent = generateRapiDocUI(jsonPath, swaggerOptions);
   } else if (swaggerOptions.type === "scalar") {
     uiContent = generateScalarUI(jsonPath, swaggerOptions);
@@ -392,28 +390,6 @@ function generateSwaggerUI(
     </script>
 </body>
 </html>`;
-}
-
-function generateRedocUI(specUrl: string, globalOptions: SwaggerGlobalOptions) {
-  return `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>${globalOptions.title}</title>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="${globalOptions.description}" />
-    <link rel="icon" type="image/png" href="https://redocly.github.io/redoc/favicon.ico">
-    <style>
-      body { margin: 0; padding: 0; }
-    </style>
-  </head>
-  <body>
-    <redoc spec-url="${specUrl}"></redoc>
-    <script src="https://unpkg.com/redoc/bundles/redoc.standalone.js"></script>
-  </body>
-</html>
-  `;
 }
 
 function generateRapiDocUI(

@@ -52,7 +52,7 @@ export class UsersController {
   @serialize(z.object({ error: z.literal("User not found") }), {
     status: 404,
   })
-  async show(req: Request, res: Response) {
+  async show(req: Request<{ id: string }>, res: Response) {
     const user = users.find((user) => user.id === Number(req.params.id));
     if (!user) {
       return res.notFound({ error: "User not found" });
