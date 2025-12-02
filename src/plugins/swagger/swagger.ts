@@ -117,7 +117,8 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const paths: Record<string, any> = {};
   if (Array.isArray(globalOptions.models)) {
     globalOptions.models = globalOptions.models.reduce((acc, model) => {
-      acc[model.$id || "name"] = model;
+      const fallbackName = `unnamed_model_${Math.random().toString(36).substring(2, 15)}`;
+      acc[model.$id || model.title || model.name || fallbackName] = model;
       return acc;
     }, {});
   }
