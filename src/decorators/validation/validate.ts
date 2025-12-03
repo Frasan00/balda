@@ -1,5 +1,4 @@
-import type { ZodType } from "zod";
-import { ValidationError } from "ajv";
+import { ZodError, type ZodType } from "zod";
 import { MetadataStore } from "../../metadata_store";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
@@ -97,7 +96,7 @@ const validateDecorator = (
 
         return originalMethod.apply(this, newArgs);
       } catch (error) {
-        if (!(error instanceof ValidationError)) {
+        if (!(error instanceof ZodError)) {
           throw error;
         }
 
@@ -105,7 +104,7 @@ const validateDecorator = (
           return res.status(options.customError.status || 400).json({
             received: req.body,
             schema: options.body,
-            error: error.errors,
+            error,
           });
         }
 

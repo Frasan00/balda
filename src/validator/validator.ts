@@ -1,44 +1,36 @@
-import Ajv, { ValidationError } from "ajv";
-import addFormats from "ajv-formats";
-import { z, type ZodType } from "zod";
+import { type ZodType } from "zod";
 
-const ajv = addFormats(new Ajv(), [
-  "date-time",
-  "time",
-  "date",
-  "email",
-  "hostname",
-  "ipv4",
-  "ipv6",
-  "uri",
-  "uri-reference",
-  "uuid",
-  "uri-template",
-  "json-pointer",
-  "relative-json-pointer",
-  "regex",
-  "password",
-  "binary",
-  "byte",
-  "iso-date-time",
-  "iso-time",
-]);
-
+/**
+ * Validates data against a Zod schema synchronously.
+ *
+ * @warning Only synchronous Zod schemas are supported. Async refinements (e.g. `.refine(async () => ...)`)
+ * or async transforms will throw an error. Use standard Zod methods like `.parse()` or `.safeParse()`
+ * directly if you need async validation.
+ *
+ * @param inputSchema - The Zod schema to validate against
+ * @param data - The data to validate
+ * @param safe - If true, returns undefined instead of throwing on validation failure
+ * @returns The validated data
+ * @throws ZodError if validation fails and safe is false
+ */
 export const validateSchema = <T extends ZodType>(
   inputSchema: T,
   data: any,
   safe: boolean = false,
 ): any => {
-  const jsonSchema = z.toJSONSchema(inputSchema);
-  const { $schema, ...schemaWithoutMeta } = jsonSchema;
-  const validate = ajv.compile(schemaWithoutMeta);
-  if (!validate(data)) {
+  const {
+    success,
+    data: validatedData,
+    error: zodError,
+  } = inputSchema.safeParse(data);
+
+  if (!success) {
     if (safe) {
-      return data;
+      return validatedData;
     }
 
-    throw new ValidationError(validate.errors || []);
+    throw zodError;
   }
 
-  return data;
+  return validatedData;
 };

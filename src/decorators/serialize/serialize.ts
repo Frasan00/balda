@@ -1,9 +1,8 @@
-import { ValidationError } from "ajv";
 import type { SerializeOptions } from "src/decorators/serialize/serialize_types";
 import { MetadataStore } from "src/metadata_store";
 import type { Response } from "src/server/http/response";
 import { validateSchema } from "src/validator/validator";
-import type { ZodType } from "zod";
+import { ZodError, type ZodType } from "zod";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
@@ -58,11 +57,11 @@ export const serialize = <T extends ZodType>(
           try {
             res.send(validateSchema(schema, body, safe));
           } catch (error) {
-            if (error instanceof ValidationError) {
+            if (error instanceof ZodError) {
               res.internalServerError({
                 received: body,
                 schema,
-                error: error.errors,
+                error,
               });
               return;
             }

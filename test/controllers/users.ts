@@ -9,11 +9,6 @@ import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import z from "zod";
 
-const users = [
-  { id: 1, email: "john.doe@example.com", name: "John Doe", age: 20 },
-  { id: 2, email: "jane.doe@example.com", name: "Jane Doe", age: 21 },
-];
-
 const UserIndexQuery = z.object({
   shouldFail: z.string().optional(),
 });
@@ -28,6 +23,21 @@ const UserResponse = z.object({
 const ShouldFailResponse = z.object({
   impossibleField: z.string(),
 });
+
+const users = [
+  {
+    id: 1,
+    email: "john.doe@example.com",
+    name: "John Doe",
+    age: 20,
+  },
+  {
+    id: 2,
+    email: "jane.doe@example.com",
+    name: "Jane Doe",
+    age: 21,
+  },
+];
 
 @controller("/users")
 export class UsersController {
