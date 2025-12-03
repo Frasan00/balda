@@ -8,29 +8,30 @@ import type {
 } from "./validate_types";
 
 /**
- * Decorator to validate request data using TypeBox schemas.
+ * Decorator to validate request data using Zod schemas.
  * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
  * Using this decorator will also update the Swagger documentation with the validated schema (except for the .all schema since there is no way to if using query strings or body).
  * @param options - Validation options including body, query, or all schemas
  * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
+ * @warning Only synchronous Zod schemas are supported. Async refinements or transforms will throw an error.
  * @example
  * ```ts
  * import { validate } from "src/decorators/validation/validate";
  * import { controller, post } from "src/decorators/handlers/post";
  * import { Request } from "src/server/http/request";
  * import { Response } from "src/server/http/response";
- * import { Type } from "@sinclair/typebox";
+ * import { z } from "zod";
  *
- * const PayloadSchema = Type.Object({
- *   name: Type.String(),
- *   email: Type.String(),
+ * const PayloadSchema = z.object({
+ *   name: z.string(),
+ *   email: z.string().email(),
  * });
  *
  * @controller("/users")
  * export class UserController {
  *   @post("/")
  *   @validate.body(PayloadSchema) // This will also update the Swagger documentation with the validated schemas and will override the existing schemas.
- *   async createUser(req: Request, res: Response, payload: Static<typeof PayloadSchema>) {
+ *   async createUser(req: Request, res: Response, payload: z.infer<typeof PayloadSchema>) {
  *     // payload is now validated and typed
  *     const { name, email } = payload;
  *   }
