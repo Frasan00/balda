@@ -83,6 +83,7 @@ export * from "./plugins/urlencoded/urlencoded";
 // Policy
 export * from "./server/policy/policy_manager";
 export * from "./server/policy/policy_types";
+export * from "./server/policy/policy_decorator";
 
 // Router
 import { router as routerInstance } from "./server/router/router";
