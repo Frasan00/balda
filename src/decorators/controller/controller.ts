@@ -1,8 +1,34 @@
 import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { MetadataStore } from "../../metadata_store";
-import type { HttpMethod } from "../../runtime/native_server/server_types";
-import { router } from "../../server/router/router";
 import { nativePath } from "src/runtime/native_path";
+import { MetadataStore } from "../../metadata_store";
+import type {
+  HttpMethod,
+  ServerRouteMiddleware,
+} from "../../runtime/native_server/server_types";
+import type { PolicyMetadata } from "../../server/policy/policy_types";
+import { router } from "../../server/router/router";
+
+/**
+ * Creates a middleware that enforces policies before allowing the request to proceed.
+ * Returns 401 Unauthorized if any policy check fails.
+ */
+const createPolicyMiddleware = (
+  policies: PolicyMetadata[],
+): ServerRouteMiddleware => {
+  return async (req, res, next) => {
+    for (const policy of policies) {
+      const allowed = await policy.manager.canAccess(
+        policy.scope,
+        policy.handler,
+        req,
+      );
+      if (!allowed) {
+        return res.unauthorized({ error: "Unauthorized" });
+      }
+    }
+    return next();
+  };
+};
 
 /**
  * Decorator to mark a class as a controller, routes defined in the controller will be registered at import time when calling the `listen` method.
@@ -19,6 +45,7 @@ export const controller = (
   return (target: any) => {
     const classMeta = MetadataStore.get(target.prototype, "__class__");
     const classMiddlewares = classMeta?.middlewares || [];
+    const classPolicies: PolicyMetadata[] = classMeta?.policies || [];
     const metaMap = MetadataStore.getAll(target.prototype);
     const instance = new target();
 
@@ -32,8 +59,22 @@ export const controller = (
         ? nativePath.join(path, meta.route.path)
         : meta.route.path;
 
-      // Prepend class-level middlewares before route-level
-      const allMiddlewares = [...classMiddlewares, ...(meta.middlewares || [])];
+      // Combine class-level and method-level policies
+      const allPolicies: PolicyMetadata[] = [
+        ...classPolicies,
+        ...(meta.policies || []),
+      ];
+
+      // Create policy middleware if there are policies to enforce
+      const policyMiddleware =
+        allPolicies.length > 0 ? [createPolicyMiddleware(allPolicies)] : [];
+
+      // Prepend class-level middlewares, then policy middleware, then route-level middlewares
+      const allMiddlewares = [
+        ...classMiddlewares,
+        ...policyMiddleware,
+        ...(meta.middlewares || []),
+      ];
       router.addOrUpdate(
         meta.route.method as HttpMethod,
         fullPath,

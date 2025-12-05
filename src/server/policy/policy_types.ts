@@ -1,3 +1,5 @@
+import type { PolicyManager } from "./policy_manager";
+
 export type PolicyProvider = {
   [K: string]: (...args: any[]) => Promise<boolean> | boolean;
 };
@@ -5,6 +7,7 @@ export type PolicyProvider = {
 export type PolicyMetadata = {
   scope: string;
   handler: string;
+  manager: PolicyManager<any>;
 };
 
 export type PolicyDecorator<T extends Record<string, PolicyProvider>> = <

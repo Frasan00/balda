@@ -7,7 +7,7 @@ import type {
 } from "./policy_types";
 
 export const createPolicyDecorator = <T extends Record<string, PolicyProvider>>(
-  _manager: PolicyManager<T>,
+  manager: PolicyManager<T>,
 ): PolicyDecorator<T> => {
   return <S extends keyof T & string, H extends keyof T[S] & string>(
     scope: S,
@@ -18,7 +18,7 @@ export const createPolicyDecorator = <T extends Record<string, PolicyProvider>>(
       propertyKey?: string,
       descriptor?: PropertyDescriptor,
     ) => {
-      const policyMeta: PolicyMetadata = { scope, handler };
+      const policyMeta: PolicyMetadata = { scope, handler, manager };
 
       if (typeof propertyKey === "undefined") {
         let meta = MetadataStore.get(target.prototype, "__class__");

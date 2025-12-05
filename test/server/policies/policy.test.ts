@@ -34,7 +34,11 @@ describe("Test Policy Decorator", () => {
     const meta = MetadataStore.get(TestController.prototype, "__class__");
     expect(meta).toBeDefined();
     expect(meta.policies).toHaveLength(1);
-    expect(meta.policies[0]).toEqual({ scope: "test", handler: "adminRoute" });
+    expect(meta.policies[0]).toEqual({
+      scope: "test",
+      handler: "adminRoute",
+      manager: policyManager,
+    });
   });
 
   it("should store policy metadata on a method", () => {
@@ -48,7 +52,11 @@ describe("Test Policy Decorator", () => {
     const meta = MetadataStore.get(TestController.prototype, "getUser");
     expect(meta).toBeDefined();
     expect(meta.policies).toHaveLength(1);
-    expect(meta.policies[0]).toEqual({ scope: "test", handler: "adminRoute" });
+    expect(meta.policies[0]).toEqual({
+      scope: "test",
+      handler: "adminRoute",
+      manager: policyManager,
+    });
   });
 
   it("should accumulate multiple policies on a class", () => {
