@@ -118,8 +118,8 @@ const validateDecorator = (
 };
 
 /**
- * Decorator to validate the query parameters against a TypeBox schema
- * @param schema - The TypeBox schema to validate the query parameters against
+ * Decorator to validate the query parameters against a TypezodBox schema
+ * @param schema - The zod schema to validate the query parameters against
  * @returns The decorator function
  */
 validateDecorator.query = (
@@ -130,8 +130,8 @@ validateDecorator.query = (
 };
 
 /**
- * Decorator to validate the request body against a TypeBox schema
- * @param schema - The TypeBox schema to validate the request body against
+ * Decorator to validate the request body against a zod schema
+ * @param schema - The zod schema to validate the request body against
  * @returns The decorator function
  */
 validateDecorator.body = (
@@ -142,8 +142,8 @@ validateDecorator.body = (
 };
 
 /**
- * Decorator to validate both the request body and query parameters against a TypeBox schema
- * @param schema - The TypeBox schema to validate both the request body and query parameters against
+ * Decorator to validate both the request body and query parameters against a zod schema
+ * @param schema - The zod schema to validate both the request body and query parameters against
  * @returns The decorator function
  */
 validateDecorator.all = (
