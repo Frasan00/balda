@@ -28,6 +28,8 @@ import type {
 import type { NextFunction } from "./http/next";
 import type { Request } from "./http/request";
 import type { Response } from "./http/response";
+import type { RequestHandler } from "express";
+import type { ExpressRouter } from "src/plugins/express/express_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -148,6 +150,30 @@ export interface ServerInterface {
     path: string,
     options?: { recursive?: boolean; mode?: number | string },
   ) => Promise<void>;
+
+  /**
+   * Mount an Express middleware or router at a specific path for compatibility with Express-based libraries like AdminJS
+   * @param pathOrMiddleware - The path to mount at, or the Express middleware/router if mounting at root
+   * @param maybeMiddleware - The Express middleware or router when path is provided
+   */
+  useExpress: (
+    pathOrMiddleware: string | RequestHandler | ExpressRouter,
+    maybeMiddleware?: RequestHandler | ExpressRouter,
+  ) => void;
+
+  /**
+   * Convert an Express middleware to a Balda-compatible middleware
+   * @param middleware - The Express middleware to convert
+   * @returns A Balda-compatible middleware
+   */
+  expressMiddleware: (middleware: RequestHandler) => ServerRouteMiddleware;
+
+  /**
+   * Mount an Express router at a specific base path
+   * @param basePath - The base path to mount the router at
+   * @param expressRouter - The Express router to mount
+   */
+  mountExpressRouter: (basePath: string, expressRouter: ExpressRouter) => void;
 
   /**
    * Shorthand for the server.router.get method

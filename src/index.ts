@@ -69,6 +69,8 @@ export { hash } from "./runtime/native_hash";
 export * from "./plugins/base_plugin";
 export * from "./plugins/cookie/cookie";
 export * from "./plugins/cors/cors";
+export * from "./plugins/express/express";
+export * from "./plugins/express/express_types";
 export * from "./plugins/file/file";
 export * from "./plugins/helmet/helmet";
 export * from "./plugins/json/json";
@@ -81,9 +83,9 @@ export * from "./plugins/trust_proxy/trust_proxy";
 export * from "./plugins/urlencoded/urlencoded";
 
 // Policy
+export * from "./server/policy/policy_decorator";
 export * from "./server/policy/policy_manager";
 export * from "./server/policy/policy_types";
-export * from "./server/policy/policy_decorator";
 
 // Router
 import { router as routerInstance } from "./server/router/router";

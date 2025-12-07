@@ -1,3 +1,4 @@
+import type { Router as ExpressRouter, RequestHandler } from "express";
 import { glob } from "glob";
 import { CronService } from "src/cron/cron";
 import { errorFactory } from "src/errors/error_factory";
@@ -5,6 +6,11 @@ import { RouteNotFoundError } from "src/errors/route_not_found";
 import { MockServer } from "src/mock/mock_server";
 import { cookie } from "src/plugins/cookie/cookie";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import {
+  createExpressAdapter,
+  expressMiddleware,
+  mountExpressRouter,
+} from "src/plugins/express/express";
 import { log } from "src/plugins/log/log";
 import type { LogOptions } from "src/plugins/log/log_types";
 import { rateLimiter } from "src/plugins/rate_limiter/rate_limiter";
@@ -26,7 +32,7 @@ import { NativeEnv } from "src/runtime/native_env";
 import { nativeFs } from "src/runtime/native_fs";
 import { hash as nativeHash } from "src/runtime/native_hash";
 import type { ClientRouter, Route } from "src/server/router/router_type";
-import { SyncOrAsync } from "src/type_util";
+import type { SyncOrAsync } from "src/type_util";
 import { logger } from "../logger/logger";
 import { bodyParser } from "../plugins/body_parser/body_parser";
 import { cors } from "../plugins/cors/cors";
@@ -417,6 +423,22 @@ export class Server implements ServerInterface {
 
   use(...middlewares: ServerRouteMiddleware[]): void {
     this.globalMiddlewares.push(...middlewares);
+  }
+
+  useExpress(
+    pathOrMiddleware: string | RequestHandler | ExpressRouter,
+    maybeMiddleware?: RequestHandler | ExpressRouter,
+  ): void {
+    const adapter = createExpressAdapter(this);
+    adapter.use(pathOrMiddleware, maybeMiddleware);
+  }
+
+  expressMiddleware(middleware: RequestHandler): ServerRouteMiddleware {
+    return expressMiddleware(middleware);
+  }
+
+  mountExpressRouter(basePath: string, expressRouter: ExpressRouter): void {
+    mountExpressRouter(basePath, expressRouter);
   }
 
   setErrorHandler(errorHandler?: ServerErrorHandler): void {
