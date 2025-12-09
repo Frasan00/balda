@@ -2,6 +2,7 @@ import type { Router as ExpressRouter, RequestHandler } from "express";
 import { glob } from "glob";
 import { CronService } from "src/cron/cron";
 import { errorFactory } from "src/errors/error_factory";
+import { MethodNotAllowedError } from "src/errors/method_not_allowed";
 import { RouteNotFoundError } from "src/errors/route_not_found";
 import { MockServer } from "src/mock/mock_server";
 import { cookie } from "src/plugins/cookie/cookie";
@@ -683,6 +684,7 @@ export class Server implements ServerInterface {
 
   /**
    * Handles not found routes by delegating to custom handler or default error response
+   * Checks if the path exists for other methods and returns 405 if so
    * @internal
    */
   private handleNotFound: ServerRouteHandler = (req, res) => {
@@ -691,7 +693,44 @@ export class Server implements ServerInterface {
       return;
     }
 
-    const notFoundError = new RouteNotFoundError(req.url, req.method);
+    const pathname = new URL(req.url).pathname;
+    const allMethods = [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+      "HEAD",
+    ] as const;
+    const allowedMethods: string[] = [];
+
+    for (const method of allMethods) {
+      if (method === req.method.toUpperCase()) {
+        continue;
+      }
+
+      const match = router.find(method, pathname);
+      if (match && match.handler !== this.handleNotFound) {
+        allowedMethods.push(method);
+      }
+    }
+
+    if (allowedMethods.length > 0) {
+      res.setHeader("Allow", allowedMethods.join(", "));
+      const methodNotAllowedError = new MethodNotAllowedError(
+        pathname,
+        req.method,
+      );
+
+      res.methodNotAllowed({
+        ...errorFactory(methodNotAllowedError),
+      });
+
+      return;
+    }
+
+    const notFoundError = new RouteNotFoundError(pathname, req.method);
     res.notFound({
       ...errorFactory(notFoundError),
     });
@@ -709,6 +748,7 @@ export class Server implements ServerInterface {
       "PATCH",
       "DELETE",
       "OPTIONS",
+      "HEAD",
     ] as const;
     for (const method of methods) {
       router.addOrUpdate(method, "*", [], this.handleNotFound, {
