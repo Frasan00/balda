@@ -10,14 +10,15 @@ import { Request } from "src/server/http/request";
 import { Response } from "src/server/http/response";
 import { router } from "src/server/router/router";
 import type { Server } from "src/server/server";
+import { NodeHttpClient } from "src/server/server_types";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
  */
 export class MockServer {
-  readonly server: Server;
+  readonly server: Server<NodeHttpClient>;
 
-  constructor(server: Server) {
+  constructor(server: Server<NodeHttpClient>) {
     this.server = server;
   }
 

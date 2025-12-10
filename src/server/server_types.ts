@@ -1,6 +1,8 @@
+import type { RequestHandler } from "express";
 import type { CronService } from "src/cron/cron";
 import type { MockServer } from "src/mock/mock_server";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import type { ExpressRouter } from "src/plugins/express/express_types";
 import type { FilePluginOptions } from "src/plugins/file/file_types";
 import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
 import type { LogOptions } from "src/plugins/log/log_types";
@@ -19,6 +21,7 @@ import type { CorsOptions } from "../plugins/cors/cors_types";
 import type { JsonOptions } from "../plugins/json/json_options";
 import type { swagger } from "../plugins/swagger/swagger";
 import type {
+  HttpsOptions,
   RuntimeServerMap,
   ServerListenCallback,
   ServerRouteHandler,
@@ -28,8 +31,6 @@ import type {
 import type { NextFunction } from "./http/next";
 import type { Request } from "./http/request";
 import type { Response } from "./http/response";
-import type { RequestHandler } from "express";
-import type { ExpressRouter } from "src/plugins/express/express_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -49,7 +50,11 @@ export type ServerPlugin = {
   session?: SessionOptions;
 };
 
-export interface ServerOptions {
+export type NodeHttpClient = "http" | "http2" | "https";
+
+export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
+  /** Specific node client to use for nodejs */
+  nodeHttpClient?: H;
   /** The port to listen on, uses the PORT env if present, defaults to 80 */
   port?: number;
   /** The hostname to listen on, uses the HOST env if present, defaults to 0.0.0.0 */
@@ -72,7 +77,19 @@ export interface ServerOptions {
    * ```
    */
   swagger?: Parameters<typeof swagger>[0] | boolean;
-}
+} & (H extends "https" ? HttpsOptions<H> : {});
+
+/** Internal resolved server options with all required properties */
+export type ResolvedServerOptions = {
+  nodeHttpClient: NodeHttpClient;
+  port: number;
+  host: string;
+  controllerPatterns: string[];
+  plugins: ServerPlugin;
+  tapOptions: ServerTapOptions;
+  useBodyParser: boolean;
+  swagger: Parameters<typeof swagger>[0] | boolean;
+};
 
 export type ServerErrorHandler = (
   req: Request,

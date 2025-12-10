@@ -1,17 +1,25 @@
 import {
   createServer,
-  type Server as HttpServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
+import {
+  createServer as http2CreateServer,
+  type Http2ServerRequest,
+  type Http2ServerResponse,
+} from "node:http2";
+import { createServer as httpsCreateServer } from "node:https";
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
+import { NodeHttpClient } from "src/server/server_types";
 import { Request } from "../../server/http/request";
 import { Response } from "../../server/http/response";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
   HttpMethod,
+  HttpsServerOptions,
+  NodeServer,
   NodeTapOptions,
   ServerConnectInput,
   ServerRoute,
@@ -38,29 +46,38 @@ async function pipeReadableStreamToNodeResponse(
   }
 }
 
-export class ServerNode implements ServerInterface {
+export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   port: number;
   host: string;
   url: string;
   routes: ServerRoute[];
   tapOptions?: ServerTapOptions;
-  runtimeServer: HttpServer;
+  runtimeServer: NodeServer;
+  nodeHttpClient: H;
+  httpsOptions?: HttpsServerOptions;
 
-  constructor(input?: ServerConnectInput) {
+  constructor(input?: ServerConnectInput<H>) {
     this.routes = input?.routes ?? [];
     this.port = input?.port ?? 80;
     this.host = input?.host ?? "0.0.0.0";
-    this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
+    this.nodeHttpClient = input?.nodeHttpClient ?? ("http" as H);
+    this.httpsOptions =
+      input?.nodeHttpClient === "https"
+        ? (input as unknown as ServerConnectInput<"https">)?.httpsOptions
+        : undefined;
 
-    this.runtimeServer = createServer(
+    const protocol = this.nodeHttpClient === "https" ? "https" : "http";
+    this.url = `${protocol}://${this.host}:${this.port}`;
+
+    this.runtimeServer = this.createServer(
       async (
         req: IncomingMessage,
         httpResponse: ServerResponse,
       ): Promise<void> => {
-        if (this.tapOptions && this.tapOptions.type === "node") {
-          const { options } = this.tapOptions as NodeTapOptions;
-          await options?.(req);
+        if (this.tapOptions && this.tapOptions.node) {
+          const preHandler = this.tapOptions.node as NodeTapOptions;
+          await preHandler?.(req);
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);
@@ -153,5 +170,29 @@ export class ServerNode implements ServerInterface {
       req.on("error", reject);
       req.on("end", () => resolve(Buffer.concat(chunks).toString()));
     });
+  }
+
+  private createServer(
+    handler: (req: IncomingMessage, res: ServerResponse) => Promise<void>,
+  ): NodeServer {
+    if (this.nodeHttpClient === "http") {
+      return createServer(handler);
+    }
+
+    if (this.nodeHttpClient === "http2") {
+      return http2CreateServer(
+        handler as unknown as (
+          req: Http2ServerRequest,
+          res: Http2ServerResponse,
+        ) => Promise<void>,
+      );
+    }
+
+    if (!this.httpsOptions) {
+      throw new Error(
+        "httpsOptions (key, cert) are required when using https client",
+      );
+    }
+    return httpsCreateServer(this.httpsOptions, handler);
   }
 }

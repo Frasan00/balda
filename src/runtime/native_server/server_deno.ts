@@ -31,7 +31,7 @@ export class ServerDeno implements ServerInterface {
   }
 
   listen(): void {
-    const tapOptions = this.tapOptions?.options as DenoTapOptions["options"];
+    const tapOptions = this.tapOptions?.deno;
     const { handler, ...rest } = tapOptions ?? {};
 
     this.runtimeServer = Deno.serve({

@@ -1,9 +1,17 @@
 import type { Server as HttpServer, IncomingMessage } from "node:http";
-import { SyncOrAsync } from "src/type_util";
+import { type Http2Server } from "node:http2";
+import {
+  Server as HttpsServer,
+  type ServerOptions as HttpsServerOptions,
+} from "node:https";
+import { type NodeHttpClient } from "src/server/server_types";
+import type { SyncOrAsync } from "src/type_util";
 import type { NextFunction } from "../../server/http/next";
 import type { Request as BaldaRequest } from "../../server/http/request";
 import type { Response as BaldaResponse } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
+
+export type { HttpsServerOptions };
 
 export type HttpMethod =
   | "GET"
@@ -14,8 +22,10 @@ export type HttpMethod =
   | "OPTIONS"
   | "HEAD";
 
+export type NodeServer = HttpServer | HttpsServer | Http2Server;
+
 export type RuntimeServer =
-  | HttpServer
+  | NodeServer
   | ReturnType<typeof Bun.serve>
   | ReturnType<typeof Deno.serve>;
 
@@ -27,7 +37,14 @@ export type RuntimeServerMap<T extends RunTimeType> = T extends "node"
       ? ReturnType<typeof Deno.serve>
       : never;
 
-export interface ServerConnectInput {
+export type HttpsOptions<T extends NodeHttpClient> = T extends "https"
+  ? {
+      /** HTTPS/TLS options, required when nodeHttpClient is 'https' */
+      httpsOptions: HttpsServerOptions;
+    }
+  : never;
+
+export type ServerConnectInput<H extends NodeHttpClient = NodeHttpClient> = {
   /** The port to listen on, defaults to 80 */
   port: number;
   /** The hostname to listen on, defaults to 0.0.0.0 */
@@ -38,7 +55,9 @@ export interface ServerConnectInput {
   tapOptions?: ServerTapOptions;
   /** The runtime to use for the server */
   runtime: RunTimeType;
-}
+  /** Specific node client to use */
+  nodeHttpClient: H;
+} & (H extends "https" ? HttpsOptions<H> : {});
 
 export type ServerRouteMiddleware = (
   req: BaldaRequest,
@@ -102,19 +121,11 @@ export type ServerTapOptionsBuilder<T extends RunTimeType> = T extends "node"
         }
       : never;
 
-export type BunTapOptions = {
-  type: "bun";
-  options: ServerTapOptionsBuilder<"bun">;
+export type BunTapOptions = ServerTapOptionsBuilder<"bun">;
+export type NodeTapOptions = ServerTapOptionsBuilder<"node">;
+export type DenoTapOptions = ServerTapOptionsBuilder<"deno">;
+export type ServerTapOptions = {
+  bun?: BunTapOptions;
+  node?: NodeTapOptions;
+  deno?: DenoTapOptions;
 };
-
-export type NodeTapOptions = {
-  type: "node";
-  options: ServerTapOptionsBuilder<"node">;
-};
-
-export type DenoTapOptions = {
-  type: "deno";
-  options: ServerTapOptionsBuilder<"deno">;
-};
-
-export type ServerTapOptions = BunTapOptions | NodeTapOptions | DenoTapOptions;

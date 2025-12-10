@@ -50,6 +50,7 @@ import { nativeCwd } from "../runtime/native_cwd";
 import { nativePath } from "../runtime/native_path";
 import { ServerConnector } from "../runtime/native_server/server_connector";
 import type {
+  HttpsServerOptions,
   RuntimeServerMap,
   ServerListenCallback,
   ServerRouteHandler,
@@ -60,6 +61,8 @@ import { runtime } from "../runtime/runtime";
 import { router } from "./router/router";
 import { PROTECTED_KEYS } from "./server_constants";
 import type {
+  NodeHttpClient,
+  ResolvedServerOptions,
   ServerErrorHandler,
   ServerInterface,
   ServerOptions,
@@ -71,7 +74,7 @@ import type {
 /**
  * The server class that is used to create and manage the server
  */
-export class Server implements ServerInterface {
+export class Server<H extends NodeHttpClient> implements ServerInterface {
   isListening: boolean;
 
   readonly router: ClientRouter = router;
@@ -79,10 +82,11 @@ export class Server implements ServerInterface {
   private wasInitialized: boolean;
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
-  private serverOptions: Required<ServerOptions>;
+  private serverOptions: ResolvedServerOptions;
   private controllerImportBlacklistedPaths: string[] = ["node_modules"];
   private notFoundHandler?: ServerRouteHandler;
   private readonly nativeEnv: NativeEnv = new NativeEnv();
+  private httpsOptions?: HttpsServerOptions;
 
   /**
    * The constructor for the server
@@ -95,9 +99,10 @@ export class Server implements ServerInterface {
    * @param options.logger - The logger to use for the server, by default a default logger is used
    * @param options.tapOptions - Options fetch to the runtime server before the server is up and running
    */
-  constructor(options?: ServerOptions) {
+  constructor(options?: ServerOptions<H>) {
     this.wasInitialized = false;
     this.serverOptions = {
+      nodeHttpClient: options?.nodeHttpClient ?? ("http" as H),
       port: options?.port ?? Number(this.nativeEnv.get("PORT")) ?? 80,
       host: options?.host ?? this.nativeEnv.get("HOST") ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? [],
@@ -107,12 +112,19 @@ export class Server implements ServerInterface {
       useBodyParser: options?.useBodyParser ?? true,
     };
 
+    this.httpsOptions =
+      options?.nodeHttpClient === "https"
+        ? (options as ServerOptions<"https">).httpsOptions
+        : undefined;
+
     this.serverConnector = new ServerConnector({
       routes: [],
       port: this.serverOptions.port,
       host: this.serverOptions.host,
       tapOptions: this.serverOptions.tapOptions,
       runtime: runtime.type,
+      nodeHttpClient: this.serverOptions.nodeHttpClient,
+      httpsOptions: this.httpsOptions,
     });
 
     if (this.serverOptions.useBodyParser) {
@@ -716,7 +728,7 @@ export class Server implements ServerInterface {
       }
     }
 
-    if (allowedMethods.length > 0) {
+    if (allowedMethods.length) {
       res.setHeader("Allow", allowedMethods.join(", "));
       const methodNotAllowedError = new MethodNotAllowedError(
         pathname,
