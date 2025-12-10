@@ -113,7 +113,8 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
     };
 
     this.httpsOptions =
-      options?.nodeHttpClient === "https"
+      options?.nodeHttpClient === "https" ||
+      options?.nodeHttpClient === "http2-secure"
         ? (options as ServerOptions<"https">).httpsOptions
         : undefined;
 

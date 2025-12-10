@@ -37,9 +37,11 @@ export type RuntimeServerMap<T extends RunTimeType> = T extends "node"
       ? ReturnType<typeof Deno.serve>
       : never;
 
-export type HttpsOptions<T extends NodeHttpClient> = T extends "https"
+export type HttpsOptions<T extends NodeHttpClient> = T extends
+  | "https"
+  | "http2-secure"
   ? {
-      /** HTTPS/TLS options, required when nodeHttpClient is 'https' */
+      /** HTTPS/TLS options, required when nodeHttpClient is 'https' or 'http2-secure' */
       httpsOptions: HttpsServerOptions;
     }
   : never;

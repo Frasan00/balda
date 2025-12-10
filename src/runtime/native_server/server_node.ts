@@ -4,6 +4,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import {
+  createSecureServer as http2CreateSecureServer,
   createServer as http2CreateServer,
   type Http2ServerRequest,
   type Http2ServerResponse,
@@ -63,11 +64,15 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
     this.tapOptions = input?.tapOptions;
     this.nodeHttpClient = input?.nodeHttpClient ?? ("http" as H);
     this.httpsOptions =
-      input?.nodeHttpClient === "https"
+      input?.nodeHttpClient === "https" ||
+      input?.nodeHttpClient === "http2-secure"
         ? (input as unknown as ServerConnectInput<"https">)?.httpsOptions
         : undefined;
 
-    const protocol = this.nodeHttpClient === "https" ? "https" : "http";
+    const protocol =
+      this.nodeHttpClient === "https" || this.nodeHttpClient === "http2-secure"
+        ? "https"
+        : "http";
     this.url = `${protocol}://${this.host}:${this.port}`;
 
     this.runtimeServer = this.createServer(
@@ -81,12 +86,25 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);
+        const filteredHeaders: Record<string, string> = {};
+        for (const key of Object.keys(req.headers)) {
+          if (key.startsWith(":")) {
+            continue;
+          }
+          const value = req.headers[key];
+          if (value !== undefined) {
+            filteredHeaders[key] = Array.isArray(value)
+              ? value.join(", ")
+              : value;
+          }
+        }
+
         const request = new Request(`${this.url}${req.url}`, {
           method: req.method,
           body: canHaveBody(req.method)
             ? await this.readRequestBody(req)
             : undefined,
-          headers: req.headers as Record<string, string>,
+          headers: filteredHeaders,
         });
 
         let forwardedFor = req.headers["x-forwarded-for"];
@@ -181,6 +199,21 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
     if (this.nodeHttpClient === "http2") {
       return http2CreateServer(
+        handler as unknown as (
+          req: Http2ServerRequest,
+          res: Http2ServerResponse,
+        ) => Promise<void>,
+      );
+    }
+
+    if (this.nodeHttpClient === "http2-secure") {
+      if (!this.httpsOptions) {
+        throw new Error(
+          "httpsOptions (key, cert) are required when using http2-secure client",
+        );
+      }
+      return http2CreateSecureServer(
+        this.httpsOptions,
         handler as unknown as (
           req: Http2ServerRequest,
           res: Http2ServerResponse,

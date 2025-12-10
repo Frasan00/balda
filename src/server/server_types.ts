@@ -50,10 +50,10 @@ export type ServerPlugin = {
   session?: SessionOptions;
 };
 
-export type NodeHttpClient = "http" | "http2" | "https";
+export type NodeHttpClient = "http" | "http2" | "https" | "http2-secure";
 
 export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
-  /** Specific node client to use for nodejs */
+  /** Specific node client to use for nodejs, default to `http` */
   nodeHttpClient?: H;
   /** The port to listen on, uses the PORT env if present, defaults to 80 */
   port?: number;
@@ -77,7 +77,7 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   swagger?: Parameters<typeof swagger>[0] | boolean;
-} & (H extends "https" ? HttpsOptions<H> : {});
+} & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
 export type ResolvedServerOptions = {
