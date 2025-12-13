@@ -71,6 +71,10 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
+import { compression } from "src/plugins/compression/compression";
+import { methodOverride } from "src/plugins/method_override/method_override";
+import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
+import type { CompressionOptions } from "src/plugins/compression/compression_types";
 
 /**
  * The server class that is used to create and manage the server
@@ -646,6 +650,12 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
           break;
         case "cookie":
           this.use(cookie(pluginOptions as CookieMiddlewareOptions));
+          break;
+        case "methodOverride":
+          this.use(methodOverride(pluginOptions as MethodOverrideOptions));
+          break;
+        case "compression":
+          this.use(compression(pluginOptions as CompressionOptions));
           break;
         case "log":
           this.use(log(pluginOptions as LogOptions));

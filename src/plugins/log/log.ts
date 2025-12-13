@@ -32,13 +32,17 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
         });
       }
 
+      const startTime = performance.now();
       await next();
+      const endTime = performance.now();
+      const duration = endTime - startTime;
 
       if (options?.logResponse ?? true) {
         logger.info({
           type: "response",
           requestId: req.id,
           status: options?.responsePayload?.status ?? res.responseStatus,
+          duration: `${duration.toFixed(2)}ms`,
           body:
             (options?.responsePayload?.body ?? false)
               ? returnIfObjectOrString(res.getBody())

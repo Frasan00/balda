@@ -32,6 +32,8 @@ import type {
 import type { NextFunction } from "./http/next";
 import type { Request } from "./http/request";
 import type { Response } from "./http/response";
+import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
+import type { CompressionOptions } from "src/plugins/compression/compression_types";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -49,6 +51,8 @@ export type ServerPlugin = {
   trustProxy?: TrustProxyOptions;
   timeout?: TimeoutOptions;
   session?: SessionOptions;
+  methodOverride?: MethodOverrideOptions;
+  compression?: CompressionOptions;
 };
 
 export type NodeHttpClient = "http" | "http2" | "https" | "http2-secure";

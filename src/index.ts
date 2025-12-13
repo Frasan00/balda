@@ -67,6 +67,7 @@ export { hash } from "./runtime/native_hash";
 
 // Plugins
 export * from "./plugins/base_plugin";
+export * from "./plugins/compression/compression";
 export * from "./plugins/cookie/cookie";
 export * from "./plugins/cors/cors";
 export * from "./plugins/express/express";
@@ -75,6 +76,7 @@ export * from "./plugins/file/file";
 export * from "./plugins/helmet/helmet";
 export * from "./plugins/json/json";
 export * from "./plugins/log/log";
+export * from "./plugins/method_override/method_override";
 export * from "./plugins/rate_limiter/rate_limiter";
 export * from "./plugins/session/session";
 export * from "./plugins/static/static";

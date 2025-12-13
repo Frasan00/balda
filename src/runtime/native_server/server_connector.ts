@@ -47,7 +47,7 @@ export class ServerConnector {
     return this.server.listen();
   }
 
-  close(): Promise<void> {
+  async close(): Promise<void> {
     return this.server.close();
   }
 
