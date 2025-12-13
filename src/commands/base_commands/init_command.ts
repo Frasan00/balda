@@ -89,7 +89,7 @@ const serverInstance = new Server({
   host: "0.0.0.0",
   plugins: {
     json: {
-      sizeLimit: "2mb",
+      sizeLimit: "100kb",
     },
   },
 });
