@@ -1,45 +1,66 @@
+# Source and build files
+src/
+native/
+lib_test/
+
+# Dependencies
+node_modules/
+
+# Configuration files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+deno.json
+deno.lock
+import_map.json
+.nvmrc
+.env
+elasticmq.conf
+
+# Development tools
+.prettierrc
+.prettierignore
+.husky/
+
+# Testing
+test/
+
+# Documentation
+docs/
+README.md
+
+# Docker and deployment
 Dockerfile
 docker-compose.yml
-yarn.lock
-tsup.config.ts
-src/
-node_modules/
-.dockerignore
-.gitignore
-.npmignore
-.env
-.prettierrc
-.prettierignore
-.prettierignore
-native/
-deno.json
-lib_test/
+docker-compose.services.yml
 docker/
-deno.json
-import_map.json
-public/
-tmp/
-deno/
-.gitignore
-.husky/
-.prettierrc
-.prettierignore
-.prettierignore
+
+# IDE and editor
 .vscode/
 .vscode-test/
+
+# Package managers
+yarn.lock
 .yarn/
 .yarnrc.yml
-.yarnrc.yml
-docker/
-test/
+
+# Version control
+.git/
+.gitignore
+.dockerignore
+.npmignore
+
+# Temporary files
 tmp/
-node_modules/
-docs/
+public/
+deno/
+
+# Scripts and misc
 speed_test.sh
 todo.md
-vitest.config.ts
-tsconfig.json
-.nvmrc
-deno.lock
-docker-compose.services.yml
-elasticmq.conf
+
+# Community and contribution files
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+.github/
