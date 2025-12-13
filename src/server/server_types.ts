@@ -11,6 +11,7 @@ import type {
   StorageOptions,
 } from "src/plugins/rate_limiter/rate_limiter_types";
 import type { SessionOptions } from "src/plugins/session/session_types";
+import type { StaticPluginOptions } from "src/plugins/static/static_types";
 import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
 import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
@@ -35,7 +36,7 @@ import type { Response } from "./http/response";
 export type ServerPlugin = {
   cors?: CorsOptions;
   json?: JsonOptions;
-  static?: string;
+  static?: StaticPluginOptions;
   fileParser?: FilePluginOptions;
   helmet?: HelmetOptions;
   cookie?: CookieMiddlewareOptions;
@@ -99,6 +100,10 @@ export type ServerErrorHandler = (
 ) => SyncOrAsync;
 
 export interface ServerInterface {
+  /**
+   * Whether the server is in production mode NODE_ENV is set to "production"
+   */
+  isProduction: boolean;
   /**
    * Whether the server is listening for requests
    */

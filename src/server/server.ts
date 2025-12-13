@@ -45,6 +45,7 @@ import type { HelmetOptions } from "../plugins/helmet/helmet_types";
 import { json } from "../plugins/json/json";
 import type { JsonOptions } from "../plugins/json/json_options";
 import { serveStatic } from "../plugins/static/static";
+import type { StaticPluginOptions } from "../plugins/static/static_types";
 import { swagger } from "../plugins/swagger/swagger";
 import { nativeCwd } from "../runtime/native_cwd";
 import { nativePath } from "../runtime/native_path";
@@ -76,6 +77,7 @@ import type {
  */
 export class Server<H extends NodeHttpClient> implements ServerInterface {
   isListening: boolean;
+  isProduction: boolean;
 
   readonly router: ClientRouter = router;
 
@@ -133,6 +135,7 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
     }
 
     this.isListening = false;
+    this.isProduction = this.nativeEnv.get("NODE_ENV") === "production";
   }
 
   get url(): string {
@@ -633,7 +636,7 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
           this.use(json(pluginOptions as JsonOptions));
           break;
         case "static":
-          this.use(serveStatic(pluginOptions as string));
+          this.use(serveStatic(pluginOptions as StaticPluginOptions));
           break;
         case "fileParser":
           this.use(fileParser(pluginOptions as FilePluginOptions));

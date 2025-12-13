@@ -12,23 +12,46 @@ import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
 import { router } from "../../server/router/router";
+import type { StaticPluginOptions } from "./static_types";
 
 /**
- * Creates a static file serving middleware and registers all routes for the given path (path + "/*")
- * @param path - The api path to serve static files from.
- * @example 'public' -> localhost:3000/public/index.html will search for public/index.html in the current directory
+ * Creates a static file serving middleware and registers all routes for the given path
+ * @param options - The options for serving static files
+ * @param options.source - The file system directory path where the assets are located
+ * @param options.path - The URL path where the assets will be served
+ * @param swaggerOptions - Optional swagger documentation options
+ * @example
+ * serveStatic({ source: 'tmp/assets', path: '/assets' }) // Serves from ./tmp/assets at /assets/*
+ *
+ * @example
+ * serveStatic({ source: 'public', path: '/public' }) // Serves from ./public at /public/*
  */
 export const serveStatic = (
-  path: string = "public",
+  options: StaticPluginOptions,
   swaggerOptions?: SwaggerRouteOptions,
 ): ServerRouteMiddleware => {
+  const { source, path: urlPath } = options;
+
+  // Normalize URL path
+  let normalizedPath = urlPath;
+
+  // Ensure path starts with /
+  if (!normalizedPath.startsWith("/")) {
+    normalizedPath = "/" + normalizedPath;
+  }
+
+  // Remove trailing slash if present
+  if (normalizedPath !== "/" && normalizedPath.endsWith("/")) {
+    normalizedPath = normalizedPath.slice(0, -1);
+  }
+
   // Static files handler
   router.addOrUpdate(
     "GET",
-    `${path}/*`,
+    `${normalizedPath}/*`,
     [],
     async (req, res) => {
-      return staticFileHandler(req, res, path);
+      return staticFileHandler(req, res, source);
     },
     {
       service: "StaticFiles",

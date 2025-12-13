@@ -54,7 +54,7 @@ export const cli = async () => {
 };
 
 if (typeof process !== "undefined") {
-  // Try to run CLI without ts-node first
+  // Try to run CLI without ts-node first (for js files)
   cli().catch(async (err) => {
     if (
       err?.message?.includes("SyntaxError") ||

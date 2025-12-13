@@ -78,6 +78,7 @@ export * from "./plugins/log/log";
 export * from "./plugins/rate_limiter/rate_limiter";
 export * from "./plugins/session/session";
 export * from "./plugins/static/static";
+export * from "./plugins/static/static_types";
 export * from "./plugins/timeout/timeout";
 export * from "./plugins/trust_proxy/trust_proxy";
 export * from "./plugins/urlencoded/urlencoded";

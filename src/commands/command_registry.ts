@@ -8,6 +8,7 @@ import GenerateCronCommand from "./base_commands/generate_cron";
 import InitCommand from "./base_commands/init_command";
 import ListCommand from "./base_commands/list_command";
 import GenerateQueueCommand from "src/commands/base_commands/generate_queue";
+import BuildCommand from "src/commands/base_commands/build_command";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -101,6 +102,7 @@ export class CommandRegistry {
       GenerateQueueCommand,
       InitCommand,
       ListCommand,
+      BuildCommand,
     ];
 
     for (const command of baseCommands) {

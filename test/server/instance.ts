@@ -38,7 +38,10 @@ const serverBuilder = new Server({
     },
   },
   plugins: {
-    static: "public",
+    static: {
+      source: "public",
+      path: "/public",
+    },
     json: {
       sizeLimit: 1024 * 1024 * 20,
     },
