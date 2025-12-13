@@ -20,14 +20,26 @@ export type CookieOptions = {
   maxAge?: number;
   /**
    * Whether the cookie is secure (HTTPS only)
+   * @default true
+   *
+   * ⚠️ Should be `true` in production to prevent transmission over HTTP
    */
   secure?: boolean;
   /**
-   * Whether the cookie is HTTP only
+   * Whether the cookie is HTTP only (prevents JavaScript access)
+   * @default true
+   *
+   * ✅ Recommended: `true` to prevent XSS attacks
    */
   httpOnly?: boolean;
   /**
    * SameSite attribute for the cookie
+   *
+   * - "Strict": Most secure, cookie not sent on cross-site requests
+   * - "Lax": Balanced, cookie sent on top-level navigation
+   * - "None": Least secure, requires secure=true
+   *
+   * ✅ Recommended: "Strict" for auth cookies
    */
   sameSite?: "Strict" | "Lax" | "None";
   /**

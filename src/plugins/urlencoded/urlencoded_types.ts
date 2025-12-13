@@ -3,9 +3,11 @@
  */
 export type UrlEncodedOptions = {
   /**
-   * The maximum size of the URL-encoded body in bytes. Defaults to 1MB.
+   * The maximum size of the URL-encoded body.
+   * Supports formats like "5mb", "100kb".
+   * Defaults to "1mb".
    */
-  limit?: number;
+  limit?: `${number}mb` | `${number}kb`;
 
   /**
    * Whether to parse extended syntax (objects and arrays). Defaults to false.

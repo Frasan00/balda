@@ -1,10 +1,10 @@
-import { nativePath } from "src/runtime/native_path";
 import { errorFactory } from "src/errors/error_factory";
 import { MethodNotAllowedError } from "src/errors/method_not_allowed";
 import { RouteNotFoundError } from "src/errors/route_not_found";
 import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
 import { nativeFile } from "src/runtime/native_file";
-import { mimeTypes } from "../../plugins/static/static_constants";
+import { nativePath } from "src/runtime/native_path";
+import { mimeTypesMap } from "../../plugins/static/static_constants";
 import { nativeCwd } from "../../runtime/native_cwd";
 import { nativeFs } from "../../runtime/native_fs";
 import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
@@ -74,6 +74,12 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
   const wildcardPath = req.params["*"] || "";
   const filePath = nativePath.join(path, wildcardPath);
   const resolvedPath = nativePath.resolve(nativeCwd.getCwd(), filePath);
+  const sourcePath = nativePath.resolve(nativeCwd.getCwd(), path);
+  if (!resolvedPath.startsWith(sourcePath)) {
+    return res.notFound({
+      ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+    });
+  }
 
   try {
     const stats = await nativeFs.stat(resolvedPath);
@@ -98,5 +104,5 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
 }
 
 export function getContentType(ext: string) {
-  return mimeTypes.get(ext) || "application/octet-stream";
+  return mimeTypesMap.get(ext) || "application/octet-stream";
 }

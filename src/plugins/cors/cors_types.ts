@@ -12,7 +12,16 @@ export type CorsMethods =
  */
 export type CorsOptions = {
   /**
-   * Configures the Access-Control-Allow-Origin CORS header, defaults to '*'
+   * Configures the Access-Control-Allow-Origin CORS header.
+   *
+   * ⚠️ WARNING: The default value '*' allows ALL origins, which is insecure for production.
+   *
+   * For production, explicitly set allowed origins:
+   * - Single origin: 'https://example.com'
+   * - Multiple origins: ['https://example.com', 'https://app.example.com']
+   * - Pattern matching: /^https:\/\/.*\.example\.com$/
+   *
+   * Defaults to '*' (allows all origins) - only suitable for development/public APIs.
    */
   origin?: string | RegExp | (string | RegExp)[];
   /**

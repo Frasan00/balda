@@ -3,12 +3,16 @@ import type { ServerRouteMiddleware } from "../../runtime/native_server/server_t
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
+import { parseSizeLimit } from "../../utils";
+
+// 1MB in bytes
+const DEFAULT_SIZE = 1024 * 1024;
 
 /**
  * URL-encoded form data parser middleware
  * Parses application/x-www-form-urlencoded bodies and populates req.body
  * @param options URL-encoded parsing options
- * @param options.limit The maximum size of the URL-encoded body in bytes. Defaults to 1MB.
+ * @param options.limit The maximum size of the URL-encoded body. Supports "5mb", "100kb" format. Defaults to "1mb".
  * @param options.extended Whether to parse extended syntax (objects and arrays). Defaults to false.
  * @param options.charset The character encoding to use when parsing. Defaults to 'utf8'.
  * @param options.allowEmpty Whether to allow empty values. Defaults to true.
@@ -17,13 +21,13 @@ import type { Response } from "../../server/http/response";
 export const urlencoded = (
   options?: UrlEncodedOptions,
 ): ServerRouteMiddleware => {
-  const opts: Required<UrlEncodedOptions> = {
-    limit: 1024 * 1024,
-    extended: false,
-    charset: "utf8",
-    allowEmpty: true,
-    parameterLimit: 1000,
-    ...options,
+  const limit = parseSizeLimit(options?.limit, DEFAULT_SIZE) ?? DEFAULT_SIZE;
+  const opts = {
+    limit,
+    extended: options?.extended ?? false,
+    charset: options?.charset ?? "utf8",
+    allowEmpty: options?.allowEmpty ?? true,
+    parameterLimit: options?.parameterLimit ?? 1000,
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -54,7 +58,13 @@ export const urlencoded = (
  */
 async function parseUrlEncodedBody(
   req: Request,
-  opts: Required<UrlEncodedOptions>,
+  opts: {
+    limit: number;
+    extended: boolean;
+    charset: string;
+    allowEmpty: boolean;
+    parameterLimit: number;
+  },
 ): Promise<void> {
   const arrayBuffer = req.rawBody!;
 
@@ -75,7 +85,11 @@ async function parseUrlEncodedBody(
  */
 function parseUrlEncodedString(
   str: string,
-  opts: Required<UrlEncodedOptions>,
+  opts: {
+    extended: boolean;
+    allowEmpty: boolean;
+    parameterLimit: number;
+  },
 ): Record<string, any> {
   const result: Record<string, any> = {};
   const searchParams = new URLSearchParams(str);
@@ -108,17 +122,35 @@ function setNestedValue(
   key: string,
   value: string,
 ): void {
+  const dangerousKeys = ["__proto__", "constructor", "prototype"];
+  if (dangerousKeys.includes(key)) {
+    return;
+  }
+
   const keys = key.match(/\[([^\]]*)\]/g);
   if (!keys) {
-    obj[key] = value;
+    if (!dangerousKeys.includes(key)) {
+      obj[key] = value;
+    }
     return;
   }
 
   let current = obj;
   const baseKey = key.split("[")[0];
 
+  // Security: Check base key
+  if (dangerousKeys.includes(baseKey)) {
+    return;
+  }
+
   for (let i = 0; i < keys.length - 1; i++) {
     const bracketKey = keys[i].slice(1, -1);
+
+    // Security: Check each nested key
+    if (dangerousKeys.includes(bracketKey)) {
+      return;
+    }
+
     if (!current[baseKey]) {
       current[baseKey] = {};
     }
@@ -139,6 +171,12 @@ function setNestedValue(
   }
 
   const lastKey = keys[keys.length - 1].slice(1, -1);
+
+  // Security: Check last key
+  if (dangerousKeys.includes(lastKey)) {
+    return;
+  }
+
   if (lastKey === "") {
     if (!Array.isArray(current)) {
       current = [];

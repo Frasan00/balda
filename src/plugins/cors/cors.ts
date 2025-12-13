@@ -6,7 +6,22 @@ import type { CorsOptions } from "./cors_types";
 
 /**
  * CORS plugin
+ *
+ * ⚠️ SECURITY WARNING: By default, this plugin allows ALL origins ('*').
+ * For production environments, explicitly configure allowed origins.
+ *
  * @param options CORS options (all optional)
+ *
+ * @example
+ * // Development (permissive)
+ * cors()
+ *
+ * @example
+ * // Production (secure)
+ * cors({
+ *   origin: ['https://example.com', 'https://app.example.com'],
+ *   credentials: true
+ * })
  */
 export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
   const opts: CorsOptions = {

@@ -6,6 +6,7 @@ import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types";
 
 /**
  * Cookie middleware for parsing and setting cookies, must be used in order to use the cookie methods on the request and response objects
+ *
  * @param options Cookie middleware options
  */
 export const cookie = (
@@ -16,7 +17,7 @@ export const cookie = (
     defaults: {
       path: "/",
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: "Lax",
       ...options?.defaults,
     },

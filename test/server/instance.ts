@@ -43,7 +43,7 @@ const serverBuilder = new Server({
       path: "/public",
     },
     json: {
-      sizeLimit: 1024 * 1024 * 20,
+      sizeLimit: "20mb",
     },
     cors: {
       origin: "*",

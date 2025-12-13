@@ -40,3 +40,41 @@ export const toLowerSnakeCase = (str: string): string => {
     .replace(/_+$/, "")
     .toLowerCase();
 };
+
+/**
+ * Parses a size limit string and converts it to bytes.
+ * Supports formats like "100kb", "50mb".
+ * @param sizeLimit - The size limit string (e.g., "5mb", "100kb")
+ * @param defaultValue - The default value to return if parsing fails or no value provided
+ * @returns The size in bytes, or the default value if parsing fails
+ */
+export const parseSizeLimit = (
+  sizeLimit?: string,
+  defaultValue?: number,
+): number | undefined => {
+  if (!sizeLimit || typeof sizeLimit !== "string") {
+    return defaultValue;
+  }
+
+  const trimmed = sizeLimit.toLowerCase().trim();
+  const kbMatch = trimmed.match(/^(\d+(?:\.\d+)?)kb$/);
+  const mbMatch = trimmed.match(/^(\d+(?:\.\d+)?)mb$/);
+
+  if (kbMatch) {
+    const value = Number.parseFloat(kbMatch[1]);
+    if (Number.isNaN(value) || value < 0) {
+      return defaultValue;
+    }
+    return Math.floor(value * 1024);
+  }
+
+  if (mbMatch) {
+    const value = Number.parseFloat(mbMatch[1]);
+    if (Number.isNaN(value) || value < 0) {
+      return defaultValue;
+    }
+    return Math.floor(value * 1024 * 1024);
+  }
+
+  return defaultValue;
+};

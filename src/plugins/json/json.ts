@@ -5,12 +5,16 @@ import { canHaveBody } from "../../runtime/native_server/server_utils";
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
+import { parseSizeLimit } from "../../utils";
 import type { JsonOptions } from "./json_options";
+
+// 100kb in bytes
+const DEFAULT_SIZE = 100 * 1024;
 
 /**
  * Middleware to parse the JSON body of the request. GET, DELETE and OPTIONS requests are not parsed.
  * @param options - The options for the JSON middleware.
- * @param options.sizeLimit - The maximum size of the JSON body in bytes. Default: 5mb
+ * @param options.sizeLimit - The maximum size of the JSON body. Default: 100kb
  */
 export const json = (options?: JsonOptions): ServerRouteMiddleware => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -18,7 +22,8 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
       return next();
     }
 
-    const sizeLimit = options?.sizeLimit ?? 5 * 1024 * 1024;
+    const sizeLimit =
+      parseSizeLimit(options?.sizeLimit, DEFAULT_SIZE) ?? DEFAULT_SIZE;
     const arrayBuffer = req.rawBody;
 
     if (!arrayBuffer) {

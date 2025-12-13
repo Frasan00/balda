@@ -2,9 +2,9 @@ export interface JsonOptions {
   /**
    * The maximum size of the JSON body in bytes.
    * If the body is larger than this limit, the request will be rejected.
-   * Default: 5mb
+   * Default: 100kb
    */
-  sizeLimit?: number;
+  sizeLimit?: `${number}mb` | `${number}kb`;
 
   /**
    * If true, the JSON body will be parsed as an empty object if it is empty.

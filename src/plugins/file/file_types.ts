@@ -1,3 +1,5 @@
+import type { FileAllowedMimeType } from "src/plugins/static/static_types";
+
 export type FormFile = {
   /**
    * The name of the form field.
@@ -25,7 +27,22 @@ export type FormFile = {
 
 export type FilePluginOptions = {
   /**
-   * The maximum size of the file in bytes.
+   * The maximum size of each file.
+   * Supports formats like "5mb", "100kb".
+   * Example: "10mb", "500kb"
+   * Default: 1mb
    */
-  maxFileSize?: number;
+  maxFileSize?: `${number}mb` | `${number}kb`;
+
+  /**
+   * The maximum number of files allowed in a single request.
+   */
+  maxFiles?: number;
+
+  /**
+   * Allowed MIME types for uploaded files.
+   * If specified, only files with these MIME types will be accepted.
+   * Example: ['image/jpeg', 'image/png', 'application/pdf']
+   */
+  allowedMimeTypes?: (FileAllowedMimeType | (string & {}))[];
 };

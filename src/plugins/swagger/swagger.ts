@@ -60,6 +60,22 @@ export const swagger = (
   });
 };
 
+/**
+ * Escape HTML to prevent XSS attacks
+ */
+const escapeHtml = (str?: string): string => {
+  if (!str) {
+    return "";
+  }
+
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 function safeToJSONSchema(schema: ZodType): any {
   try {
     return z.toJSONSchema(schema);
@@ -373,8 +389,8 @@ function generateSwaggerUI(
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="${globalOptions.description}" />
-    <title>${globalOptions.title}</title>
+    <meta name="description" content="${escapeHtml(globalOptions.description)}" />
+    <title>${escapeHtml(globalOptions.title)}</title>
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
     <style>
         html {
@@ -426,10 +442,10 @@ function generateRapiDocUI(
 <!DOCTYPE html>
 <html>
   <head>
-    <title>${globalOptions.title}</title>
+    <title>${escapeHtml(globalOptions.title)}</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="${globalOptions.description}" />
+    <meta name="description" content="${escapeHtml(globalOptions.description)}" />
     <link rel="icon" type="image/png" href="https://mrin9.github.io/RapiDoc/images/favicon.png">
     <style>
       body { margin: 0; padding: 0; }
@@ -466,8 +482,8 @@ function generateScalarUI(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="${globalOptions.description}" />
-    <title>${globalOptions.title}</title>
+    <meta name="description" content="${escapeHtml(globalOptions.description)}" />
+    <title>${escapeHtml(globalOptions.title)}</title>
     <style>
       body {
         margin: 0;
@@ -497,8 +513,8 @@ function generateElementsUI(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="${globalOptions.description}" />
-    <title>${globalOptions.title}</title>
+    <meta name="description" content="${escapeHtml(globalOptions.description)}" />
+    <title>${escapeHtml(globalOptions.title)}</title>
     <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements@7.7.9/styles.min.css">
     <style>
       body {

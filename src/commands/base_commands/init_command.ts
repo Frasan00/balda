@@ -51,7 +51,7 @@ export default class InitCommand extends Command {
       this.logger.info(`Installing dev dependencies with ${packageManager}...`);
 
       execSync(
-        `${packageManager} ${packageManagerCommand} ${this.devDependencies.join(" ")}`,
+        `${packageManager} ${packageManagerCommand} ${this.devDependencies.join(" ")} -${devDependenciesCommand}`,
         {
           stdio: "inherit",
         },
@@ -87,6 +87,11 @@ export default class InitCommand extends Command {
 const serverInstance = new Server({
   port: 80,
   host: "0.0.0.0",
+  plugins: {
+    json: {
+      sizeLimit: "2mb",
+    },
+  },
 });
 
 export { serverInstance as server };

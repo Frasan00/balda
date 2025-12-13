@@ -1,3 +1,9 @@
+import { BaldaError } from "src/errors/balda_error";
+import { errorFactory } from "src/errors/error_factory";
+import { FileTooLargeError } from "src/errors/file_too_large";
+import { nativeCrypto } from "src/runtime/native_crypto";
+import { nativeOs } from "src/runtime/native_os";
+import { nativePath } from "src/runtime/native_path";
 import type {
   FilePluginOptions,
   FormFile,
@@ -7,17 +13,19 @@ import type { ServerRouteMiddleware } from "../../runtime/native_server/server_t
 import type { NextFunction } from "../../server/http/next";
 import type { Request } from "../../server/http/request";
 import type { Response } from "../../server/http/response";
-import { FileTooLargeError } from "src/errors/file_too_large";
-import { errorFactory } from "src/errors/error_factory";
-import { nativePath } from "src/runtime/native_path";
-import { nativeOs } from "src/runtime/native_os";
+import { parseSizeLimit } from "../../utils";
+
+// 1MB in bytes
+const DEFAULT_SIZE = 1024 * 1024;
 
 /**
- * Middleware to handle multipart/form-data file uploads.
- *  - Validates each file against the given `FilePluginOptions` (currently only size limit).
- *  - Stores every uploaded file in a runtime-agnostic temporary directory and exposes them via `req.files` & `req.file`.
- *  - Cleans the temporary files both after successful handler execution and when an unhandled error bubbles up.
- *  - Can be used both as a global middleware to check all incoming requests for files and as a route middleware to check only the files for a specific route
+ * Middleware to handle multipart/form-data file uploads with security validations.
+ *  - Validates files against `FilePluginOptions`: size limits, file count, MIME types.
+ *  - Sanitizes filenames to prevent path traversal attacks.
+ *  - Uses cryptographically secure random filenames (UUID) in temporary storage.
+ *  - Stores uploaded files in a runtime-agnostic temporary directory and exposes them via `req.files`.
+ *  - Automatically cleans up temporary files after request completion or on error.
+ *  - Can be used as global middleware or route-specific middleware.
  */
 export const fileParser = (
   options?: FilePluginOptions,
@@ -108,6 +116,8 @@ export const fileParser = (
 
       const files: FormFile[] = [];
       const fields: Record<string, string> = {};
+      const maxFileSizeBytes =
+        parseSizeLimit(options?.maxFileSize, DEFAULT_SIZE) ?? DEFAULT_SIZE;
 
       for (const part of parts) {
         const disposition = part.headers
@@ -129,13 +139,23 @@ export const fileParser = (
         const isFile = Boolean(originalName);
 
         if (isFile) {
-          if (options?.maxFileSize && part.data.length > options.maxFileSize) {
+          if (options?.maxFiles && files.length >= options.maxFiles) {
+            return res.badRequest({
+              ...errorFactory(
+                new BaldaError(
+                  `Too many files: Maximum ${options.maxFiles} files allowed`,
+                ),
+              ),
+            });
+          }
+
+          if (maxFileSizeBytes && part.data.length > maxFileSizeBytes) {
             return res.badRequest({
               ...errorFactory(
                 new FileTooLargeError(
                   originalName,
                   part.data.length,
-                  options.maxFileSize,
+                  maxFileSizeBytes,
                 ),
               ),
             });
@@ -149,10 +169,24 @@ export const fileParser = (
             ? contentTypeHeader.split(":")[1].trim()
             : "application/octet-stream";
 
-          const extension = nativePath.extName(originalName);
+          if (
+            options?.allowedMimeTypes &&
+            !options.allowedMimeTypes.includes(mimeType)
+          ) {
+            return res.badRequest({
+              ...errorFactory(
+                new BaldaError(
+                  `Invalid file type: "${mimeType}" is not allowed. Allowed types: ${options.allowedMimeTypes.join(", ")}`,
+                ),
+              ),
+            });
+          }
+
+          const sanitizedName = sanitizeFilename(originalName);
+          const extension = nativePath.extName(sanitizedName);
           const tmpPath = nativePath.join(
             await nativeOs.tmpdir(),
-            `${randomString(10)}${extension}`,
+            `${nativeCrypto.randomUUID()}${extension}`,
           );
           await nativeFs.writeFile(tmpPath, part.data);
           tmpPaths.push(tmpPath);
@@ -165,7 +199,6 @@ export const fileParser = (
             originalName,
           });
         } else {
-          // Field
           fields[formName] = new TextDecoder().decode(part.data);
         }
       }
@@ -183,12 +216,15 @@ export const fileParser = (
   };
 };
 
-async function cleanupTmpFiles(paths: string[]) {
+const cleanupTmpFiles = async (paths: string[]) => {
   await Promise.allSettled(paths.map((path) => nativeFs.unlink(path)));
-}
+};
 
-function randomString(length: number) {
-  return Math.random()
-    .toString(36)
-    .substring(2, 2 + length);
-}
+const sanitizeFilename = (filename: string): string => {
+  return filename
+    .replace(/\.\./g, "")
+    .replace(/[\/\\]/g, "")
+    .replace(/\0/g, "")
+    .replace(/[\x00-\x1f\x80-\x9f]/g, "")
+    .trim();
+};

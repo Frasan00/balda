@@ -1,4 +1,4 @@
-export const mimeTypes = new Map<string, string>([
+export const mimeTypesMap = new Map<string, string>([
   // text/web
   [".html", "text/html"],
   [".htm", "text/html"],
