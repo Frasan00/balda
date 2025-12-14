@@ -41,7 +41,7 @@ export class ServerBun implements ServerInterface {
 
   listen(): void {
     const tapOptions = this.tapOptions?.bun;
-    const { fetch, ...rest } = tapOptions ?? {};
+    const { fetch, websocket, ...rest } = tapOptions ?? {};
 
     this.runtimeServer = Bun.serve({
       port: this.port,
@@ -60,6 +60,7 @@ export class ServerBun implements ServerInterface {
         // User input handler
         await fetch?.call(this, req as unknown as Request, server);
 
+        // GraphQL handler
         if (
           this.graphql.isEnabled &&
           url.pathname.startsWith(
@@ -69,6 +70,14 @@ export class ServerBun implements ServerInterface {
           const handler = await this.ensureGraphQLHandler();
           if (handler) {
             return handler.fetch(req, { server });
+          }
+        }
+
+        // ws upgrade handler - only attempt if websocket config exists and request is upgrade
+        if (websocket && req.headers.get("upgrade") === "websocket") {
+          const success = server.upgrade(req, { data: {} });
+          if (success) {
+            return;
           }
         }
 
@@ -96,6 +105,8 @@ export class ServerBun implements ServerInterface {
           headers: response.headers,
         });
       },
+      // Pass websocket config to Bun.serve if provided
+      ...(websocket ? { websocket } : {}),
       ...(rest as any),
     });
 

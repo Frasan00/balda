@@ -263,10 +263,10 @@ export interface ServerInterface {
   group: (...args: any[]) => void;
 
   /**
-   * Get the node server instance, you must be using node runtime to use this method
+   * Get the node server instance, you must be using node runtime to use this method based on the nodeHttpClient option passed to the server constructor (defaults to http)
    * @throws if the runtime is not node
    */
-  getNodeServer: () => RuntimeServerMap<"node">;
+  getNodeServer: () => RuntimeServerMap<"node", NodeHttpClient>;
 
   /**
    * Get the bun server instance, you must be using bun runtime to use this method

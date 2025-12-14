@@ -4,13 +4,13 @@ import {
   Server as HttpsServer,
   type ServerOptions as HttpsServerOptions,
 } from "node:https";
+import { GraphQL } from "src/graphql/graphql";
 import type { NodeHttpClient } from "src/server/server_types";
 import type { SyncOrAsync } from "src/type_util";
 import type { NextFunction } from "../../server/http/next";
 import type { Request as BaldaRequest } from "../../server/http/request";
 import type { Response as BaldaResponse } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
-import { GraphQL } from "src/graphql/graphql";
 
 export type { HttpsServerOptions };
 
@@ -30,8 +30,15 @@ export type RuntimeServer =
   | ReturnType<typeof Bun.serve>
   | ReturnType<typeof Deno.serve>;
 
-export type RuntimeServerMap<T extends RunTimeType> = T extends "node"
-  ? HttpServer
+export type RuntimeServerMap<
+  T extends RunTimeType,
+  H extends NodeHttpClient = "http",
+> = T extends "node"
+  ? H extends "https"
+    ? HttpsServer
+    : H extends "http2" | "http2-secure"
+      ? Http2Server
+      : HttpServer
   : T extends "bun"
     ? ReturnType<typeof Bun.serve>
     : T extends "deno"
@@ -123,6 +130,11 @@ export type ServerTapOptionsBuilder<T extends RunTimeType> = T extends "node"
     : T extends "deno"
       ? Partial<Omit<Parameters<typeof Deno.serve>[0], "handler">> & {
           handler?: CustomDenoFetch;
+          websocket?: {
+            open?: (ws: WebSocket) => void;
+            message?: (ws: WebSocket, message: string) => void;
+            close?: (ws: WebSocket) => void;
+          };
         }
       : never;
 

@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { runtime } from "./runtime";
 
 export type ReadFileOptions = {

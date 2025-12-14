@@ -26,18 +26,18 @@ export * from "./queue/base_queue";
 export * from "./queue/providers/bullmq/bullmq";
 export type {
   BullMQConfiguration,
-  BullMQConfigurationOptions
+  BullMQConfigurationOptions,
 } from "./queue/providers/bullmq/bullmq_configuration";
 export type { CustomQueueConfiguration } from "./queue/providers/custom/custom";
 export * from "./queue/providers/pgboss/pgboss";
 export type {
   PGBossConfiguration,
-  PGBossConfigurationOptions
+  PGBossConfigurationOptions,
 } from "./queue/providers/pgboss/pgboss_configuration";
 export * from "./queue/providers/sqs/sqs";
 export type {
   SQSConfiguration,
-  SQSConfigurationOptions
+  SQSConfigurationOptions,
 } from "./queue/providers/sqs/sqs_configuration";
 export * from "./queue/pub";
 export * from "./queue/queue";

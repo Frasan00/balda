@@ -348,14 +348,17 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
     );
   }
 
-  getNodeServer(): RuntimeServerMap<"node"> {
+  getNodeServer(): RuntimeServerMap<"node", H> {
     if (runtime.type !== "node") {
       throw new Error(
         "Server is not using node runtime, you can't call `.getNodeServer()`",
       );
     }
 
-    return this.serverConnector.getServer("node");
+    return this.serverConnector.getServer("node") as RuntimeServerMap<
+      "node",
+      H
+    >;
   }
 
   getBunServer(): RuntimeServerMap<"bun"> {

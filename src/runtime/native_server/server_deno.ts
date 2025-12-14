@@ -63,6 +63,7 @@ export class ServerDeno implements ServerInterface {
           return new Response(null, { status: 426 });
         }
 
+        // GraphQL handler
         if (
           this.graphql.isEnabled &&
           url.pathname.startsWith(
@@ -73,6 +74,33 @@ export class ServerDeno implements ServerInterface {
           if (graphqlHandler) {
             return graphqlHandler.fetch(req, { info });
           }
+        }
+
+        // ws upgrade handler
+        if (
+          req.headers.get("upgrade") === "websocket" &&
+          this.tapOptions?.deno?.websocket
+        ) {
+          const { socket, response } = Deno.upgradeWebSocket(req);
+
+          // Set event handlers instead of calling them immediately
+          if (this.tapOptions?.deno?.websocket?.open) {
+            socket.onopen = () =>
+              this.tapOptions?.deno?.websocket?.open?.(socket);
+          }
+
+          if (this.tapOptions?.deno?.websocket?.message) {
+            socket.onmessage = (event) => {
+              this.tapOptions?.deno?.websocket?.message?.(socket, event.data);
+            };
+          }
+
+          if (this.tapOptions?.deno?.websocket?.close) {
+            socket.onclose = () =>
+              this.tapOptions?.deno?.websocket?.close?.(socket);
+          }
+
+          return response;
         }
 
         const res = await executeMiddlewareChain(
