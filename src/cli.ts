@@ -11,6 +11,32 @@ export const cli = async () => {
   await commandRegistry.loadCommands(CommandRegistry.commandsPattern);
   const commandName = nativeArgs.getCliArgs()[0];
 
+  // Handle global help flag
+  if (commandName === "-h" || commandName === "--help") {
+    const commands = commandRegistry
+      .getCommands()
+      .filter((cmd) => cmd.commandName);
+
+    console.log("\n✨ Available Balda Commands:\n");
+
+    const maxNameLength = Math.max(
+      ...commands.map((cmd) => cmd.commandName.length),
+    );
+
+    for (const command of commands) {
+      const name = command.commandName.padEnd(maxNameLength + 2);
+      const desc = command.description || "No description available";
+      console.log(`  \x1b[36m${name}\x1b[0m ${desc}`);
+    }
+
+    console.log(
+      "\n\x1b[90mRun 'npx balda <command> -h' for more information on a specific command.\x1b[0m\n",
+    );
+
+    nativeExit.exit(0);
+    return;
+  }
+
   if (!commandName) {
     console.error(
       `No command provided, available commands: ${commandRegistry

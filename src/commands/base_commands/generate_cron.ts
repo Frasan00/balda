@@ -49,11 +49,12 @@ export default class GenerateCron extends Command {
   }
 
   static getCronTemplate() {
-    return `import { cron } from "balda-js";
+    return `import { BaseCron, cron } from "balda-js";
 
-export default class {
+export default class extends BaseCron {
   @cron("* * * * *")
   handle() {
+    this.logger.info("Running cron job");
     // Implement your cron job logic here
   }
 }`;

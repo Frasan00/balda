@@ -15,27 +15,29 @@ export * from "./decorators/validation/validate";
 export * from "./decorators/validation/validate_types";
 
 // Cron
+export * from "./cron/base_cron";
 export * from "./cron/cron";
 export * from "./cron/cron.types";
 export * from "./queue/decorator/queue_decorator";
 export * from "./queue/queue_service";
 
 // Queue
+export * from "./queue/base_queue";
 export * from "./queue/providers/bullmq/bullmq";
 export type {
   BullMQConfiguration,
-  BullMQConfigurationOptions,
+  BullMQConfigurationOptions
 } from "./queue/providers/bullmq/bullmq_configuration";
 export type { CustomQueueConfiguration } from "./queue/providers/custom/custom";
 export * from "./queue/providers/pgboss/pgboss";
 export type {
   PGBossConfiguration,
-  PGBossConfigurationOptions,
+  PGBossConfigurationOptions
 } from "./queue/providers/pgboss/pgboss_configuration";
 export * from "./queue/providers/sqs/sqs";
 export type {
   SQSConfiguration,
-  SQSConfigurationOptions,
+  SQSConfigurationOptions
 } from "./queue/providers/sqs/sqs_configuration";
 export * from "./queue/pub";
 export * from "./queue/queue";

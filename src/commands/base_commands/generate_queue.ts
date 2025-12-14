@@ -68,7 +68,7 @@ export default class GenerateQueueCommand extends Command {
   }
 
   static getQueueTemplate(isValidLiteral: boolean) {
-    return `import { queue, logger } from "balda-js";
+    return `import { BaseQueue, queue } from "balda-js";
 
 export type Payload = {
   // Add your payload here
@@ -80,9 +80,7 @@ declare module "balda-js" {
   }
 }
 
-export default class {
-  private logger = logger.child({ queue: '${this.queueName}' });
-
+export default class extends BaseQueue {
   @queue('${this.provider}', '${this.queueName}')
   async handle(payload: Payload) {
     // Implement your queue logic here
