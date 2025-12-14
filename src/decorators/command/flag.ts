@@ -11,6 +11,31 @@ import type {
 } from "src/decorators/command/command_decorator_types";
 import { MetadataStore } from "src/metadata_store";
 
+/**
+ * Decorator for defining command-line flags with type safety.
+ *
+ * Supports multiple flag types:
+ * - `boolean`: true/false flags
+ * - `string`: text values
+ * - `number`: numeric values
+ * - `list`: array of strings (can be specified multiple times)
+ *
+ * @example
+ * ```typescript
+ * class MyCommand extends Command {
+ *   @flag.string({ name: "name", description: "User name" })
+ *   name?: string;
+ *
+ *   @flag.list({ name: "tag", aliases: ["t"], description: "Tags" })
+ *   tags!: string[];
+ * }
+ * ```
+ *
+ * Usage:
+ * - Single flag: `--name=value` or `--name value`
+ * - List flag: `--tag=one --tag=two --tag=three`
+ * - Aliases: `-t one -t two`
+ */
 const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
   return (target: any, propertyKey: string) => {
     const currentCommandName = getCalledCommandName();
@@ -40,16 +65,29 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
 
       for (const flagName of possibleNames) {
         if (flagName in parsedFlags) {
-          resolvedFlagValue = parsedFlags[flagName] as InferFlagType<T>;
+          const rawValue = parsedFlags[flagName];
 
-          if (options.type === "boolean") {
-            resolvedFlagValue = Boolean(resolvedFlagValue) as InferFlagType<T>;
-          } else if (options.type === "number") {
-            resolvedFlagValue = Number(resolvedFlagValue) as InferFlagType<T>;
-          }
+          if (options.type === "list") {
+            // For list type, ensure we have an array
+            const arrayValue = Array.isArray(rawValue) ? rawValue : [rawValue];
+            resolvedFlagValue = arrayValue.map((val) => {
+              const stringVal = String(val);
+              return options.parse ? options.parse(stringVal) : stringVal;
+            }) as InferFlagType<T>;
+          } else {
+            resolvedFlagValue = rawValue as InferFlagType<T>;
 
-          if (options.parse) {
-            resolvedFlagValue = options.parse(resolvedFlagValue);
+            if (options.type === "boolean") {
+              resolvedFlagValue = Boolean(
+                resolvedFlagValue,
+              ) as InferFlagType<T>;
+            } else if (options.type === "number") {
+              resolvedFlagValue = Number(resolvedFlagValue) as InferFlagType<T>;
+            }
+
+            if (options.parse) {
+              resolvedFlagValue = options.parse(resolvedFlagValue);
+            }
           }
 
           break;
@@ -68,17 +106,25 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
       description: options.description,
     });
 
-    if (options.required && !resolvedFlagValue) {
-      const errorChain = MetadataStore.get(target, VALIDATION_ERROR_SYMBOL);
-      MetadataStore.set(target, VALIDATION_ERROR_SYMBOL, [
-        ...(errorChain || []),
-        {
-          type: "flag",
-          name: primaryFlagName,
-          message: "Required flag not provided",
-        },
-      ]);
-      return;
+    if (options.required) {
+      const isValueMissing =
+        options.type === "list"
+          ? !resolvedFlagValue ||
+            (Array.isArray(resolvedFlagValue) && resolvedFlagValue.length === 0)
+          : !resolvedFlagValue;
+
+      if (isValueMissing) {
+        const errorChain = MetadataStore.get(target, VALIDATION_ERROR_SYMBOL);
+        MetadataStore.set(target, VALIDATION_ERROR_SYMBOL, [
+          ...(errorChain || []),
+          {
+            type: "flag",
+            name: primaryFlagName,
+            message: "Required flag not provided",
+          },
+        ]);
+        return;
+      }
     }
 
     Object.defineProperty(target, propertyKey, {
@@ -103,6 +149,11 @@ flagDecorator.string = (options: Omit<FlagOptions<"string">, "type">) => {
 /** Shorthand decorator for number flags */
 flagDecorator.number = (options: Omit<FlagOptions<"number">, "type">) => {
   return flagDecorator({ ...options, type: "number" });
+};
+
+/** Shorthand decorator for list flags (can be specified multiple times) */
+flagDecorator.list = (options: Omit<FlagOptions<"list">, "type">) => {
+  return flagDecorator({ ...options, type: "list" });
 };
 
 export const flag = flagDecorator;

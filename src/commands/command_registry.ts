@@ -1,14 +1,14 @@
 import { glob } from "glob";
+import BuildCommand from "src/commands/base_commands/build_command";
 import GenerateCommand from "src/commands/base_commands/generate_command";
 import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
+import GenerateQueueCommand from "src/commands/base_commands/generate_queue";
 import { logger } from "src/logger/logger";
 import { nativeCwd } from "src/runtime/native_cwd";
 import type { Command } from "./base_command";
 import GenerateCronCommand from "./base_commands/generate_cron";
 import InitCommand from "./base_commands/init_command";
 import ListCommand from "./base_commands/list_command";
-import GenerateQueueCommand from "src/commands/base_commands/generate_queue";
-import BuildCommand from "src/commands/base_commands/build_command";
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -26,6 +26,7 @@ import BuildCommand from "src/commands/base_commands/build_command";
  */
 export class CommandRegistry {
   private commands: Map<string, typeof Command>;
+  private builtInCommands: Set<string>;
   static commandsPattern = "src/commands/**/*.{ts,js}";
   static logger = logger;
 
@@ -35,6 +36,7 @@ export class CommandRegistry {
    */
   private constructor() {
     this.commands = new Map();
+    this.builtInCommands = new Set();
   }
 
   static getInstance() {
@@ -51,6 +53,22 @@ export class CommandRegistry {
 
   getCommands(): (typeof Command)[] {
     return Array.from(this.commands.values());
+  }
+
+  getBuiltInCommands(): (typeof Command)[] {
+    return Array.from(this.commands.values()).filter((cmd) =>
+      this.builtInCommands.has(cmd.commandName),
+    );
+  }
+
+  getUserDefinedCommands(): (typeof Command)[] {
+    return Array.from(this.commands.values()).filter(
+      (cmd) => !this.builtInCommands.has(cmd.commandName),
+    );
+  }
+
+  isBuiltInCommand(commandName: string): boolean {
+    return this.builtInCommands.has(commandName);
   }
 
   async loadCommands(commandsPattern: string) {
@@ -107,6 +125,7 @@ export class CommandRegistry {
 
     for (const command of baseCommands) {
       this.commands.set(command.commandName, command);
+      this.builtInCommands.add(command.commandName);
     }
   }
 }

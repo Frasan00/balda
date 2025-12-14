@@ -55,7 +55,7 @@ export default class extends Command {
 
   static options: CommandOptions = {
     // Define your command options here
-    stayAlive: false,
+    keepAlive: false,
   };
 
   static async handle(): Promise<void> {

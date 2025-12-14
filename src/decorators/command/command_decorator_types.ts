@@ -1,4 +1,4 @@
-export type FlagType = "boolean" | "string" | "number";
+export type FlagType = "boolean" | "string" | "number" | "list";
 
 export type InferFlagType<T extends FlagType> = T extends "boolean"
   ? boolean
@@ -6,7 +6,9 @@ export type InferFlagType<T extends FlagType> = T extends "boolean"
     ? string
     : T extends "number"
       ? number
-      : never;
+      : T extends "list"
+        ? string[]
+        : never;
 
 export type ArgOptions = {
   /**

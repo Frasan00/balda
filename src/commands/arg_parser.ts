@@ -2,7 +2,10 @@ import { nativeArgs } from "src/runtime/native_args";
 import { levenshteinDistance } from "src/utils";
 
 export type Argument = string;
-export type FlagSchema = Record<string, string | number | boolean>;
+export type FlagSchema = Record<
+  string,
+  string | number | boolean | Array<string | number | boolean>
+>;
 
 /**
  * Parses a single flag argument
@@ -87,7 +90,18 @@ export const parseCliArgsAndFlags = (): {
             i++; // Skip the next argument since we consumed it
           }
         }
-        parsedFlags[flag.name] = flag.value;
+
+        // If flag already exists, convert to array and append
+        if (flag.name in parsedFlags) {
+          const existingValue = parsedFlags[flag.name];
+          if (Array.isArray(existingValue)) {
+            existingValue.push(flag.value);
+          } else {
+            parsedFlags[flag.name] = [existingValue, flag.value];
+          }
+        } else {
+          parsedFlags[flag.name] = flag.value;
+        }
       }
       continue;
     }
