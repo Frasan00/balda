@@ -65,6 +65,10 @@ export * from "./server/server_types";
 // hash
 export { hash } from "./runtime/native_hash";
 
+// GraphQL
+export * from "./graphql/graphql";
+export * from "./graphql/graphql_types";
+
 // Plugins
 export * from "./plugins/base_plugin";
 export * from "./plugins/compression/compression";

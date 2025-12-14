@@ -4,12 +4,13 @@ import {
   Server as HttpsServer,
   type ServerOptions as HttpsServerOptions,
 } from "node:https";
-import { type NodeHttpClient } from "src/server/server_types";
+import type { NodeHttpClient } from "src/server/server_types";
 import type { SyncOrAsync } from "src/type_util";
 import type { NextFunction } from "../../server/http/next";
 import type { Request as BaldaRequest } from "../../server/http/request";
 import type { Response as BaldaResponse } from "../../server/http/response";
 import type { RunTimeType } from "../runtime";
+import { GraphQL } from "src/graphql/graphql";
 
 export type { HttpsServerOptions };
 
@@ -59,6 +60,8 @@ export type ServerConnectInput<H extends NodeHttpClient = NodeHttpClient> = {
   runtime: RunTimeType;
   /** Specific node client to use */
   nodeHttpClient: H;
+  /** The graphql options to apply to the server */
+  graphql?: GraphQL;
 } & (H extends "https" ? HttpsOptions<H> : {});
 
 export type ServerRouteMiddleware = (

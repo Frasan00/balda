@@ -12,6 +12,7 @@ import {
 import { createServer as httpsCreateServer } from "node:https";
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
+import { GraphQL } from "src/graphql/graphql";
 import { NodeHttpClient } from "src/server/server_types";
 import { Request } from "../../server/http/request";
 import { Response } from "../../server/http/response";
@@ -26,7 +27,11 @@ import type {
   ServerRoute,
   ServerTapOptions,
 } from "./server_types";
-import { canHaveBody, executeMiddlewareChain } from "./server_utils";
+import {
+  canHaveBody,
+  createGraphQLHandlerInitializer,
+  executeMiddlewareChain,
+} from "./server_utils";
 
 async function pipeReadableStreamToNodeResponse(
   stream: ReadableStream,
@@ -56,6 +61,10 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   runtimeServer: NodeServer;
   nodeHttpClient: H;
   httpsOptions?: HttpsServerOptions;
+  graphql: GraphQL;
+  private ensureGraphQLHandler: ReturnType<
+    typeof createGraphQLHandlerInitializer
+  >;
 
   constructor(input?: ServerConnectInput<H>) {
     this.routes = input?.routes ?? [];
@@ -69,6 +78,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         ? (input as unknown as ServerConnectInput<"https">)?.httpsOptions
         : undefined;
 
+    this.graphql = input?.graphql ?? new GraphQL();
+    this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
     const protocol =
       this.nodeHttpClient === "https" || this.nodeHttpClient === "http2-secure"
         ? "https"
@@ -83,6 +94,19 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         if (this.tapOptions && this.tapOptions.node) {
           const preHandler = this.tapOptions.node as NodeTapOptions;
           await preHandler?.(req);
+        }
+
+        if (
+          this.graphql.isEnabled &&
+          req.url?.startsWith(
+            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
+          )
+        ) {
+          const handler = await this.ensureGraphQLHandler();
+          if (handler) {
+            handler(req, httpResponse);
+            return;
+          }
         }
 
         const match = router.find(req.method as HttpMethod, req.url!);

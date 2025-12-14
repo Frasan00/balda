@@ -1,16 +1,19 @@
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
+import { GraphQL } from "src/graphql/graphql";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
-  DenoTapOptions,
   HttpMethod,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types";
-import { executeMiddlewareChain } from "./server_utils";
+import {
+  createGraphQLHandlerInitializer,
+  executeMiddlewareChain,
+} from "./server_utils";
 
 export class ServerDeno implements ServerInterface {
   declare port: number;
@@ -20,6 +23,10 @@ export class ServerDeno implements ServerInterface {
   declare routes: ServerRoute[];
   declare runtimeServer: ReturnType<typeof Deno.serve>;
   declare tapOptions?: ServerTapOptions;
+  graphql: GraphQL;
+  private ensureGraphQLHandler: ReturnType<
+    typeof createGraphQLHandlerInitializer
+  >;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
@@ -28,6 +35,8 @@ export class ServerDeno implements ServerInterface {
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
+    this.graphql = input?.graphql ?? new GraphQL();
+    this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
   }
 
   listen(): void {
@@ -52,6 +61,18 @@ export class ServerDeno implements ServerInterface {
         const handlerResponse = await handler?.(req, info);
         if (handlerResponse) {
           return new Response(null, { status: 426 });
+        }
+
+        if (
+          this.graphql.isEnabled &&
+          url.pathname.startsWith(
+            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
+          )
+        ) {
+          const graphqlHandler = await this.ensureGraphQLHandler();
+          if (graphqlHandler) {
+            return graphqlHandler.fetch(req, { info });
+          }
         }
 
         const res = await executeMiddlewareChain(

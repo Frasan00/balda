@@ -10,7 +10,7 @@ import type {
 } from "./server_types";
 
 export class ServerConnector {
-  declare routes: ServerRoute[];
+  routes: ServerRoute[];
 
   private server: ServerInterface;
 
@@ -62,7 +62,6 @@ export class ServerConnector {
       return new ServerDeno(serverOptions);
     }
 
-    // TODO: BaldaError implementation
     throw new Error(
       "No server implementation found for runtime: " + serverOptions?.runtime,
     );

@@ -1,3 +1,4 @@
+import type { GraphQL } from "src/graphql/graphql";
 import type { Request } from "../../server/http/request";
 import { Response } from "../../server/http/response";
 import type { ServerRouteHandler, ServerRouteMiddleware } from "./server_types";
@@ -41,4 +42,81 @@ export const canHaveBody = (method?: string) => {
   }
 
   return ["post", "put", "patch", "delete"].includes(method.toLowerCase());
+};
+
+/**
+ * Create a GraphQL handler initializer with caching
+ * Returns a function that lazily loads and initializes the GraphQL handler
+ */
+export const createGraphQLHandlerInitializer = (graphql: GraphQL) => {
+  let handlerPromise: Promise<
+    ReturnType<typeof import("graphql-yoga").createYoga>
+  > | null = null;
+  let isInitializing = false;
+
+  const waitForInitialization = async (): Promise<void> => {
+    while (isInitializing) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  };
+
+  const initializeHandler = async (): Promise<
+    ReturnType<typeof import("graphql-yoga").createYoga>
+  > => {
+    try {
+      const { createYoga, createSchema } = await import("graphql-yoga");
+      const schema = graphql.getSchema(createSchema);
+      const yogaOptions = graphql.getYogaOptions();
+      return createYoga({
+        graphqlEndpoint: "/graphql",
+        ...yogaOptions,
+        schema,
+      });
+    } catch (error) {
+      const isModuleNotFound =
+        error instanceof Error &&
+        (error.message.includes("Cannot find module") ||
+          error.message.includes("Cannot find package"));
+      if (isModuleNotFound) {
+        throw new Error(
+          "GraphQL is enabled but 'graphql-yoga' is not installed. " +
+            "Install it with: npm install graphql graphql-yoga",
+        );
+      }
+      throw error;
+    }
+  };
+
+  return async (): Promise<ReturnType<
+    typeof import("graphql-yoga").createYoga
+  > | null> => {
+    const isDisabled = !graphql.isEnabled;
+    if (isDisabled) {
+      return null;
+    }
+
+    const alreadyInitialized = handlerPromise !== null;
+    if (alreadyInitialized) {
+      return handlerPromise;
+    }
+
+    const currentlyInitializing = isInitializing;
+    if (currentlyInitializing) {
+      await waitForInitialization();
+      return handlerPromise;
+    }
+
+    isInitializing = true;
+
+    try {
+      handlerPromise = initializeHandler();
+      const handler = await handlerPromise;
+      return handler;
+    } catch (error) {
+      handlerPromise = null;
+      throw error;
+    } finally {
+      isInitializing = false;
+    }
+  };
 };

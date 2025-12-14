@@ -4,7 +4,10 @@ import { CronService } from "src/cron/cron";
 import { errorFactory } from "src/errors/error_factory";
 import { MethodNotAllowedError } from "src/errors/method_not_allowed";
 import { RouteNotFoundError } from "src/errors/route_not_found";
+import { GraphQL } from "src/graphql/graphql";
 import { MockServer } from "src/mock/mock_server";
+import { compression } from "src/plugins/compression/compression";
+import type { CompressionOptions } from "src/plugins/compression/compression_types";
 import { cookie } from "src/plugins/cookie/cookie";
 import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
 import {
@@ -14,6 +17,8 @@ import {
 } from "src/plugins/express/express";
 import { log } from "src/plugins/log/log";
 import type { LogOptions } from "src/plugins/log/log_types";
+import { methodOverride } from "src/plugins/method_override/method_override";
+import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
 import { rateLimiter } from "src/plugins/rate_limiter/rate_limiter";
 import type {
   RateLimiterKeyOptions,
@@ -71,10 +76,6 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types";
-import { compression } from "src/plugins/compression/compression";
-import { methodOverride } from "src/plugins/method_override/method_override";
-import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
-import type { CompressionOptions } from "src/plugins/compression/compression_types";
 
 /**
  * The server class that is used to create and manage the server
@@ -82,6 +83,7 @@ import type { CompressionOptions } from "src/plugins/compression/compression_typ
 export class Server<H extends NodeHttpClient> implements ServerInterface {
   isListening: boolean;
   isProduction: boolean;
+  graphql: GraphQL;
 
   readonly router: ClientRouter = router;
 
@@ -116,6 +118,7 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
       useBodyParser: options?.useBodyParser ?? true,
+      graphql: options?.graphql ?? undefined,
     };
 
     this.httpsOptions =
@@ -123,6 +126,10 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
       options?.nodeHttpClient === "http2-secure"
         ? (options as ServerOptions<"https">).httpsOptions
         : undefined;
+
+    this.isListening = false;
+    this.isProduction = this.nativeEnv.get("NODE_ENV") === "production";
+    this.graphql = new GraphQL(this.serverOptions.graphql);
 
     this.serverConnector = new ServerConnector({
       routes: [],
@@ -132,14 +139,12 @@ export class Server<H extends NodeHttpClient> implements ServerInterface {
       runtime: runtime.type,
       nodeHttpClient: this.serverOptions.nodeHttpClient,
       httpsOptions: this.httpsOptions,
+      graphql: this.graphql,
     });
 
     if (this.serverOptions.useBodyParser) {
       this.use(bodyParser());
     }
-
-    this.isListening = false;
-    this.isProduction = this.nativeEnv.get("NODE_ENV") === "production";
   }
 
   get url(): string {

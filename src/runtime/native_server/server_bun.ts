@@ -1,16 +1,19 @@
 import { errorFactory } from "src/errors/error_factory";
 import { RouteNotFoundError } from "src/errors/route_not_found";
+import { GraphQL } from "src/graphql/graphql";
 import { Request } from "../../server/http/request";
 import { router } from "../../server/router/router";
 import type { ServerInterface } from "./server_interface";
 import type {
-  BunTapOptions,
   HttpMethod,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types";
-import { executeMiddlewareChain } from "./server_utils";
+import {
+  createGraphQLHandlerInitializer,
+  executeMiddlewareChain,
+} from "./server_utils";
 
 export class ServerBun implements ServerInterface {
   port: number;
@@ -18,8 +21,12 @@ export class ServerBun implements ServerInterface {
   host: string;
   routes: ServerRoute[];
   tapOptions?: ServerTapOptions;
+  graphql: GraphQL;
   declare url: string;
   declare runtimeServer: ReturnType<typeof Bun.serve>;
+  private ensureGraphQLHandler: ReturnType<
+    typeof createGraphQLHandlerInitializer
+  >;
 
   constructor(input?: ServerConnectInput) {
     this.routes = input?.routes ?? [];
@@ -28,6 +35,8 @@ export class ServerBun implements ServerInterface {
     this.host = input?.host ?? "0.0.0.0";
     this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
+    this.graphql = input?.graphql ?? new GraphQL();
+    this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
   }
 
   listen(): void {
@@ -50,6 +59,18 @@ export class ServerBun implements ServerInterface {
 
         // User input handler
         await fetch?.call(this, req as unknown as Request, server);
+
+        if (
+          this.graphql.isEnabled &&
+          url.pathname.startsWith(
+            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
+          )
+        ) {
+          const handler = await this.ensureGraphQLHandler();
+          if (handler) {
+            return handler.fetch(req, { server });
+          }
+        }
 
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],

@@ -34,6 +34,8 @@ import type { Request } from "./http/request";
 import type { Response } from "./http/response";
 import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
 import type { CompressionOptions } from "src/plugins/compression/compression_types";
+import type { GraphQLOptions } from "src/graphql/graphql_types";
+import { GraphQL } from "src/graphql/graphql";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -82,6 +84,24 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   swagger?: Parameters<typeof swagger>[0] | boolean;
+  /**
+   * The graphql options to apply to the server, by default graphql plugin is not enabled, you can pass a boolean to enable or disable the plugin or you can pass an object to apply custom options to the plugin (when options are provided the plugin is always enabled)
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   graphql: true,
+   * });
+   * ```
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   graphql: {
+   *     schema: createSchema({ typeDefs: `type Query { hello: String }`, resolvers: { Query: { hello: () => 'Hello World' } } }),
+   *   },
+   * });
+   * ```
+   */
+  graphql?: GraphQLOptions;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -94,6 +114,7 @@ export type ResolvedServerOptions = {
   tapOptions: ServerTapOptions;
   useBodyParser: boolean;
   swagger: Parameters<typeof swagger>[0] | boolean;
+  graphql?: GraphQLOptions;
 };
 
 export type ServerErrorHandler = (
@@ -341,6 +362,11 @@ export interface ServerInterface {
     globalErrorHandler: (
       ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
     ) => void,
+
+    /**
+     * The graphql handler to apply to the server
+     */
+    graphql: GraphQL,
   ) => void;
 
   /**

@@ -27,6 +27,7 @@ export default defineConfig([
     external,
     splitting: false,
     treeshake: true,
+    minify: true,
   },
   {
     entry: ["src/cli.ts"],
@@ -41,5 +42,6 @@ export default defineConfig([
     },
     splitting: false,
     treeshake: true,
+    minify: true,
   },
 ]);

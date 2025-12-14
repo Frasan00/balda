@@ -1,9 +1,12 @@
+import { GraphQL } from "src/graphql/graphql";
 import type { RuntimeServer, ServerRoute } from "./server_types";
 
 /**
  * Standard interface for server implementations between different environments.
  */
 export interface ServerInterface {
+  /** The graphql instance for the server */
+  graphql: GraphQL;
   /** The runtime the server is running on */
   runtimeServer: RuntimeServer;
   /** The port the server is listening on */
