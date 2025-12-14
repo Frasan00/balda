@@ -1,3 +1,5 @@
+import type { Command } from "./commands/base_command";
+
 /**
  * Calculates Levenshtein distance between two strings for fuzzy matching
  * @param str1 - First string
@@ -39,6 +41,41 @@ export const toLowerSnakeCase = (str: string): string => {
     .replace(/^_+/, "")
     .replace(/_+$/, "")
     .toLowerCase();
+};
+
+export const toPascalCase = (input: string): string => {
+  return input
+    .split(/[-_.]/g)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("");
+};
+
+export const toDashCase = (str: string): string => {
+  return str
+    .split(/[-_.]/g)
+    .map((word) => word.toLowerCase())
+    .join("-");
+};
+
+/**
+ * Groups commands by their category
+ * @param commands - Array of command classes
+ * @returns Map of category to command arrays
+ */
+export const groupCommandsByCategory = (
+  commands: (typeof Command)[],
+): Map<string, (typeof Command)[]> => {
+  const map = new Map<string, (typeof Command)[]>();
+
+  for (const command of commands) {
+    const category = command.options?.category || "other";
+    if (!map.has(category)) {
+      map.set(category, []);
+    }
+    map.get(category)!.push(command);
+  }
+
+  return map;
 };
 
 /**

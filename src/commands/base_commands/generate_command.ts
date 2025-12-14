@@ -1,4 +1,5 @@
 import { Command } from "src/commands/base_command";
+import { commandRegistry } from "src/commands/command_registry";
 import { arg } from "src/decorators/command/arg";
 import { nativeFs } from "src/runtime/native_fs";
 import { nativePath } from "src/runtime/native_path";
@@ -23,6 +24,18 @@ export default class GenerateCommand extends Command {
   static name: string;
 
   static async handle(): Promise<void> {
+    // Check if command already exists to prevent overriding built-in commands
+    const existingCommand = commandRegistry.getCommand(this.name);
+    if (existingCommand) {
+      const isBuiltIn = commandRegistry.isBuiltInCommand(this.name);
+      const commandType = isBuiltIn ? "built-in" : "user-defined";
+      this.logger.error(
+        { commandName: this.name, type: commandType },
+        `Command "${this.name}" already exists as a ${commandType} command. Cannot override existing commands.`,
+      );
+      return;
+    }
+
     const commandTemplate = this.getCommandTemplate();
     this.path = nativePath.join(this.path, `${this.name}.ts`);
 

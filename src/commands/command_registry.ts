@@ -3,12 +3,27 @@ import BuildCommand from "src/commands/base_commands/build_command";
 import GenerateCommand from "src/commands/base_commands/generate_command";
 import GeneratePluginCommand from "src/commands/base_commands/generate_plugin";
 import GenerateQueueCommand from "src/commands/base_commands/generate_queue";
+import GenerateControllerCommand from "src/commands/base_commands/generate_controller";
+import GenerateMiddlewareCommand from "src/commands/base_commands/generate_middleware";
 import { logger } from "src/logger/logger";
 import { nativeCwd } from "src/runtime/native_cwd";
 import type { Command } from "./base_command";
 import GenerateCronCommand from "./base_commands/generate_cron";
 import InitCommand from "./base_commands/init_command";
 import ListCommand from "./base_commands/list_command";
+
+// Base commands are always loaded
+export const baseCommands = [
+  GeneratePluginCommand,
+  GenerateCommand,
+  GenerateCronCommand,
+  GenerateQueueCommand,
+  GenerateControllerCommand,
+  GenerateMiddlewareCommand,
+  InitCommand,
+  ListCommand,
+  BuildCommand,
+];
 
 /**
  * Singleton that registers all commands and provides a way to execute them.
@@ -112,16 +127,6 @@ export class CommandRegistry {
         this.commands.set(command.commandName, command);
       }
     }
-
-    const baseCommands = [
-      GeneratePluginCommand,
-      GenerateCommand,
-      GenerateCronCommand,
-      GenerateQueueCommand,
-      InitCommand,
-      ListCommand,
-      BuildCommand,
-    ];
 
     for (const command of baseCommands) {
       this.commands.set(command.commandName, command);

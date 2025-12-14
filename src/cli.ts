@@ -4,6 +4,70 @@ import { nativeArgs } from "src/runtime/native_args";
 import { nativeExit } from "src/runtime/native_exit";
 import { CommandRegistry, commandRegistry } from "./commands/command_registry";
 
+// Helper functions for grouping and displaying commands
+const groupByCategory = (
+  commands: (typeof Command)[],
+): Map<string, (typeof Command)[]> => {
+  const map = new Map<string, (typeof Command)[]>();
+
+  for (const command of commands) {
+    const category = command.options?.category || "other";
+    if (!map.has(category)) {
+      map.set(category, []);
+    }
+    map.get(category)!.push(command);
+  }
+
+  return map;
+};
+
+const displayCategorizedCommands = (
+  categorizedCommands: Map<string, (typeof Command)[]>,
+): void => {
+  const sortedCategories = Array.from(categorizedCommands.keys()).sort();
+
+  for (const category of sortedCategories) {
+    const commands = categorizedCommands
+      .get(category)!
+      .filter((cmd) => cmd && cmd.commandName);
+
+    if (!commands.length) {
+      continue;
+    }
+
+    // Display category header with color
+    const categoryColors: Record<string, string> = {
+      generator: "\x1b[35m", // Magenta
+      setup: "\x1b[34m", // Blue
+      production: "\x1b[32m", // Green
+      utility: "\x1b[36m", // Cyan
+      other: "\x1b[37m", // White
+    };
+
+    const color = categoryColors[category] || "\x1b[37m";
+    console.log(`  ${color}${category.toUpperCase()}:\x1b[0m`);
+
+    const maxNameLength = Math.max(
+      ...commands.map((cmd) => cmd.commandName.length),
+    );
+
+    for (const command of commands) {
+      const name = command.commandName.padEnd(maxNameLength + 2);
+      const desc = command.description || "No description available";
+
+      // Show deprecated warning if applicable
+      let deprecatedTag = "";
+      if (command.options?.deprecated) {
+        deprecatedTag = " \x1b[33m[deprecated]\x1b[0m";
+      }
+
+      console.log(`    \x1b[36m${name}\x1b[0m ${desc}${deprecatedTag}`);
+    }
+
+    console.log("");
+  }
+};
+
 /**
  * CLI entry point
  */
@@ -18,22 +82,13 @@ export const cli = async () => {
 
     console.log("\n✨ Available Balda Commands:\n");
 
+    // Display user commands grouped by category
     if (userCommands.length > 0) {
       console.log("\x1b[1;33mUser Commands:\x1b[0m\n");
-
-      const maxNameLength = Math.max(
-        ...userCommands.map((cmd) => cmd.commandName.length),
-      );
-
-      for (const command of userCommands) {
-        const name = command.commandName.padEnd(maxNameLength + 2);
-        const desc = command.description || "No description available";
-        console.log(`  \x1b[36m${name}\x1b[0m ${desc}`);
-      }
-
-      console.log("");
+      displayCategorizedCommands(groupByCategory(userCommands));
     }
 
+    // Display built-in commands without categories
     if (builtInCommands.length > 0) {
       console.log("\x1b[1;32mBuilt-in Commands:\x1b[0m\n");
 
@@ -44,7 +99,14 @@ export const cli = async () => {
       for (const command of builtInCommands) {
         const name = command.commandName.padEnd(maxNameLength + 2);
         const desc = command.description || "No description available";
-        console.log(`  \x1b[36m${name}\x1b[0m ${desc}`);
+
+        // Show deprecated warning if applicable
+        let deprecatedTag = "";
+        if (command.options?.deprecated) {
+          deprecatedTag = " \x1b[33m[deprecated]\x1b[0m";
+        }
+
+        console.log(`  \x1b[36m${name}\x1b[0m ${desc}${deprecatedTag}`);
       }
 
       console.log("");
@@ -62,6 +124,7 @@ export const cli = async () => {
     console.error(
       `No command provided, available commands: ${commandRegistry
         .getCommands()
+        .filter((command) => command && command.commandName)
         .map((command) => command.commandName)
         .join(", ")}`,
     );
@@ -74,7 +137,10 @@ export const cli = async () => {
     console.error(
       findSimilarCommands(
         commandName,
-        commandRegistry.getCommands().map((command) => command.commandName),
+        commandRegistry
+          .getCommands()
+          .filter((command) => command && command.commandName)
+          .map((command) => command.commandName),
       ) || `Command ${commandName} not found`,
     );
 
@@ -83,11 +149,33 @@ export const cli = async () => {
   }
 
   const commandClass = CommandClass as unknown as typeof Command;
+
+  // Deprecated command warning
+  if (commandClass.options?.deprecated) {
+    const message =
+      commandClass.options.deprecated.message || "This command is deprecated";
+    const replacement = commandClass.options.deprecated.replacement;
+    console.warn(`\x1b[33m⚠️  Warning: ${message}\x1b[0m`);
+    if (replacement) {
+      console.warn(`\x1b[33m   Use '${replacement}' instead.\x1b[0m\n`);
+    }
+  }
+
   // Check if the command has the help flag
   commandClass.handleHelpFlag(commandClass.flags);
 
   // Validate the command context
   commandClass.validateContext(commandClass);
+
+  // Run custom validation if provided
+  if (commandClass.options?.validate) {
+    const isValid = await commandClass.options.validate(commandClass);
+    if (!isValid) {
+      console.error("Command validation failed");
+      nativeExit.exit(1);
+      return;
+    }
+  }
 
   // Handle the command
   await commandClass.handle();
