@@ -290,7 +290,7 @@ export interface ServerInterface {
    * ```typescript
    * // For better type safety, you can declare a module for the server interface
    * declare module "balda" {
-   *   interface ServerInterface {
+   *   interface Server {
    *     myCustomProperty: string;
    *   }
    * }
