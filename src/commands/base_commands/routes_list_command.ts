@@ -1,7 +1,5 @@
 import { flag } from "../../decorators/command/flag.js";
 import { BaldaError } from "../../errors/balda_error.js";
-import { nativeCwd } from "../../runtime/native_cwd.js";
-import { nativePath } from "../../runtime/native_path.js";
 import { router } from "../../server/router/router.js";
 import { Command } from "../base_command.js";
 
@@ -23,13 +21,11 @@ export default class RoutesListCommand extends Command {
   static entry: string;
 
   static async handle(): Promise<void> {
-    await import(nativePath.resolve(nativeCwd.getCwd(), this.entry)).catch(
-      () => {
-        throw new BaldaError(
-          `Could not import entry path ${this.entry}, make sure to give a valid path to this command`,
-        );
-      },
-    );
+    await import(this.entry).catch(() => {
+      throw new BaldaError(
+        `Could not import entry path ${this.entry}, make sure to give a valid path to this command`,
+      );
+    });
 
     const routes = router.getRoutes();
 
