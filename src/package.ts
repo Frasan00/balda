@@ -1,3 +1,5 @@
+import { execSync } from "node:child_process";
+import * as readline from "node:readline";
 import { nativeFs } from "./runtime/native_fs.js";
 import { nativePath } from "./runtime/native_path.js";
 
@@ -45,4 +47,42 @@ export const getPackageManager = async (): Promise<
   }
 
   return ["npm", "install", "-D"];
+};
+
+/**
+ * Prompts user for confirmation and executes a command if approved
+ * @param command - The command to execute
+ * @param packageManager - The package manager name (e.g., "npm", "yarn")
+ * @param dependencies - Array of dependencies to display
+ * @param options - execSync options
+ * @returns Promise that resolves to true if executed, false if skipped
+ */
+export const execWithPrompt = async (
+  command: string,
+  packageManager: string,
+  dependencies: string[],
+  options?: Parameters<typeof execSync>[1],
+  areDevDeps: boolean = true,
+): Promise<boolean> => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const dependenciesList = dependencies.join(", ");
+  const prompt = `Do you want to install the following ${areDevDeps ? "dev" : ""} dependencies using ${packageManager}?\n${dependenciesList}\n(y/n): `;
+
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      rl.close();
+
+      if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
+        execSync(command, options);
+        resolve(true);
+        return;
+      }
+
+      resolve(false);
+    });
+  });
 };

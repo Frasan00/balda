@@ -1,6 +1,5 @@
-import { execSync } from "node:child_process";
 import { flag } from "../../decorators/command/flag.js";
-import { getPackageManager } from "../../package.js";
+import { getPackageManager, execWithPrompt } from "../../package.js";
 import { nativeFs } from "../../runtime/native_fs.js";
 import { Command } from "../base_command.js";
 
@@ -48,14 +47,21 @@ export default class InitCommand extends Command {
 
     // if the package manager is npm, yarn or pnpm, install the dev dependencies since we're on node.js
     if (["npm", "yarn", "pnpm"].includes(packageManager)) {
-      this.logger.info(`Installing dev dependencies with ${packageManager}...`);
-
-      execSync(
+      const installed = await execWithPrompt(
         `${packageManager} ${packageManagerCommand} ${this.devDependencies.join(" ")} -${devDependenciesCommand}`,
+        packageManager,
+        this.devDependencies,
         {
           stdio: "inherit",
         },
       );
+
+      if (!installed) {
+        this.logger.info(
+          "Installation cancelled by user. Project initialization aborted.",
+        );
+        return;
+      }
     }
 
     const ext = this.typescript ? "ts" : "js";
