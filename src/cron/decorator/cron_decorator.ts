@@ -1,5 +1,5 @@
-import { CronService } from "../cron";
-import type { CronScheduleParams } from "../cron.types";
+import { CronService } from "../cron.js";
+import type { CronScheduleParams } from "../cron.types.js";
 
 /**
  * Decorator to schedule a cron job. Must be applied to a class method. By default, the cron job will not overlap with other cron jobs of the same type.

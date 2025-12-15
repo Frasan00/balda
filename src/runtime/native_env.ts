@@ -1,4 +1,4 @@
-import { runtime } from "src/runtime/runtime";
+import { runtime } from "./runtime.js";
 
 export class NativeEnv {
   get(key: string): string {

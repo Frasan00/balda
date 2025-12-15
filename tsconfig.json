@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -12,12 +12,7 @@
     "outDir": "./lib",
     "types": ["node", "deno", "bun-types"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "paths": {
-      "src/*": ["src/*"],
-      "test/*": ["test/*"]
-    }
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/*", "test/**/*", "trash/commands", "src/cli.ts"],
   "exclude": ["node_modules", "lib"]

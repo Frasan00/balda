@@ -1,4 +1,4 @@
-import { logger } from "src/logger/logger";
+import { logger } from "../logger/logger.js";
 
 /**
  * Base class for cron jobs with logger instance

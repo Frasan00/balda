@@ -1,5 +1,5 @@
 import pino from "pino";
-import type { LoggerOptions } from "./logger_types";
+import type { LoggerOptions } from "./logger_types.js";
 
 const createBaseLogger = () => {
   const baseOptions: LoggerOptions = {

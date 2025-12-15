@@ -4,13 +4,13 @@ import {
   Server as HttpsServer,
   type ServerOptions as HttpsServerOptions,
 } from "node:https";
-import { GraphQL } from "src/graphql/graphql";
-import type { NodeHttpClient } from "src/server/server_types";
-import type { SyncOrAsync } from "src/type_util";
-import type { NextFunction } from "../../server/http/next";
-import type { Request as BaldaRequest } from "../../server/http/request";
-import type { Response as BaldaResponse } from "../../server/http/response";
-import type { RunTimeType } from "../runtime";
+import { GraphQL } from "../../graphql/graphql.js";
+import type { NodeHttpClient } from "../../server/server_types.js";
+import type { SyncOrAsync } from "../../type_util.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request as BaldaRequest } from "../../server/http/request.js";
+import type { Response as BaldaResponse } from "../../server/http/response.js";
+import type { RunTimeType } from "../runtime.js";
 
 export type { HttpsServerOptions };
 

@@ -1,15 +1,15 @@
 import {
   InMemoryStorage,
   InMemoryStorageInterface,
-} from "src/plugins/rate_limiter/in_memory_storage";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
+} from "./in_memory_storage.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
 import type {
   RateLimiterKeyOptions,
   StorageOptions,
-} from "./rate_limiter_types";
+} from "./rate_limiter_types.js";
 
 /**
  * Rate limiter plugin

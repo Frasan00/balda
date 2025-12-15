@@ -1,5 +1,5 @@
 import type { Job, Queue } from "bullmq";
-import { SyncOrAsync } from "src/type_util";
+import { SyncOrAsync } from "../../../type_util.js";
 
 /**
  * Options for BullMQ configuration

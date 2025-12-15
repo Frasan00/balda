@@ -1,10 +1,10 @@
-import { MetadataStore } from "../../metadata_store";
-import type { PolicyManager } from "./policy_manager";
+import { MetadataStore } from "../../metadata_store.js";
+import type { PolicyManager } from "./policy_manager.js";
 import type {
   PolicyDecorator,
   PolicyMetadata,
   PolicyProvider,
-} from "./policy_types";
+} from "./policy_types.js";
 
 export const createPolicyDecorator = <T extends Record<string, PolicyProvider>>(
   manager: PolicyManager<T>,

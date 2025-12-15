@@ -1,5 +1,5 @@
-import { mockServer } from "test/server/instance";
 import { describe, expect, it } from "vitest";
+import { mockServer } from "../server/instance.js";
 
 describe("FileUploadController", () => {
   it("POST /file/upload returns file info for valid upload", async () => {

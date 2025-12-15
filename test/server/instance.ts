@@ -1,7 +1,10 @@
-import { defineLoggerConfig, logger } from "src/logger/logger";
-import { NativeEnv } from "src/runtime/native_env";
-import { PolicyManager } from "src/server/policy/policy_manager";
-import { Server } from "../../src/server/server";
+import {
+  PolicyManager,
+  defineLoggerConfig,
+  logger,
+  Server,
+} from "../../src/index.js";
+import { NativeEnv } from "../../src/runtime/native_env.js";
 
 export const policyManager = new PolicyManager({
   test: {

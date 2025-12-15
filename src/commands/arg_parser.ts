@@ -1,5 +1,5 @@
-import { nativeArgs } from "src/runtime/native_args";
-import { levenshteinDistance } from "src/utils";
+import { nativeArgs } from "../runtime/native_args.js";
+import { levenshteinDistance } from "../utils.js";
 
 export type Argument = string;
 export type FlagSchema = Record<

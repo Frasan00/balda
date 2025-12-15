@@ -1,8 +1,8 @@
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import type { MethodOverrideOptions } from "./method_override_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import type { MethodOverrideOptions } from "./method_override_types.js";
 
 const DEFAULT_METHODS = ["POST"];
 const DEFAULT_HEADER = "X-HTTP-Method-Override";

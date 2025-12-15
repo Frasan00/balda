@@ -1,14 +1,14 @@
 import type PgBoss from "pg-boss";
 import type { Job } from "pg-boss";
-import { ClientNotFoundError } from "src/errors/client_not_found_error";
-import { PGBossConfiguration } from "src/queue/providers/pgboss/pgboss_configuration";
+import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
+import { PGBossConfiguration } from "./pgboss_configuration.js";
 import type {
   PGBossSendOptions,
   PublishOptions,
   PubSub,
   QueueTopic,
   QueueTopicKey,
-} from "src/queue/queue_types";
+} from "../../queue_types.js";
 
 export class PGBossPubSub implements PubSub<"pgboss"> {
   declare private boss: PgBoss;

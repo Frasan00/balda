@@ -1,18 +1,18 @@
-import { errorFactory } from "src/errors/error_factory";
-import { MethodNotAllowedError } from "src/errors/method_not_allowed";
-import { RouteNotFoundError } from "src/errors/route_not_found";
-import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { nativeFile } from "src/runtime/native_file";
-import { nativePath } from "src/runtime/native_path";
-import { mimeTypesMap } from "../../plugins/static/static_constants";
-import { nativeCwd } from "../../runtime/native_cwd";
-import { nativeFs } from "../../runtime/native_fs";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import { router } from "../../server/router/router";
-import type { StaticPluginOptions } from "./static_types";
+import { errorFactory } from "../../errors/error_factory.js";
+import { MethodNotAllowedError } from "../../errors/method_not_allowed.js";
+import { RouteNotFoundError } from "../../errors/route_not_found.js";
+import { SwaggerRouteOptions } from "../swagger/swagger_types.js";
+import { nativeFile } from "../../runtime/native_file.js";
+import { nativePath } from "../../runtime/native_path.js";
+import { mimeTypesMap } from "../../plugins/static/static_constants.js";
+import { nativeCwd } from "../../runtime/native_cwd.js";
+import { nativeFs } from "../../runtime/native_fs.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import { router } from "../../server/router/router.js";
+import type { StaticPluginOptions } from "./static_types.js";
 
 /**
  * Creates a static file serving middleware and registers all routes for the given path

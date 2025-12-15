@@ -1,10 +1,10 @@
 import {
   getCalledCommandName,
   parseCliArgsAndFlags,
-} from "src/commands/arg_parser";
-import type { Command } from "src/commands/base_command";
-import { MetadataStore } from "src/metadata_store";
-import type { ArgOptions } from "./command_decorator_types";
+} from "../../commands/arg_parser.js";
+import type { Command } from "../../commands/base_command.js";
+import { MetadataStore } from "../../metadata_store.js";
+import type { ArgOptions } from "./command_decorator_types.js";
 
 export const VALIDATION_ERROR_SYMBOL = "VALIDATION_ERROR";
 export const ARG_SYMBOL = "ARG";

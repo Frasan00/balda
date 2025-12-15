@@ -1,6 +1,6 @@
-import { MetadataStore } from "src/metadata_store";
 import { describe, expect, it } from "vitest";
-import { policyManager } from "../instance";
+import { policyManager } from "../instance.js";
+import { MetadataStore } from "../../../src/metadata_store.js";
 
 describe("Test Policy", () => {
   it("should return true if the user is an admin", async () => {

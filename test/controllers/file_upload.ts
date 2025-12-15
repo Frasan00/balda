@@ -1,8 +1,8 @@
 import z from "zod";
-import { controller, middleware, post } from "../../src/index";
-import { Request } from "../../src/server/http/request";
-import { Response } from "../../src/server/http/response";
-import { fileParser } from "src/plugins/file/file";
+import { controller, middleware, post } from "../../src/index.js";
+import { fileParser } from "../../src/plugins/file/file.js";
+import { Request } from "../../src/server/http/request.js";
+import { Response } from "../../src/server/http/response.js";
 
 const FileUploadBody = z.object({
   file: z.instanceof(Uint8Array),

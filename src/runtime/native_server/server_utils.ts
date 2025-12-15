@@ -1,7 +1,10 @@
-import type { GraphQL } from "src/graphql/graphql";
-import type { Request } from "../../server/http/request";
-import { Response } from "../../server/http/response";
-import type { ServerRouteHandler, ServerRouteMiddleware } from "./server_types";
+import type { GraphQL } from "../../graphql/graphql.js";
+import type { Request } from "../../server/http/request.js";
+import { Response } from "../../server/http/response.js";
+import type {
+  ServerRouteHandler,
+  ServerRouteMiddleware,
+} from "./server_types.js";
 
 /**
  * Execute a middleware chain

@@ -1,6 +1,6 @@
-import { queue } from "src/index";
+import { queue } from "../../../src/index.js";
 
-declare module "../../../src/queue/queue_types" {
+declare module "../../../src/queue/queue_types.js" {
   export interface QueueTopic {
     test: {
       name: string;

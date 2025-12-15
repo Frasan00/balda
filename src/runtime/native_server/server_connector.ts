@@ -1,13 +1,13 @@
-import { type RunTimeType } from "../runtime";
-import { ServerBun } from "./server_bun";
-import { ServerDeno } from "./server_deno";
-import type { ServerInterface } from "./server_interface";
-import { ServerNode } from "./server_node";
+import { type RunTimeType } from "../runtime.js";
+import { ServerBun } from "./server_bun.js";
+import { ServerDeno } from "./server_deno.js";
+import type { ServerInterface } from "./server_interface.js";
+import { ServerNode } from "./server_node.js";
 import type {
   RuntimeServerMap,
   ServerConnectInput,
   ServerRoute,
-} from "./server_types";
+} from "./server_types.js";
 
 export class ServerConnector {
   routes: ServerRoute[];

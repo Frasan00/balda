@@ -1,11 +1,11 @@
 import { ZodError, type ZodType } from "zod";
-import { MetadataStore } from "../../metadata_store";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
+import { MetadataStore } from "../../metadata_store.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
 import type {
   CustomValidationError,
   ValidationOptions,
-} from "./validate_types";
+} from "./validate_types.js";
 
 /**
  * Decorator to validate request data using Zod schemas.
@@ -16,10 +16,10 @@ import type {
  * @warning Only synchronous Zod schemas are supported. Async refinements or transforms will throw an error.
  * @example
  * ```ts
- * import { validate } from "src/decorators/validation/validate";
- * import { controller, post } from "src/decorators/handlers/post";
- * import { Request } from "src/server/http/request";
- * import { Response } from "src/server/http/response";
+ * import { validate } from "./validate.js";
+ * import { controller, post } from "../handlers/post.js";
+ * import { Request } from "../../server/http/request.js";
+ * import { Response } from "../../server/http/response.js";
  * import { z } from "zod";
  *
  * const PayloadSchema = z.object({

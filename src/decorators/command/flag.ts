@@ -1,15 +1,15 @@
 import {
   getCalledCommandName,
   parseCliArgsAndFlags,
-} from "src/commands/arg_parser";
-import type { Command } from "src/commands/base_command";
-import { VALIDATION_ERROR_SYMBOL } from "src/decorators/command/arg";
+} from "../../commands/arg_parser.js";
+import type { Command } from "../../commands/base_command.js";
+import { VALIDATION_ERROR_SYMBOL } from "./arg.js";
 import type {
   FlagOptions,
   FlagType,
   InferFlagType,
-} from "src/decorators/command/command_decorator_types";
-import { MetadataStore } from "src/metadata_store";
+} from "./command_decorator_types.js";
+import { MetadataStore } from "../../metadata_store.js";
 
 /**
  * Decorator for defining command-line flags with type safety.

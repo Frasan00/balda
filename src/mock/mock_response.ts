@@ -1,4 +1,4 @@
-import { Response } from "../server/http/response";
+import { Response } from "../server/http/response.js";
 
 export class MockResponse<T = any> {
   constructor(private readonly response: Response) {}

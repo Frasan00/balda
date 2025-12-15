@@ -1,5 +1,5 @@
-import { QueueManager } from "src/queue/queue";
-import { PubSub, QueueProviderKey } from "src/queue/queue_types";
+import { QueueManager } from "../../queue.js";
+import { PubSub, QueueProviderKey } from "../../queue_types.js";
 
 export type CustomQueueConfiguration = PubSub;
 

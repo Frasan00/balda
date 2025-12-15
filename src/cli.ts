@@ -1,8 +1,12 @@
-import { findSimilarCommands } from "src/commands/arg_parser";
-import type { Command } from "src/commands/base_command";
-import { nativeArgs } from "src/runtime/native_args";
-import { nativeExit } from "src/runtime/native_exit";
-import { CommandRegistry, commandRegistry } from "./commands/command_registry";
+import { findSimilarCommands } from "./commands/arg_parser.js";
+import type { Command } from "./commands/base_command.js";
+import {
+  CommandRegistry,
+  commandRegistry,
+} from "./commands/command_registry.js";
+import { nativeArgs } from "./runtime/native_args.js";
+import { nativeExit } from "./runtime/native_exit.js";
+import { nativePath } from "./runtime/native_path.js";
 
 // Helper functions for grouping and displaying commands
 const groupByCategory = (
@@ -73,23 +77,23 @@ const displayCategorizedCommands = (
  */
 export const cli = async () => {
   await commandRegistry.loadCommands(CommandRegistry.commandsPattern);
-  const commandName = nativeArgs.getCliArgs()[0];
+  const [commandName, ...rest] = nativeArgs.getCliArgs();
 
   // Handle global help flag
-  if (commandName === "-h" || commandName === "--help") {
+  if (!commandName || rest.includes("-h") || rest.includes("--help")) {
     const builtInCommands = commandRegistry.getBuiltInCommands();
     const userCommands = commandRegistry.getUserDefinedCommands();
 
     console.log("\n✨ Available Balda Commands:\n");
 
     // Display user commands grouped by category
-    if (userCommands.length > 0) {
+    if (userCommands.length) {
       console.log("\x1b[1;33mUser Commands:\x1b[0m\n");
       displayCategorizedCommands(groupByCategory(userCommands));
     }
 
     // Display built-in commands without categories
-    if (builtInCommands.length > 0) {
+    if (builtInCommands.length) {
       console.log("\x1b[1;32mBuilt-in Commands:\x1b[0m\n");
 
       const maxNameLength = Math.max(
@@ -120,18 +124,6 @@ export const cli = async () => {
     return;
   }
 
-  if (!commandName) {
-    console.error(
-      `No command provided, available commands: ${commandRegistry
-        .getCommands()
-        .filter((command) => command && command.commandName)
-        .map((command) => command.commandName)
-        .join(", ")}`,
-    );
-    nativeExit.exit(1);
-    return;
-  }
-
   const CommandClass = commandRegistry.getCommand(commandName);
   if (!CommandClass) {
     console.error(
@@ -149,6 +141,7 @@ export const cli = async () => {
   }
 
   const commandClass = CommandClass as unknown as typeof Command;
+  commandClass.calledBy = nativePath.basename(nativeArgs.getCliCaller());
 
   // Deprecated command warning
   if (commandClass.options?.deprecated) {

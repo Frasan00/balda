@@ -1,19 +1,19 @@
-import { BaldaError } from "src/errors/balda_error";
-import { errorFactory } from "src/errors/error_factory";
-import { FileTooLargeError } from "src/errors/file_too_large";
-import { nativeCrypto } from "src/runtime/native_crypto";
-import { nativeOs } from "src/runtime/native_os";
-import { nativePath } from "src/runtime/native_path";
+import { BaldaError } from "../../errors/balda_error.js";
+import { errorFactory } from "../../errors/error_factory.js";
+import { FileTooLargeError } from "../../errors/file_too_large.js";
+import { nativeCrypto } from "../../runtime/native_crypto.js";
+import { nativeOs } from "../../runtime/native_os.js";
+import { nativePath } from "../../runtime/native_path.js";
 import type {
   FilePluginOptions,
   FormFile,
-} from "../../plugins/file/file_types";
-import { nativeFs } from "../../runtime/native_fs";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import { parseSizeLimit } from "../../utils";
+} from "../../plugins/file/file_types.js";
+import { nativeFs } from "../../runtime/native_fs.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import { parseSizeLimit } from "../../utils.js";
 
 // 1MB in bytes
 const DEFAULT_SIZE = 1024 * 1024;

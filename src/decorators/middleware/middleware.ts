@@ -1,5 +1,5 @@
-import { MetadataStore } from "../../metadata_store";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
+import { MetadataStore } from "../../metadata_store.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
 
 /**
  * Decorator to mark a middleware for a route or a controller class

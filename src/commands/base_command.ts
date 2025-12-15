@@ -1,9 +1,13 @@
-import { VALIDATION_ERROR_SYMBOL } from "src/decorators/command/arg";
-import { MetadataStore } from "src/metadata_store";
-import { nativeExit } from "src/runtime/native_exit";
-import { Argument, type FlagSchema, parseCliArgsAndFlags } from "./arg_parser";
-import type { CommandOptions } from "./command_types";
-import { logger } from "src/logger/logger";
+import { VALIDATION_ERROR_SYMBOL } from "../decorators/command/arg.js";
+import { logger } from "../logger/logger.js";
+import { MetadataStore } from "../metadata_store.js";
+import { nativeExit } from "../runtime/native_exit.js";
+import {
+  Argument,
+  type FlagSchema,
+  parseCliArgsAndFlags,
+} from "./arg_parser.js";
+import type { CommandOptions } from "./command_types.js";
 
 /**
  * Base class for all cli commands.
@@ -14,6 +18,10 @@ export abstract class Command {
    * The name of the command.
    */
   static commandName: string = this.name;
+  /**
+   * package manager that called the command (e.g. npx, yarn, bun etc.)
+   */
+  static calledBy: string = this.name;
   /**
    * The description of the command.
    */

@@ -1,4 +1,4 @@
-import { BaldaError } from "src/errors/balda_error";
+import { BaldaError } from "./balda_error.js";
 
 export class RouteNotFoundError extends BaldaError {
   constructor(path: string, method: string) {

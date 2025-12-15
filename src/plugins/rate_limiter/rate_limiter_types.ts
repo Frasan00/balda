@@ -1,4 +1,4 @@
-import type { Request } from "../../server/http/request";
+import type { Request } from "../../server/http/request.js";
 
 /**
  * Rate limiter key generation strategies

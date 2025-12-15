@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Server } from "src/server/server";
+import { Server } from "../../src/index.js";
 
 describe("Server Environment Functions", () => {
-  let server: Server;
+  let server: Server<"http">;
   const originalEnv = process.env;
 
   beforeEach(() => {

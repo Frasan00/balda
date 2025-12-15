@@ -1,9 +1,9 @@
-import { logger } from "src/logger/logger";
-import type { LogOptions } from "src/plugins/log/log_types";
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import type { NextFunction } from "src/server/http/next";
-import type { Request } from "src/server/http/request";
-import type { Response } from "src/server/http/response";
+import { logger } from "../../logger/logger.js";
+import type { LogOptions } from "./log_types.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
 
 /**
  * Logs the request and response of the handler, can be set both on a specific route or on a global middleware.

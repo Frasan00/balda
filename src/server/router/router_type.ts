@@ -1,9 +1,9 @@
 import type {
   ServerRouteHandler,
   ServerRouteMiddleware,
-} from "../../runtime/native_server/server_types";
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import type { Router } from "./router";
+} from "../../runtime/native_server/server_types.js";
+import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
+import type { Router } from "./router.js";
 
 export type Params = Record<string, string>;
 

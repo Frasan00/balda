@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hash as nativeHash } from "src/runtime/native_hash";
+import { hash as nativeHash } from "../../src/runtime/native_hash.js";
 
 describe("NativeHash", () => {
   describe("hash method", () => {

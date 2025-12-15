@@ -1,8 +1,8 @@
-import { Server } from "src/server/server";
+import { Server } from "../../src/index.js";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Server Embedding Functions", () => {
-  let server: Server;
+  let server: Server<"http">;
 
   beforeEach(() => {
     server = new Server();

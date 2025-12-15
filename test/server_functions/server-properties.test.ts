@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Server } from "src/server/server";
+import { Server, defineLoggerConfig, logger } from "../../src/index.js";
 
 describe("Server Properties and Basic Functions", () => {
-  let server: Server;
+  let server: Server<"http">;
 
   beforeEach(() => {
     server = new Server({

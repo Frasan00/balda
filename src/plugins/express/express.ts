@@ -9,11 +9,11 @@ import type {
   HttpMethod,
   ServerRouteHandler,
   ServerRouteMiddleware,
-} from "src/runtime/native_server/server_types";
-import type { NextFunction } from "src/server/http/next";
-import type { Request as BaldaRequest } from "src/server/http/request";
-import type { Response as BaldaResponse } from "src/server/http/response";
-import { router } from "src/server/router/router";
+} from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request as BaldaRequest } from "../../server/http/request.js";
+import type { Response as BaldaResponse } from "../../server/http/response.js";
+import { router } from "../../server/router/router.js";
 
 /**
  * Converts a Balda Request to an Express-compatible request object

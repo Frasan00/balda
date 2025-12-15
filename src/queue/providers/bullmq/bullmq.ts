@@ -4,10 +4,10 @@ import type {
   PubSub,
   QueueTopic,
   QueueTopicKey,
-} from "src/queue/queue_types";
-import { BullMQConfiguration } from "src/queue/providers/bullmq/bullmq_configuration";
-import { ClientNotFoundError } from "src/errors/client_not_found_error";
-import { nativeCrypto } from "src/runtime/native_crypto";
+} from "../../queue_types.js";
+import { BullMQConfiguration } from "./bullmq_configuration.js";
+import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
+import { nativeCrypto } from "../../../runtime/native_crypto.js";
 
 export class BullMQPubSub implements PubSub<"bullmq"> {
   private queues: Map<string, Queue> = new Map();

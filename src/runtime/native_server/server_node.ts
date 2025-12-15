@@ -10,14 +10,14 @@ import {
   type Http2ServerResponse,
 } from "node:http2";
 import { createServer as httpsCreateServer } from "node:https";
-import { errorFactory } from "src/errors/error_factory";
-import { RouteNotFoundError } from "src/errors/route_not_found";
-import { GraphQL } from "src/graphql/graphql";
-import { NodeHttpClient } from "src/server/server_types";
-import { Request } from "../../server/http/request";
-import { Response } from "../../server/http/response";
-import { router } from "../../server/router/router";
-import type { ServerInterface } from "./server_interface";
+import { errorFactory } from "../../errors/error_factory.js";
+import { RouteNotFoundError } from "../../errors/route_not_found.js";
+import { GraphQL } from "../../graphql/graphql.js";
+import { NodeHttpClient } from "../../server/server_types.js";
+import { Request } from "../../server/http/request.js";
+import { Response } from "../../server/http/response.js";
+import { router } from "../../server/router/router.js";
+import type { ServerInterface } from "./server_interface.js";
 import type {
   HttpMethod,
   HttpsServerOptions,
@@ -26,12 +26,12 @@ import type {
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
-} from "./server_types";
+} from "./server_types.js";
 import {
   canHaveBody,
   createGraphQLHandlerInitializer,
   executeMiddlewareChain,
-} from "./server_utils";
+} from "./server_utils.js";
 
 async function pipeReadableStreamToNodeResponse(
   stream: ReadableStream,

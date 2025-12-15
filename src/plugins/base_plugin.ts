@@ -1,4 +1,4 @@
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
+import type { ServerRouteMiddleware } from "../runtime/native_server/server_types.js";
 
 /**
  * Base class for all plugins.

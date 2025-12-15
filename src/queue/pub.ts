@@ -1,10 +1,10 @@
-import { QueueManager } from "src/queue/queue";
+import { QueueManager } from "./queue.js";
 import type {
   PublishOptions,
   QueueProviderKey,
   QueueTopic,
   QueueTopicKey,
-} from "src/queue/queue_types";
+} from "./queue_types.js";
 
 const publishFactory = async <
   P extends QueueProviderKey,

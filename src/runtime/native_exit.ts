@@ -1,4 +1,4 @@
-import { runtime } from "./runtime";
+import { runtime } from "./runtime.js";
 
 class NativeExit {
   exit(code: number): void {

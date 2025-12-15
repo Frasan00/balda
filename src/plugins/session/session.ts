@@ -1,10 +1,10 @@
-import { MemorySessionStore } from "src/plugins/session/session_store";
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import type { NextFunction } from "src/server/http/next";
-import type { Request } from "src/server/http/request";
-import type { Response } from "src/server/http/response";
-import type { SessionOptions, SessionStore } from "./session_types";
-import { nativeCrypto } from "src/runtime/native_crypto";
+import { MemorySessionStore } from "./session_store.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import type { SessionOptions, SessionStore } from "./session_types.js";
+import { nativeCrypto } from "../../runtime/native_crypto.js";
 
 /**
  * Session plugin middleware, used to store the session in the request and response objects

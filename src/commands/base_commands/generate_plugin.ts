@@ -1,8 +1,8 @@
-import { Command } from "src/commands/base_command";
-import { arg } from "src/decorators/command/arg";
-import { flag } from "src/decorators/command/flag";
-import { nativeFs } from "src/runtime/native_fs";
-import { nativePath } from "src/runtime/native_path";
+import { arg } from "../../decorators/command/arg.js";
+import { flag } from "../../decorators/command/flag.js";
+import { nativeFs } from "../../runtime/native_fs.js";
+import { nativePath } from "../../runtime/native_path.js";
+import { Command } from "../base_command.js";
 
 export default class GeneratePluginCommand extends Command {
   static commandName = "generate-plugin";

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Command } from "src/commands/base_command";
-import { flag } from "src/decorators/command/flag";
+import { flag } from "../../decorators/command/flag.js";
+import { Command } from "../base_command.js";
 
 export default class BuildCommand extends Command {
   static commandName = "build";

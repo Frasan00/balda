@@ -1,4 +1,4 @@
-import { runtime } from "./runtime";
+import { runtime } from "./runtime.js";
 
 class NativeOs {
   async tmpdir(): Promise<string> {

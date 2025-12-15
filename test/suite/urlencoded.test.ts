@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mockServer } from "test/server/instance";
+import { mockServer } from "../server/instance.js";
 
 describe("UrlencodedController", () => {
   it("POST /urlencoded returns all users", async () => {

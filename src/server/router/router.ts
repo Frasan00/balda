@@ -1,12 +1,12 @@
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
+import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import {
   HttpMethod,
   ServerRouteHandler,
   ServerRouteMiddleware,
-} from "../../runtime/native_server/server_types";
-import type { Request } from "../http/request";
-import type { Response } from "../http/response";
-import type { Params, Route } from "./router_type";
+} from "../../runtime/native_server/server_types.js";
+import type { Request } from "../http/request.js";
+import type { Response } from "../http/response.js";
+import type { Params, Route } from "./router_type.js";
 
 class Node {
   staticChildren: Map<string, Node>;

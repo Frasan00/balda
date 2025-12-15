@@ -1,9 +1,6 @@
-import { BaldaError } from "src/errors/balda_error";
-import { createPolicyDecorator } from "src/server/policy/policy_decorator";
-import type {
-  PolicyDecorator,
-  PolicyProvider,
-} from "src/server/policy/policy_types";
+import { BaldaError } from "../../errors/balda_error.js";
+import { createPolicyDecorator } from "./policy_decorator.js";
+import type { PolicyDecorator, PolicyProvider } from "./policy_types.js";
 
 export class PolicyManager<T extends Record<string, PolicyProvider>> {
   private readonly providers: T;

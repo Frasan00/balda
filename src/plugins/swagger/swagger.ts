@@ -2,8 +2,8 @@ import { z, type ZodObject, type ZodType } from "zod";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
-} from "../../plugins/swagger/swagger_types";
-import { router } from "../../server/router/router";
+} from "../../plugins/swagger/swagger_types.js";
+import { router } from "../../server/router/router.js";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json

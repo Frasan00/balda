@@ -1,7 +1,11 @@
-import { queue } from "src/index";
-import { PubSub, QueueTopic, QueueTopicKey } from "src/queue/queue_types";
+import { queue } from "../../../src/index.js";
+import {
+  PubSub,
+  QueueTopic,
+  QueueTopicKey,
+} from "../../../src/queue/queue_types.js";
 
-declare module "../../../src/queue/queue_types" {
+declare module "../../../src/queue/queue_types.js" {
   export interface QueueProvider {
     custom: PubSub<"custom">;
   }

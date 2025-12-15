@@ -1,60 +1,60 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { glob } from "glob";
-import { CronService } from "src/cron/cron";
-import { errorFactory } from "src/errors/error_factory";
-import { MethodNotAllowedError } from "src/errors/method_not_allowed";
-import { RouteNotFoundError } from "src/errors/route_not_found";
-import { GraphQL } from "src/graphql/graphql";
-import { MockServer } from "src/mock/mock_server";
-import { compression } from "src/plugins/compression/compression";
-import type { CompressionOptions } from "src/plugins/compression/compression_types";
-import { cookie } from "src/plugins/cookie/cookie";
-import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
+import { CronService } from "../cron/cron.js";
+import { errorFactory } from "../errors/error_factory.js";
+import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
+import { RouteNotFoundError } from "../errors/route_not_found.js";
+import { GraphQL } from "../graphql/graphql.js";
+import { MockServer } from "../mock/mock_server.js";
+import { compression } from "../plugins/compression/compression.js";
+import type { CompressionOptions } from "../plugins/compression/compression_types.js";
+import { cookie } from "../plugins/cookie/cookie.js";
+import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
 import {
   createExpressAdapter,
   expressMiddleware,
   mountExpressRouter,
-} from "src/plugins/express/express";
-import { log } from "src/plugins/log/log";
-import type { LogOptions } from "src/plugins/log/log_types";
-import { methodOverride } from "src/plugins/method_override/method_override";
-import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
-import { rateLimiter } from "src/plugins/rate_limiter/rate_limiter";
+} from "../plugins/express/express.js";
+import { log } from "../plugins/log/log.js";
+import type { LogOptions } from "../plugins/log/log_types.js";
+import { methodOverride } from "../plugins/method_override/method_override.js";
+import type { MethodOverrideOptions } from "../plugins/method_override/method_override_types.js";
+import { rateLimiter } from "../plugins/rate_limiter/rate_limiter.js";
 import type {
   RateLimiterKeyOptions,
   StorageOptions,
-} from "src/plugins/rate_limiter/rate_limiter_types";
-import { session } from "src/plugins/session/session";
-import type { SessionOptions } from "src/plugins/session/session_types";
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { timeout as timeoutMw } from "src/plugins/timeout/timeout";
-import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
-import { trustProxy } from "src/plugins/trust_proxy/trust_proxy";
-import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
-import { urlencoded } from "src/plugins/urlencoded/urlencoded";
-import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import { QueueService } from "src/queue/queue_service";
-import { NativeEnv } from "src/runtime/native_env";
-import { nativeFs } from "src/runtime/native_fs";
-import { hash as nativeHash } from "src/runtime/native_hash";
-import type { ClientRouter, Route } from "src/server/router/router_type";
-import type { SyncOrAsync } from "src/type_util";
-import { logger } from "../logger/logger";
-import { bodyParser } from "../plugins/body_parser/body_parser";
-import { cors } from "../plugins/cors/cors";
-import type { CorsOptions } from "../plugins/cors/cors_types";
-import { fileParser } from "../plugins/file/file";
-import type { FilePluginOptions } from "../plugins/file/file_types";
-import { helmet } from "../plugins/helmet/helmet";
-import type { HelmetOptions } from "../plugins/helmet/helmet_types";
-import { json } from "../plugins/json/json";
-import type { JsonOptions } from "../plugins/json/json_options";
-import { serveStatic } from "../plugins/static/static";
-import type { StaticPluginOptions } from "../plugins/static/static_types";
-import { swagger } from "../plugins/swagger/swagger";
-import { nativeCwd } from "../runtime/native_cwd";
-import { nativePath } from "../runtime/native_path";
-import { ServerConnector } from "../runtime/native_server/server_connector";
+} from "../plugins/rate_limiter/rate_limiter_types.js";
+import { session } from "../plugins/session/session.js";
+import type { SessionOptions } from "../plugins/session/session_types.js";
+import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
+import { timeout as timeoutMw } from "../plugins/timeout/timeout.js";
+import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
+import { trustProxy } from "../plugins/trust_proxy/trust_proxy.js";
+import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
+import { urlencoded } from "../plugins/urlencoded/urlencoded.js";
+import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
+import { QueueService } from "../queue/queue_service.js";
+import { NativeEnv } from "../runtime/native_env.js";
+import { nativeFs } from "../runtime/native_fs.js";
+import { hash as nativeHash } from "../runtime/native_hash.js";
+import type { ClientRouter, Route } from "./router/router_type.js";
+import type { SyncOrAsync } from "../type_util.js";
+import { logger } from "../logger/logger.js";
+import { bodyParser } from "../plugins/body_parser/body_parser.js";
+import { cors } from "../plugins/cors/cors.js";
+import type { CorsOptions } from "../plugins/cors/cors_types.js";
+import { fileParser } from "../plugins/file/file.js";
+import type { FilePluginOptions } from "../plugins/file/file_types.js";
+import { helmet } from "../plugins/helmet/helmet.js";
+import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
+import { json } from "../plugins/json/json.js";
+import type { JsonOptions } from "../plugins/json/json_options.js";
+import { serveStatic } from "../plugins/static/static.js";
+import type { StaticPluginOptions } from "../plugins/static/static_types.js";
+import { swagger } from "../plugins/swagger/swagger.js";
+import { nativeCwd } from "../runtime/native_cwd.js";
+import { nativePath } from "../runtime/native_path.js";
+import { ServerConnector } from "../runtime/native_server/server_connector.js";
 import type {
   HttpsServerOptions,
   RuntimeServerMap,
@@ -62,10 +62,10 @@ import type {
   ServerRouteHandler,
   ServerRouteMiddleware,
   ServerTapOptions,
-} from "../runtime/native_server/server_types";
-import { runtime } from "../runtime/runtime";
-import { router } from "./router/router";
-import { PROTECTED_KEYS } from "./server_constants";
+} from "../runtime/native_server/server_types.js";
+import { runtime } from "../runtime/runtime.js";
+import { router } from "./router/router.js";
+import { PROTECTED_KEYS } from "./server_constants.js";
 import type {
   NodeHttpClient,
   ResolvedServerOptions,
@@ -75,7 +75,7 @@ import type {
   ServerPlugin,
   SignalEvent,
   StandardMethodOptions,
-} from "./server_types";
+} from "./server_types.js";
 
 /**
  * The server class that is used to create and manage the server

@@ -1,4 +1,4 @@
-import type { SyncOrAsync } from "src/type_util";
+import type { SyncOrAsync } from "../../../type_util.js";
 
 export type PGBossConfigurationOptions = {
   connectionString?: string;

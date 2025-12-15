@@ -1,4 +1,4 @@
-import { runtime } from "./runtime";
+import { runtime } from "./runtime.js";
 
 class NativeCwd {
   getCwd(): string {

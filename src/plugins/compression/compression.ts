@@ -1,9 +1,9 @@
 import { gzipSync } from "node:zlib";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import type { CompressionOptions } from "./compression_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import type { CompressionOptions } from "./compression_types.js";
 
 const DEFAULT_THRESHOLD = 1024; // 1KB
 const DEFAULT_LEVEL = 6;

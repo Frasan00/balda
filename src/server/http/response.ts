@@ -1,8 +1,8 @@
 import { type ServerResponse } from "node:http";
-import { type CookieOptions } from "src/plugins/cookie/cookie_types";
-import { getContentType } from "src/plugins/static/static";
-import { nativeFile } from "src/runtime/native_file";
-import { nativePath } from "src/runtime/native_path";
+import { type CookieOptions } from "../../plugins/cookie/cookie_types.js";
+import { getContentType } from "../../plugins/static/static.js";
+import { nativeFile } from "../../runtime/native_file.js";
+import { nativePath } from "../../runtime/native_path.js";
 
 /**
  * The response object.

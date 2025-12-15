@@ -1,5 +1,5 @@
-import type { BaldaError } from "src/errors/balda_error";
-import { NativeEnv } from "src/runtime/native_env";
+import type { BaldaError } from "./balda_error.js";
+import { NativeEnv } from "../runtime/native_env.js";
 
 const nativeEnv = new NativeEnv();
 

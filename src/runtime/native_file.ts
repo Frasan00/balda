@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { runtime } from "./runtime";
+import { runtime } from "./runtime.js";
 
 export type ReadFileOptions = {
   encoding?: string;

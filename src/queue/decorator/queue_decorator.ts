@@ -2,8 +2,8 @@ import type {
   QueueProviderKey,
   QueueTopic,
   QueueTopicKey,
-} from "src/queue/queue_types";
-import { QueueService } from "../queue_service";
+} from "../queue_types.js";
+import { QueueService } from "../queue_service.js";
 
 /**
  * Decorator to register a queue handler

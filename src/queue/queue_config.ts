@@ -1,9 +1,9 @@
-import { defineBullMQConfiguration } from "src/queue/providers/bullmq/bullmq_configuration";
-import type { CustomQueueConfiguration } from "src/queue/providers/custom/custom";
-import { definePGBossConfiguration } from "src/queue/providers/pgboss/pgboss_configuration";
-import { defineSQSConfiguration } from "src/queue/providers/sqs/sqs_configuration";
-import { QueueManager } from "src/queue/queue";
-import type { PubSub, QueueProviderKey } from "src/queue/queue_types";
+import { defineBullMQConfiguration } from "./providers/bullmq/bullmq_configuration.js";
+import type { CustomQueueConfiguration } from "./providers/custom/custom.js";
+import { definePGBossConfiguration } from "./providers/pgboss/pgboss_configuration.js";
+import { defineSQSConfiguration } from "./providers/sqs/sqs_configuration.js";
+import { QueueManager } from "./queue.js";
+import type { PubSub, QueueProviderKey } from "./queue_types.js";
 
 /**
  * Main entry point to define the queue configuration, meant to be called only once in the application bootstrap

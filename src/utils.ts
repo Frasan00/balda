@@ -1,4 +1,4 @@
-import type { Command } from "./commands/base_command";
+import type { Command } from "./commands/base_command.js";
 
 /**
  * Calculates Levenshtein distance between two strings for fuzzy matching

@@ -1,8 +1,8 @@
-import { Server } from "src/server/server";
-import { publish } from "src/queue/pub";
-import "./schedules/custom";
-import { defineQueueConfiguration } from "src/index";
-import { CustomPubSub } from "./schedules/custom";
+import { defineQueueConfiguration } from "../../src/index.js";
+import { publish } from "../../src/queue/pub.js";
+import { Server } from "../../src/server/server.js";
+import { CustomPubSub } from "./schedules/custom.js";
+import "./schedules/custom.js";
 
 defineQueueConfiguration({
   bullmq: {

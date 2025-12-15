@@ -1,5 +1,5 @@
-import { Command } from "src/commands/base_command";
-import { commandRegistry } from "src/commands/command_registry";
+import { Command } from "../base_command.js";
+import { commandRegistry } from "../command_registry.js";
 
 export default class ListCommand extends Command {
   static commandName = "list";

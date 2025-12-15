@@ -1,4 +1,4 @@
-import type { SessionStore } from "./session_types";
+import type { SessionStore } from "./session_types.js";
 
 export class MemorySessionStore implements SessionStore {
   private store = new Map<

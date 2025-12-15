@@ -1,8 +1,8 @@
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import { canHaveBody } from "../../runtime/native_server/server_utils";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import { canHaveBody } from "../../runtime/native_server/server_utils.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
 
 /**
  * Middleware to parse the body of the request. GET, DELETE and OPTIONS requests are not parsed. Used internally by the server.

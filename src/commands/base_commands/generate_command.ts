@@ -1,8 +1,8 @@
-import { Command } from "src/commands/base_command";
-import { commandRegistry } from "src/commands/command_registry";
-import { arg } from "src/decorators/command/arg";
-import { nativeFs } from "src/runtime/native_fs";
-import { nativePath } from "src/runtime/native_path";
+import { arg } from "../../decorators/command/arg.js";
+import { nativeFs } from "../../runtime/native_fs.js";
+import { nativePath } from "../../runtime/native_path.js";
+import { Command } from "../base_command.js";
+import { commandRegistry } from "../command_registry.js";
 
 export default class GenerateCommand extends Command {
   static commandName = "generate-command";

@@ -1,8 +1,8 @@
-import type { FormFile } from "src/plugins/file/file_types";
-import { nativeCrypto } from "src/runtime/native_crypto";
+import type { FormFile } from "../../plugins/file/file_types.js";
+import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { z, type ZodType } from "zod";
-import { NativeRequest } from "../../runtime/native_request";
-import { validateSchema } from "../../validator/validator";
+import { NativeRequest } from "../../runtime/native_request.js";
+import { validateSchema } from "../../validator/validator.js";
 
 /**
  * The request object.

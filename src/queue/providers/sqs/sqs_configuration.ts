@@ -1,6 +1,6 @@
 import type { SQSClientConfig } from "@aws-sdk/client-sqs";
-import type { QueueTopicKey } from "src/queue/queue_types";
-import type { SyncOrAsync } from "src/type_util";
+import type { QueueTopicKey } from "../../queue_types.js";
+import type { SyncOrAsync } from "../../../type_util.js";
 
 export type SQSConfigurationOptions = {
   client?: SQSClientConfig;

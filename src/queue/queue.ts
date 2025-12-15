@@ -1,7 +1,7 @@
-import { BullMQPubSub } from "src/queue/providers/bullmq/bullmq";
-import { PGBossPubSub } from "src/queue/providers/pgboss/pgboss";
-import { SQSPubSub } from "src/queue/providers/sqs/sqs";
-import type { PubSub, QueueProviderKey } from "src/queue/queue_types";
+import { BullMQPubSub } from "./providers/bullmq/bullmq.js";
+import { PGBossPubSub } from "./providers/pgboss/pgboss.js";
+import { SQSPubSub } from "./providers/sqs/sqs.js";
+import type { PubSub, QueueProviderKey } from "./queue_types.js";
 
 export class QueueManager {
   static map: Map<QueueProviderKey, PubSub> = new Map();

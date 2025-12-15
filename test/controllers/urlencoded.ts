@@ -1,7 +1,7 @@
-import { controller, middleware, post } from "../../src/index";
-import { Request } from "../../src/server/http/request";
-import { Response } from "../../src/server/http/response";
-import { urlencoded } from "src/plugins/urlencoded/urlencoded";
+import { controller, middleware, post } from "../../src/index.js";
+import { urlencoded } from "../../src/plugins/urlencoded/urlencoded.js";
+import { Request } from "../../src/server/http/request.js";
+import { Response } from "../../src/server/http/response.js";
 
 @controller("/urlencoded")
 export class UrlencodedController {

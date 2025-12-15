@@ -1,8 +1,8 @@
 import { glob } from "glob";
-import { logger } from "src/logger/logger";
-import { QueueManager } from "src/queue/queue";
-import type { QueueProviderKey, QueueTopicKey } from "src/queue/queue_types";
-import { nativeCwd } from "src/runtime/native_cwd";
+import { logger } from "../logger/logger.js";
+import { QueueManager } from "./queue.js";
+import type { QueueProviderKey, QueueTopicKey } from "./queue_types.js";
+import { nativeCwd } from "../runtime/native_cwd.js";
 
 type QueueRegistration = {
   name: string;

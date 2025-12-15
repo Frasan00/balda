@@ -1,8 +1,8 @@
-import { Command } from "src/commands/base_command";
-import { flag } from "src/decorators/command/flag";
-import { nativeFs } from "src/runtime/native_fs";
-import { getPackageManager } from "src/package";
 import { execSync } from "node:child_process";
+import { flag } from "../../decorators/command/flag.js";
+import { getPackageManager } from "../../package.js";
+import { nativeFs } from "../../runtime/native_fs.js";
+import { Command } from "../base_command.js";
 
 export default class InitCommand extends Command {
   static commandName = "init";
@@ -99,7 +99,7 @@ export { serverInstance as server };
   }
 
   static getIndexTemplate() {
-    return `import { server } from "./server";
+    return `import { server } from "./server.js";
 
 server.listen(({ url }) => {
   console.log(\`Server is running on \${url}\`);

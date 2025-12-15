@@ -1,14 +1,14 @@
 import type { Message, SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
 import type { Consumer, ConsumerOptions } from "sqs-consumer";
-import { ClientNotFoundError } from "src/errors/client_not_found_error";
-import { SQSConfiguration } from "src/queue/providers/sqs/sqs_configuration";
+import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
+import { SQSConfiguration } from "./sqs_configuration.js";
 import type {
   PublishOptions,
   PubSub,
   QueueTopic,
   QueueTopicKey,
   SQSPublishOptions,
-} from "src/queue/queue_types";
+} from "../../queue_types.js";
 
 export class SQSPubSub implements PubSub<"sqs"> {
   private consumers: Map<string, Consumer> = new Map();

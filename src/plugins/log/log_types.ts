@@ -1,4 +1,4 @@
-import type { LoggerOptions } from "src/logger/logger_types";
+import type { LoggerOptions } from "../../logger/logger_types.js";
 
 export interface LogOptions {
   /**

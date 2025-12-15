@@ -1,5 +1,5 @@
-import { GraphQL } from "src/graphql/graphql";
-import type { RuntimeServer, ServerRoute } from "./server_types";
+import { GraphQL } from "../../graphql/graphql.js";
+import type { RuntimeServer, ServerRoute } from "./server_types.js";
 
 /**
  * Standard interface for server implementations between different environments.

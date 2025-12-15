@@ -1,12 +1,12 @@
-import { controller } from "src/decorators/controller/controller";
-import { del } from "src/decorators/handlers/del";
-import { get } from "src/decorators/handlers/get";
-import { patch } from "src/decorators/handlers/patch";
-import { post } from "src/decorators/handlers/post";
-import { serialize } from "src/decorators/serialize/serialize";
-import { validate } from "src/index";
-import { Request } from "src/server/http/request";
-import { Response } from "src/server/http/response";
+import { controller } from "../../src/decorators/controller/controller.js";
+import { del } from "../../src/decorators/handlers/del.js";
+import { get } from "../../src/decorators/handlers/get.js";
+import { patch } from "../../src/decorators/handlers/patch.js";
+import { post } from "../../src/decorators/handlers/post.js";
+import { serialize } from "../../src/decorators/serialize/serialize.js";
+import { validate } from "../../src/index.js";
+import { Request } from "../../src/server/http/request.js";
+import { Response } from "../../src/server/http/response.js";
 import z from "zod";
 
 const UserIndexQuery = z.object({

@@ -1,26 +1,26 @@
 import type { RequestHandler } from "express";
-import type { CronService } from "src/cron/cron";
-import type { MockServer } from "src/mock/mock_server";
-import type { CookieMiddlewareOptions } from "src/plugins/cookie/cookie_types";
-import type { ExpressRouter } from "src/plugins/express/express_types";
-import type { FilePluginOptions } from "src/plugins/file/file_types";
-import type { HelmetOptions } from "src/plugins/helmet/helmet_types";
-import type { LogOptions } from "src/plugins/log/log_types";
+import type { CronService } from "../cron/cron.js";
+import type { MockServer } from "../mock/mock_server.js";
+import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
+import type { ExpressRouter } from "../plugins/express/express_types.js";
+import type { FilePluginOptions } from "../plugins/file/file_types.js";
+import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
+import type { LogOptions } from "../plugins/log/log_types.js";
 import type {
   RateLimiterKeyOptions,
   StorageOptions,
-} from "src/plugins/rate_limiter/rate_limiter_types";
-import type { SessionOptions } from "src/plugins/session/session_types";
-import type { StaticPluginOptions } from "src/plugins/static/static_types";
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import type { TimeoutOptions } from "src/plugins/timeout/timeout_types";
-import type { TrustProxyOptions } from "src/plugins/trust_proxy/trust_proxy_types";
-import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import type { ClientRouter } from "src/server/router/router_type";
-import { SyncOrAsync } from "src/type_util";
-import type { CorsOptions } from "../plugins/cors/cors_types";
-import type { JsonOptions } from "../plugins/json/json_options";
-import type { swagger } from "../plugins/swagger/swagger";
+} from "../plugins/rate_limiter/rate_limiter_types.js";
+import type { SessionOptions } from "../plugins/session/session_types.js";
+import type { StaticPluginOptions } from "../plugins/static/static_types.js";
+import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
+import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
+import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
+import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
+import type { ClientRouter } from "./router/router_type.js";
+import { SyncOrAsync } from "../type_util.js";
+import type { CorsOptions } from "../plugins/cors/cors_types.js";
+import type { JsonOptions } from "../plugins/json/json_options.js";
+import type { swagger } from "../plugins/swagger/swagger.js";
 import type {
   HttpsOptions,
   RuntimeServerMap,
@@ -28,14 +28,14 @@ import type {
   ServerRouteHandler,
   ServerRouteMiddleware,
   ServerTapOptions,
-} from "../runtime/native_server/server_types";
-import type { NextFunction } from "./http/next";
-import type { Request } from "./http/request";
-import type { Response } from "./http/response";
-import type { MethodOverrideOptions } from "src/plugins/method_override/method_override_types";
-import type { CompressionOptions } from "src/plugins/compression/compression_types";
-import type { GraphQLOptions } from "src/graphql/graphql_types";
-import { GraphQL } from "src/graphql/graphql";
+} from "../runtime/native_server/server_types.js";
+import type { NextFunction } from "./http/next.js";
+import type { Request } from "./http/request.js";
+import type { Response } from "./http/response.js";
+import type { MethodOverrideOptions } from "../plugins/method_override/method_override_types.js";
+import type { CompressionOptions } from "../plugins/compression/compression_types.js";
+import type { GraphQLOptions } from "../graphql/graphql_types.js";
+import { GraphQL } from "../graphql/graphql.js";
 
 export type ServerPlugin = {
   cors?: CorsOptions;

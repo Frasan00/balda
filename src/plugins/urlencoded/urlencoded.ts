@@ -1,9 +1,9 @@
-import type { UrlEncodedOptions } from "src/plugins/urlencoded/urlencoded_types";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import { parseSizeLimit } from "../../utils";
+import type { UrlEncodedOptions } from "./urlencoded_types.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import { parseSizeLimit } from "../../utils.js";
 
 // 1MB in bytes
 const DEFAULT_SIZE = 1024 * 1024;

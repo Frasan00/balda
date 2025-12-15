@@ -1,8 +1,8 @@
-import type { ServerRouteMiddleware } from "src/runtime/native_server/server_types";
-import type { NextFunction } from "src/server/http/next";
-import type { Request } from "src/server/http/request";
-import type { Response } from "src/server/http/response";
-import type { TrustProxyOptions } from "./trust_proxy_types";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import type { TrustProxyOptions } from "./trust_proxy_types.js";
 
 /**
  * Trust proxy plugin middleware, used to trust the proxy headers to get the client ip

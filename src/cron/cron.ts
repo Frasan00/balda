@@ -1,9 +1,9 @@
 import { glob } from "glob";
 import type { TaskContext } from "node-cron";
-import { CronSchedule, CronScheduleParams } from "src/cron/cron.types";
-import { BaldaError } from "src/errors/balda_error";
-import { logger } from "src/logger/logger";
-import { nativeCwd } from "src/runtime/native_cwd";
+import { CronSchedule, CronScheduleParams } from "./cron.types.js";
+import { BaldaError } from "../errors/balda_error.js";
+import { logger } from "../logger/logger.js";
+import { nativeCwd } from "../runtime/native_cwd.js";
 
 export class CronService {
   static scheduledJobs: CronSchedule[] = [];

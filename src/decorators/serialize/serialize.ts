@@ -1,7 +1,7 @@
-import type { SerializeOptions } from "src/decorators/serialize/serialize_types";
-import { MetadataStore } from "src/metadata_store";
-import type { Response } from "src/server/http/response";
-import { validateSchema } from "src/validator/validator";
+import type { SerializeOptions } from "./serialize_types.js";
+import { MetadataStore } from "../../metadata_store.js";
+import type { Response } from "../../server/http/response.js";
+import { validateSchema } from "../../validator/validator.js";
 import { ZodError, type ZodType } from "zod";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");

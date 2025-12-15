@@ -1,12 +1,12 @@
-import { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { nativePath } from "src/runtime/native_path";
-import { MetadataStore } from "../../metadata_store";
+import { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
+import { nativePath } from "../../runtime/native_path.js";
+import { MetadataStore } from "../../metadata_store.js";
 import type {
   HttpMethod,
   ServerRouteMiddleware,
-} from "../../runtime/native_server/server_types";
-import type { PolicyMetadata } from "../../server/policy/policy_types";
-import { router } from "../../server/router/router";
+} from "../../runtime/native_server/server_types.js";
+import type { PolicyMetadata } from "../../server/policy/policy_types.js";
+import { router } from "../../server/router/router.js";
 
 /**
  * Creates a middleware that enforces policies before allowing the request to proceed.

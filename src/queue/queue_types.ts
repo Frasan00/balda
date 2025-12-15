@@ -1,7 +1,7 @@
 import type { Queue } from "bullmq";
-import type { BullMQPubSub } from "src/queue/providers/bullmq/bullmq";
-import type { PGBossPubSub } from "src/queue/providers/pgboss/pgboss";
-import type { SQSPubSub } from "src/queue/providers/sqs/sqs";
+import type { BullMQPubSub } from "./providers/bullmq/bullmq.js";
+import type { PGBossPubSub } from "./providers/pgboss/pgboss.js";
+import type { SQSPubSub } from "./providers/sqs/sqs.js";
 import type PgBoss from "pg-boss";
 import type { SQSClient } from "@aws-sdk/client-sqs";
 

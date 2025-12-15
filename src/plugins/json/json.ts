@@ -1,12 +1,12 @@
-import { errorFactory } from "src/errors/error_factory";
-import { JsonNotValidError } from "src/errors/json_not_valid";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types";
-import { canHaveBody } from "../../runtime/native_server/server_utils";
-import type { NextFunction } from "../../server/http/next";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
-import { parseSizeLimit } from "../../utils";
-import type { JsonOptions } from "./json_options";
+import { errorFactory } from "../../errors/error_factory.js";
+import { JsonNotValidError } from "../../errors/json_not_valid.js";
+import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
+import { canHaveBody } from "../../runtime/native_server/server_utils.js";
+import type { NextFunction } from "../../server/http/next.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+import { parseSizeLimit } from "../../utils.js";
+import type { JsonOptions } from "./json_options.js";
 
 // 100kb in bytes
 const DEFAULT_SIZE = 100 * 1024;

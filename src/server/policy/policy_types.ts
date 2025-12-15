@@ -1,4 +1,4 @@
-import type { PolicyManager } from "./policy_manager";
+import type { PolicyManager } from "./policy_manager.js";
 
 export type PolicyProvider = {
   [K: string]: (...args: any[]) => Promise<boolean> | boolean;

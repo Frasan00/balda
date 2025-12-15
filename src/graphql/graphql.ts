@@ -7,7 +7,7 @@ import type {
   GraphQLResolvers,
   GraphQLResolverType,
   GraphQLTypeDef,
-} from "src/graphql/graphql_types";
+} from "./graphql_types.js";
 
 export type { GraphQLContext };
 

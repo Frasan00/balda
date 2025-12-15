@@ -1,8 +1,19 @@
 // Both Deno and Bun are compatible with path api
-import path from "path";
-import { runtime } from "./runtime";
+import path from "node:path";
+import { runtime } from "./runtime.js";
 
 class NativePath {
+  basename(inputPath: string): string {
+    switch (runtime.type) {
+      case "node":
+      case "bun":
+      case "deno":
+        return path.basename(inputPath);
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
+
   join(...paths: string[]): string {
     switch (runtime.type) {
       case "node":

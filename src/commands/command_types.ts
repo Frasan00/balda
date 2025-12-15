@@ -1,4 +1,4 @@
-import type { Command } from "./base_command";
+import type { Command } from "./base_command.js";
 
 export type CommandOptions = {
   /**

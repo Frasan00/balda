@@ -1,7 +1,7 @@
-import type { SwaggerRouteOptions } from "src/plugins/swagger/swagger_types";
-import { MetadataStore } from "../../metadata_store";
-import type { Request } from "../../server/http/request";
-import type { Response } from "../../server/http/response";
+import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
+import { MetadataStore } from "../../metadata_store.js";
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
 
 type PutHandler = (req: Request, res: Response, ...args: any[]) => any;
 

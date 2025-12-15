@@ -1,4 +1,4 @@
-import { runtime } from "./runtime";
+import { runtime } from "./runtime.js";
 
 class NativeArgs {
   /**
@@ -13,6 +13,19 @@ class NativeArgs {
         return this.getNodeArgs();
       case "deno":
         return Deno.args;
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
+
+  getCliCaller(): string {
+    switch (runtime.type) {
+      case "bun":
+        return "bun";
+      case "node":
+        return process.argv[0];
+      case "deno":
+        return "deno";
       default:
         throw new Error("Unsupported runtime");
     }

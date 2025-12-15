@@ -1,5 +1,5 @@
-import { nativeFs } from "src/runtime/native_fs";
-import { nativePath } from "src/runtime/native_path";
+import { nativeFs } from "./runtime/native_fs.js";
+import { nativePath } from "./runtime/native_path.js";
 
 export const getPackageManager = async (): Promise<
   [string, string, string]

@@ -1,6 +1,6 @@
-import { arg } from "src/decorators/command/arg";
-import { Command } from "../../src/commands/base_command";
-import { flag } from "src/decorators/command/flag";
+import { Command } from "../../src/commands/base_command.js";
+import { arg } from "../../src/decorators/command/arg.js";
+import { flag } from "../../src/decorators/command/flag.js";
 
 export default class TestCommand extends Command {
   static name = "test";
