@@ -80,7 +80,7 @@ export const cli = async () => {
   const [commandName, ...rest] = nativeArgs.getCliArgs();
 
   // Handle global help flag
-  if (!commandName || rest.includes("-h") || rest.includes("--help")) {
+  if (!commandName || commandName === "-h" || commandName === "--help") {
     const builtInCommands = commandRegistry.getBuiltInCommands();
     const userCommands = commandRegistry.getUserDefinedCommands();
 

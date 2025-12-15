@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.70",
+  "version": "0.0.71",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
