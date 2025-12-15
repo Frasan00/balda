@@ -1,55 +1,75 @@
 <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background Circle -->
-  <circle cx="100" cy="100" r="90" fill="url(#gradient1)" opacity="0.1"/>
-
-  <!-- Hexagon representing cross-runtime -->
-  <path d="M100 25 L160 62.5 L160 137.5 L100 175 L40 137.5 L40 62.5 Z"
-        stroke="url(#gradient2)"
-        stroke-width="4"
-        fill="none"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
-
-  <!-- Inner geometric design - represents "B" for Balda -->
-  <path d="M75 60 L75 140 L105 140 C120 140 130 130 130 115 C130 105 125 98 118 95 C125 92 130 85 130 75 C130 60 120 60 105 60 Z"
-        fill="url(#gradient3)"/>
-  <path d="M85 70 L100 70 C110 70 115 75 115 82 C115 89 110 94 100 94 L85 94 Z"
-        fill="#ffffff"/>
-  <path d="M85 104 L105 104 C115 104 120 109 120 116 C120 123 115 128 105 128 L85 128 Z"
-        fill="#ffffff"/>
-
-  <!-- Speed lines suggesting fast performance -->
-  <line x1="35" y1="50" x2="50" y2="50" stroke="url(#gradient4)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
-  <line x1="30" y1="65" x2="50" y2="65" stroke="url(#gradient4)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
-  <line x1="150" y1="135" x2="170" y2="135" stroke="url(#gradient4)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
-  <line x1="150" y1="150" x2="165" y2="150" stroke="url(#gradient4)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
-
-  <!-- Small dots representing multi-runtime nodes -->
-  <circle cx="55" cy="100" r="4" fill="#6366f1"/>
-  <circle cx="145" cy="100" r="4" fill="#818cf8"/>
-  <circle cx="100" cy="45" r="4" fill="#a5b4fc"/>
-
-  <!-- Gradients -->
   <defs>
-    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#818cf8;stop-opacity:1" />
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
     </linearGradient>
 
-    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4338ca;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#818cf8;stop-opacity:1" />
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
     </linearGradient>
 
-    <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-    </linearGradient>
-
-    <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#a5b4fc;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="85"
+          stroke="url(#primaryGradient)"
+          stroke-width="2.5"
+          fill="none"
+          opacity="0.3"/>
+
+  <!-- Main shield/badge shape -->
+  <path d="M100 20 L165 55 L165 125 L100 180 L35 125 L35 55 Z"
+        fill="url(#primaryGradient)"
+        opacity="0.95"/>
+
+  <!-- Inner shield accent -->
+  <path d="M100 35 L155 65 L155 120 L100 165 L45 120 L45 65 Z"
+        fill="none"
+        stroke="url(#accentGradient)"
+        stroke-width="1.5"
+        opacity="0.4"/>
+
+  <!-- Stylized "B" letterform -->
+  <g filter="url(#glow)">
+    <!-- Vertical bar -->
+    <rect x="70" y="60" width="8" height="80" fill="white" rx="2"/>
+
+    <!-- Top curve of B -->
+    <path d="M78 68 L110 68 C120 68 128 76 128 86 C128 96 120 100 110 100 L78 100"
+          stroke="white"
+          stroke-width="8"
+          fill="none"
+          stroke-linecap="round"/>
+
+    <!-- Bottom curve of B -->
+    <path d="M78 100 L115 100 C127 100 135 108 135 118 C135 128 127 132 115 132 L78 132"
+          stroke="white"
+          stroke-width="8"
+          fill="none"
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Connection nodes (representing cross-runtime) -->
+  <circle cx="100" cy="30" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="160" cy="62" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="160" cy="118" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="100" cy="175" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="40" cy="118" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="40" cy="62" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+
+  <!-- Performance accent lines -->
+  <g opacity="0.5">
+    <line x1="25" y1="85" x2="35" y2="85" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+    <line x1="22" y1="95" x2="35" y2="95" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+    <line x1="25" y1="105" x2="35" y2="105" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+  </g>
 </svg>
