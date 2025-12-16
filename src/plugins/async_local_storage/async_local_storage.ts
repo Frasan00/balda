@@ -14,13 +14,13 @@ export const asyncStorage = new AsyncLocalStorage<Record<string, any>>();
  * Async local storage plugin middleware, used to store data in the request context
  */
 export const asyncLocalStorage = (
-  ctxSetters: AsyncLocalStorageContextSetters,
+  ctxSetters: AsyncLocalStorageContextSetters
 ): ServerRouteMiddleware => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     const store: Record<string, any> = {};
 
     for (const [key, setter] of Object.entries(ctxSetters)) {
-      store[key] = (setter as Function)(req);
+      store[key] = (setter as (req: Request) => {})(req);
     }
 
     asyncStorage.run(store, () => {
