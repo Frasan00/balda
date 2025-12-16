@@ -66,7 +66,7 @@ export default class SetupStorageCommand extends Command {
 
     const dependencies = this.getDependencies(this.storageType);
 
-    if (dependencies.length) {
+    if (dependencies.length === 0) {
       console.log(
         `\x1b[32m✅ ${this.storageType.toUpperCase()} storage doesn't require additional dependencies.\x1b[0m\n`,
       );
@@ -82,16 +82,15 @@ export default class SetupStorageCommand extends Command {
       }
 
       if (missingDeps.length) {
-        const [packageManager, installCommand, devFlag] =
-          await getPackageManager();
-        const command = `${packageManager} ${installCommand} ${devFlag} ${missingDeps.join(" ")}`;
+        const [packageManager, installCommand] = await getPackageManager();
+        const command = `${packageManager} ${installCommand} ${missingDeps.join(" ")}`;
 
         const installed = await execWithPrompt(
           command,
           packageManager,
           missingDeps,
           { stdio: "inherit" },
-          true,
+          false,
         );
 
         if (!installed) {
@@ -143,9 +142,15 @@ export default class SetupStorageCommand extends Command {
       return dependencies;
     }
 
-    const installedDeps = await nativeFs.readdir(nodeModulesPath);
+    const missing: string[] = [];
+    for (const dep of dependencies) {
+      const depPath = nativePath.join(nodeModulesPath, dep);
+      const depExists = await nativeFs.exists(depPath);
+      if (!depExists) {
+        missing.push(dep);
+      }
+    }
 
-    const missing = dependencies.filter((dep) => !installedDeps.includes(dep));
     return missing;
   }
 
@@ -181,7 +186,7 @@ export default class SetupStorageCommand extends Command {
 
   private static getConfigTemplate(storageType: string): string {
     const templates: Record<string, string> = {
-      s3: `import { S3StorageProvider } from "balda";
+      s3: `import { S3StorageProvider } from "balda-js";
 
 /**
  * S3 Storage Configuration
@@ -215,7 +220,7 @@ export const s3Provider = new S3StorageProvider({
   // },
 });
 `,
-      azure: `import { AzureBlobStorageProvider } from "balda";
+      azure: `import { AzureBlobStorageProvider } from "balda-js";
 
 /**
  * Azure Blob Storage Configuration
@@ -234,7 +239,7 @@ export const azureProvider = new AzureBlobStorageProvider({
   storageAccountKey: process.env.AZURE_STORAGE_KEY || "",
 });
 `,
-      local: `import { LocalStorageProvider } from "balda";
+      local: `import { LocalStorageProvider } from "balda-js";
 
 /**
  * Local Storage Configuration
@@ -248,7 +253,7 @@ export const azureProvider = new AzureBlobStorageProvider({
  */
 
 export const localProvider = new LocalStorageProvider({
-  directory: process.env.LOCAL_STORAGE_DIR || "./storage",
+  directory: "./uploads",
 });
 `,
     };
