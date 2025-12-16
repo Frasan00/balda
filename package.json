@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.74",
+  "version": "0.0.75",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -42,7 +42,11 @@
   },
   "devDependencies": {
     "@adminjs/express": "^6.1.1",
+    "@aws-sdk/client-s3": "^3.952.0",
     "@aws-sdk/client-sqs": "^3.911.0",
+    "@aws-sdk/cloudfront-signer": "^3.946.0",
+    "@aws-sdk/s3-presigned-post": "^3.952.0",
+    "@azure/storage-blob": "^12.29.1",
     "@types/bun": "^1.2.17",
     "@types/deno": "^2.3.0",
     "@types/express": "^5.0.6",

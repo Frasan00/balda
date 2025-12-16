@@ -1,40 +1,33 @@
 services:
-  node:
-    build:
-      context: .
-      dockerfile: docker/node.Dockerfile
+  minio:
+    image: minio/minio
     ports:
-      - 80:80
-    volumes:
-      - .:/app
-      - /app/node_modules
-    working_dir: /app
+      - "9000:9000" # S3
+      - "9001:9001" # Web
     environment:
-      - PORT=80
-      - HOST=0.0.0.0
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    env_file:
+      - .env.test
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./docker-compose-data/minio-data:/data
+    networks:
+      local-network:
+        aliases:
+          - minio.k-stage.dev
 
-  bun:
-    build:
-      context: .
-      dockerfile: docker/bun.Dockerfile
-    ports:
-      - 81:81
-    volumes:
-      - .:/app
-    working_dir: /app
-    environment:
-      - PORT=81
-      - HOST=0.0.0.0
-
-  deno:
-    build:
-      context: .
-      dockerfile: docker/deno.Dockerfile
-    ports:
-      - 82:82
-    volumes:
-      - .:/app
-    working_dir: /app
-    environment:
-      - PORT=82
-      - HOST=0.0.0.0
+  minio-init:
+    image: minio/mc
+    depends_on:
+      - minio
+    env_file:
+      - .env.test
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set myminio http://minio.k-stage.dev:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb -p myminio/${S3_BUCKET};
+      "
+    networks:
+      - local-network

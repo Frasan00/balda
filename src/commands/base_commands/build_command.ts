@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { flag } from "../../decorators/command/flag.js";
 import { Command } from "../base_command.js";
+import { execWithPrompt, getPackageManager } from "../../package.js";
 
 export default class BuildCommand extends Command {
   static commandName = "build";
@@ -113,6 +114,31 @@ export default class BuildCommand extends Command {
     if (!["bundle", "external"].includes(this.packages)) {
       this.logger.error("Invalid packages, must be 'bundle' or 'external'");
       process.exit(1);
+    }
+
+    const isEsBuildInstalled = await import("esbuild")
+      .then((esbuild) => true)
+      .catch(() => false);
+
+    if (!isEsBuildInstalled) {
+      const [packageManager, packageManagerCommand, devFlag] =
+        await getPackageManager();
+
+      const didInstall = await execWithPrompt(
+        `${packageManager} ${packageManagerCommand} esbuild ${devFlag}`,
+        packageManager,
+        ["esbuild"],
+        {
+          stdio: "inherit",
+        },
+      );
+
+      if (!didInstall) {
+        this.logger.warn(
+          `User chose to not continue with the installation of esbuild, exiting...`,
+        );
+        process.exit(0);
+      }
     }
 
     const esbuild = await import("esbuild").catch((err) => {

@@ -14,7 +14,7 @@ deno.json
 deno.lock
 import_map.json
 .nvmrc
-.env
+.env*
 elasticmq.conf
 
 # Development tools
