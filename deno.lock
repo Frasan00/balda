@@ -6,6 +6,7 @@
     "npm:@aws-sdk/client-sqs@^3.911.0": "3.948.0",
     "npm:@aws-sdk/cloudfront-signer@^3.946.0": "3.946.0",
     "npm:@aws-sdk/s3-presigned-post@^3.952.0": "3.952.0",
+    "npm:@aws-sdk/s3-request-presigner@^3.952.0": "3.952.0",
     "npm:@azure/storage-blob@^12.29.1": "12.29.1",
     "npm:@types/bun@^1.2.17": "1.3.4",
     "npm:@types/deno@^2.3.0": "2.3.0",
@@ -757,6 +758,19 @@
         "@smithy/types@4.9.0",
         "@smithy/util-hex-encoding",
         "@smithy/util-utf8@4.2.0",
+        "tslib"
+      ]
+    },
+    "@aws-sdk/s3-request-presigner@3.952.0": {
+      "integrity": "sha512-K/rJxP3O6TKTzDsBoVpExCZZlKbfY3SWNaR7ilm+mwBS/EXqY7sObYZU4Yhl+8aQlRTqDHgOOkR2+Qws0qD54Q==",
+      "dependencies": [
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@aws-sdk/util-format-url",
+        "@smithy/middleware-endpoint",
+        "@smithy/protocol-http",
+        "@smithy/smithy-client",
+        "@smithy/types@4.10.0",
         "tslib"
       ]
     },
@@ -7661,6 +7675,7 @@
         "npm:@aws-sdk/client-sqs@^3.911.0",
         "npm:@aws-sdk/cloudfront-signer@^3.946.0",
         "npm:@aws-sdk/s3-presigned-post@^3.952.0",
+        "npm:@aws-sdk/s3-request-presigner@^3.952.0",
         "npm:@azure/storage-blob@^12.29.1",
         "npm:@types/bun@^1.2.17",
         "npm:@types/deno@^2.3.0",

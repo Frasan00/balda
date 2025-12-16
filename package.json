@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.76",
+  "version": "0.0.77",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -46,6 +46,7 @@
     "@aws-sdk/client-sqs": "^3.911.0",
     "@aws-sdk/cloudfront-signer": "^3.946.0",
     "@aws-sdk/s3-presigned-post": "^3.952.0",
+    "@aws-sdk/s3-request-presigner": "^3.952.0",
     "@azure/storage-blob": "^12.29.1",
     "@types/bun": "^1.2.17",
     "@types/deno": "^2.3.0",
@@ -101,7 +102,13 @@
     "node-cron": "^4.1.0",
     "pg": "^8.16.3",
     "pg-boss": "^11.1.1",
-    "sqs-consumer": "^14.0.1"
+    "sqs-consumer": "^14.0.1",
+    "@aws-sdk/client-s3": "^3.952.0",
+    "@aws-sdk/client-sqs": "^3.911.0",
+    "@aws-sdk/cloudfront-signer": "^3.946.0",
+    "@aws-sdk/s3-presigned-post": "^3.952.0",
+    "@aws-sdk/s3-request-presigner": "^3.952.0",
+    "@azure/storage-blob": "^12.29.1"
   },
   "peerDependenciesMeta": {
     "bullmq": {
@@ -132,6 +139,24 @@
       "optional": true
     },
     "sqs-consumer": {
+      "optional": true
+    },
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@aws-sdk/client-sqs": {
+      "optional": true
+    },
+    "@aws-sdk/cloudfront-signer": {
+      "optional": true
+    },
+    "@aws-sdk/s3-presigned-post": {
+      "optional": true
+    },
+    "@aws-sdk/s3-request-presigner": {
+      "optional": true
+    },
+    "@azure/storage-blob": {
       "optional": true
     }
   },

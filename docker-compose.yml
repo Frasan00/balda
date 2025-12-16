@@ -1,33 +1,47 @@
 services:
-  minio:
-    image: minio/minio
+  localstack:
+    image: localstack/localstack:latest
     ports:
-      - "9000:9000" # S3
-      - "9001:9001" # Web
+      - "4566:4566"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      - SERVICES=s3,cloudfront,iam,lambda
+      - DEBUG=1
     env_file:
       - .env.test
-    command: server /data --console-address ":9001"
     volumes:
-      - ./docker-compose-data/minio-data:/data
-    networks:
-      local-network:
-        aliases:
-          - minio.k-stage.dev
-
-  minio-init:
-    image: minio/mc
-    depends_on:
-      - minio
-    env_file:
-      - .env.test
-    entrypoint: >
-      /bin/sh -c "
-      sleep 5;
-      mc alias set myminio http://minio.k-stage.dev:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      mc mb -p myminio/${S3_BUCKET};
-      "
+      - './.localstack:/var/lib/localstack'
+      - '/var/run/docker.sock:/var/run/docker.sock'
     networks:
       - local-network
+
+  azurite:
+      image: mcr.microsoft.com/azure-storage/azurite:latest
+      container_name: balda-js-azurite-blob
+      restart: unless-stopped
+      ports:
+        - "10000:10000"  # Blob service
+      volumes:
+        - azurite_data:/data
+      command: >
+        azurite-blob
+        --blobHost 0.0.0.0
+        --blobPort 10000
+        --location /data
+        --loose
+      environment:
+        - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:10000/devstoreaccount1/"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+      networks:
+        - local-network
+
+volumes:
+  azurite_data:
+    driver: local
+
+networks:
+  local-network:
+    driver: bridge

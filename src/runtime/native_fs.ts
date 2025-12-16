@@ -33,7 +33,8 @@ class NativeFs {
         const fs = await import("fs");
         return fs.existsSync(path);
       case "bun":
-        return Bun.file(path).exists();
+        const bunFs = await import("fs");
+        return bunFs.existsSync(path);
       case "deno":
         return Deno.stat(path)
           .then(() => true)
@@ -43,17 +44,36 @@ class NativeFs {
     }
   }
 
-  async readFile(path: string): Promise<Uint8Array> {
+  async readFile(
+    path: string,
+    options?: { encoding?: "utf8" },
+  ): Promise<Uint8Array | string> {
     switch (runtime.type) {
       case "node":
         const fs = await import("fs/promises");
-        const buffer = await fs.readFile(path);
-        return new Uint8Array(buffer);
+        const data = await fs.readFile(path, {
+          encoding: options?.encoding ?? null,
+        });
+
+        if (options?.encoding === "utf8") {
+          return data as string;
+        }
+
+        return new Uint8Array(data as Buffer);
       case "bun":
-        const arrayBuffer = await Bun.file(path).arrayBuffer();
-        return new Uint8Array(arrayBuffer);
+        const arrayBuffer = Bun.file(path);
+        if (options?.encoding === "utf8") {
+          return arrayBuffer.text();
+        }
+
+        return new Uint8Array(await arrayBuffer.arrayBuffer());
       case "deno":
-        return new Uint8Array(await Deno.readFile(path));
+        const denoBuffer = await Deno.readFile(path);
+        if (options?.encoding === "utf8") {
+          return new TextDecoder().decode(denoBuffer);
+        }
+
+        return new Uint8Array(denoBuffer);
     }
   }
 
@@ -89,7 +109,8 @@ class NativeFs {
           size: stats.size,
         };
       case "bun":
-        const bunStats = await Bun.file(path).stat();
+        const bunFs = await import("fs/promises");
+        const bunStats = await bunFs.stat(path);
         return {
           isDirectory: bunStats.isDirectory(),
           isFile: bunStats.isFile(),
@@ -119,6 +140,24 @@ class NativeFs {
       case "deno":
         await Deno.remove(path);
         break;
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
+
+  async streamFile(path: string): Promise<ReadableStream> {
+    switch (runtime.type) {
+      case "node":
+        const fs = await import("fs");
+        const { Readable } = await import("stream");
+        const nodeStream = fs.createReadStream(path);
+        return Readable.toWeb(nodeStream) as unknown as ReadableStream;
+
+      case "bun":
+        return Bun.file(path).stream();
+      case "deno":
+        const denoFile = await Deno.open(path);
+        return denoFile.readable;
       default:
         throw new Error("Unsupported runtime");
     }

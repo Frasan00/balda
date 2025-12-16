@@ -74,6 +74,14 @@ export * from "./graphql/graphql_types.js";
 // async storage
 export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";
 
+// Storage
+export * from "./storage/storage.js";
+export type { StorageInterface } from "./storage/storage_types.js";
+export * from "./storage/providers/local.js";
+export * from "./storage/providers/s3.js";
+export * from "./storage/providers/blob_storage.js";
+export * from "./storage/storage_types.js";
+
 // Plugins
 export * from "./plugins/base_plugin.js";
 export * from "./plugins/compression/compression.js";

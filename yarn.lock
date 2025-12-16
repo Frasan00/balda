@@ -890,6 +890,20 @@
     "@smithy/util-utf8" "^4.2.0"
     tslib "^2.6.2"
 
+"@aws-sdk/s3-request-presigner@^3.952.0":
+  version "3.952.0"
+  resolved "https://registry.npmjs.org/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.952.0.tgz#7b3aafa795ad7210cf75917786872d8a0c15206a"
+  integrity sha512-K/rJxP3O6TKTzDsBoVpExCZZlKbfY3SWNaR7ilm+mwBS/EXqY7sObYZU4Yhl+8aQlRTqDHgOOkR2+Qws0qD54Q==
+  dependencies:
+    "@aws-sdk/signature-v4-multi-region" "3.947.0"
+    "@aws-sdk/types" "3.936.0"
+    "@aws-sdk/util-format-url" "3.936.0"
+    "@smithy/middleware-endpoint" "^4.3.14"
+    "@smithy/protocol-http" "^5.3.5"
+    "@smithy/smithy-client" "^4.9.10"
+    "@smithy/types" "^4.9.0"
+    tslib "^2.6.2"
+
 "@aws-sdk/signature-v4-multi-region@3.947.0":
   version "3.947.0"
   resolved "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.947.0.tgz#50d01b664fe19367f79482e77af8aab7c614873c"

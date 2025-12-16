@@ -12,6 +12,7 @@ import GenerateQueueCommand from "./base_commands/generate_queue.js";
 import InitCommand from "./base_commands/init_command.js";
 import ListCommand from "./base_commands/list_command.js";
 import ServeCommand from "./base_commands/serve_command.js";
+import SetupStorageCommand from "./base_commands/setup_storage_command.js";
 
 // Base commands are always loaded
 export const baseCommands = [
@@ -25,6 +26,7 @@ export const baseCommands = [
   ListCommand,
   BuildCommand,
   ServeCommand,
+  SetupStorageCommand,
 ];
 
 /**
