@@ -5,7 +5,7 @@ import { nativePath } from "../../runtime/native_path.js";
 import { Command } from "../base_command.js";
 
 export default class SetupStorageCommand extends Command {
-  static commandName = "setup:storage";
+  static commandName = "setup-storage";
   static description = "Setup storage provider with required dependencies";
   static help = [
     "Install dependencies and create storage configuration for a specific provider",
@@ -33,8 +33,9 @@ export default class SetupStorageCommand extends Command {
     aliases: ["o"],
     name: "output",
     required: false,
+    defaultValue: "src/storage/",
   })
-  static outputPath: string = "src/storage/";
+  static outputPath: string;
 
   static async handle(): Promise<void> {
     if (!this.storageType) {
@@ -43,6 +44,12 @@ export default class SetupStorageCommand extends Command {
       );
       console.log("\x1b[90mExample: npx balda setup:storage -t s3\x1b[0m\n");
       return;
+    }
+
+    if (!this.outputPath) {
+      await nativeFs.mkdir(nativePath.join(process.cwd(), this.outputPath), {
+        recursive: true,
+      });
     }
 
     const validTypes = ["s3", "azure", "local"];
@@ -59,13 +66,13 @@ export default class SetupStorageCommand extends Command {
 
     const dependencies = this.getDependencies(this.storageType);
 
-    if (dependencies.length === 0) {
+    if (dependencies.length) {
       console.log(
         `\x1b[32m✅ ${this.storageType.toUpperCase()} storage doesn't require additional dependencies.\x1b[0m\n`,
       );
     }
 
-    if (dependencies.length > 0) {
+    if (dependencies.length) {
       const missingDeps = await this.checkMissingDependencies(dependencies);
 
       if (missingDeps.length === 0) {
@@ -74,7 +81,7 @@ export default class SetupStorageCommand extends Command {
         );
       }
 
-      if (missingDeps.length > 0) {
+      if (missingDeps.length) {
         const [packageManager, installCommand, devFlag] =
           await getPackageManager();
         const command = `${packageManager} ${installCommand} ${devFlag} ${missingDeps.join(" ")}`;
@@ -130,19 +137,15 @@ export default class SetupStorageCommand extends Command {
       return dependencies;
     }
 
-    const packageJsonContent = (await nativeFs.readFile(
-      packageJsonPath,
-    )) as Uint8Array;
-    const packageJson = JSON.parse(
-      new TextDecoder().decode(packageJsonContent),
-    );
+    const nodeModulesPath = nativePath.join(process.cwd(), "node_modules");
+    const nodeModulesExists = await nativeFs.exists(nodeModulesPath);
+    if (!nodeModulesExists) {
+      return dependencies;
+    }
 
-    const installedDeps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
+    const installedDeps = await nativeFs.readdir(nodeModulesPath);
 
-    const missing = dependencies.filter((dep) => !installedDeps[dep]);
+    const missing = dependencies.filter((dep) => !installedDeps.includes(dep));
     return missing;
   }
 

@@ -162,6 +162,24 @@ class NativeFs {
         throw new Error("Unsupported runtime");
     }
   }
+
+  async readdir(path: string): Promise<string[]> {
+    switch (runtime.type) {
+      case "bun":
+      case "node":
+        const fs = await import("fs/promises");
+        return fs.readdir(path);
+      case "deno":
+        const entries: string[] = [];
+        for await (const entry of Deno.readDir(path)) {
+          entries.push(entry.name);
+        }
+
+        return entries;
+      default:
+        throw new Error("Unsupported runtime");
+    }
+  }
 }
 
 export const nativeFs = new NativeFs();
