@@ -71,6 +71,9 @@ export { hash } from "./runtime/native_hash.js";
 export * from "./graphql/graphql.js";
 export * from "./graphql/graphql_types.js";
 
+// async storage
+export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";
+
 // Plugins
 export * from "./plugins/base_plugin.js";
 export * from "./plugins/compression/compression.js";
@@ -90,6 +93,7 @@ export * from "./plugins/static/static_types.js";
 export * from "./plugins/timeout/timeout.js";
 export * from "./plugins/trust_proxy/trust_proxy.js";
 export * from "./plugins/urlencoded/urlencoded.js";
+export { asyncLocalStorage } from "./plugins/async_local_storage/async_local_storage.js";
 
 // Policy
 export * from "./server/policy/policy_decorator.js";

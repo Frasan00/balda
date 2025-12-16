@@ -36,6 +36,7 @@ import type { MethodOverrideOptions } from "../plugins/method_override/method_ov
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import type { GraphQLOptions } from "../graphql/graphql_types.js";
 import { GraphQL } from "../graphql/graphql.js";
+import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -55,6 +56,7 @@ export type ServerPlugin = {
   session?: SessionOptions;
   methodOverride?: MethodOverrideOptions;
   compression?: CompressionOptions;
+  asyncLocalStorage?: AsyncLocalStorageContextSetters;
 };
 
 export type NodeHttpClient = "http" | "http2" | "https" | "http2-secure";

@@ -3,6 +3,7 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { z, type ZodType } from "zod";
 import { NativeRequest } from "../../runtime/native_request.js";
 import { validateSchema } from "../../validator/validator.js";
+import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
 
 /**
  * The request object.
@@ -80,6 +81,20 @@ export class Request<
 
     return request;
   }
+
+  /**
+   * The context of the request. Can be augmented extending AsyncLocalStorageContext interface
+   * @asyncLocalStorage middleware is required
+   * @example
+   * ```ts
+   * declare module "balda-js" {
+   *   interface AsyncLocalStorageContext {
+   *     userId: string;
+   *   }
+   * }
+   * ```
+   */
+  ctx: AsyncLocalStorageContext = {} as AsyncLocalStorageContext;
 
   /**
    * The file of the request.
@@ -170,6 +185,10 @@ export class Request<
     }
 
     return this._id;
+  }
+
+  set id(value: string) {
+    this._id = value;
   }
 
   /**

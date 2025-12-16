@@ -76,6 +76,8 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
+import { asyncLocalStorage } from "../plugins/async_local_storage/async_local_storage.js";
+import type { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -689,6 +691,11 @@ export class Server<H extends NodeHttpClient = NodeHttpClient>
           break;
         case "session":
           this.use(session(pluginOptions as SessionOptions));
+          break;
+        case "asyncLocalStorage":
+          this.use(
+            asyncLocalStorage(pluginOptions as AsyncLocalStorageContextSetters),
+          );
           break;
         default:
           logger.warn(`Unknown plugin ${pluginName}`);
