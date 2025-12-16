@@ -186,7 +186,7 @@ export default class SetupStorageCommand extends Command {
 
   private static getConfigTemplate(storageType: string): string {
     const templates: Record<string, string> = {
-      s3: `import { S3StorageProvider } from "balda-js";
+      s3: `import { Storage, S3StorageProvider } from "balda-js";
 
 /**
  * S3 Storage Configuration
@@ -203,24 +203,31 @@ export default class SetupStorageCommand extends Command {
  * - CLOUDFRONT_PRIVATE_KEY
  */
 
-export const s3Provider = new S3StorageProvider({
-  s3ClientConfig: {
-    bucketName: process.env.S3_BUCKET || "your-bucket-name",
-    region: process.env.AWS_REGION || "us-east-1",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    },
+export const storage = new Storage(
+  {
+    s3: new S3StorageProvider({
+      s3ClientConfig: {
+        bucketName: process.env.S3_BUCKET || "your-bucket-name",
+        region: process.env.AWS_REGION || "us-east-1",
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+        },
+      },
+      // Uncomment to enable CloudFront signed URLs
+      // cloudfrontOptions: {
+      //   domainName: process.env.CLOUDFRONT_DOMAIN || "",
+      //   keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID || "",
+      //   privateKey: process.env.CLOUDFRONT_PRIVATE_KEY || "",
+      // },
+    }),
   },
-  // Uncomment to enable CloudFront signed URLs
-  // cloudfrontOptions: {
-  //   domainName: process.env.CLOUDFRONT_DOMAIN || "",
-  //   keyPairId: process.env.CLOUDFRONT_KEY_PAIR_ID || "",
-  //   privateKey: process.env.CLOUDFRONT_PRIVATE_KEY || "",
-  // },
-});
+  {
+    defaultProvider: "s3",
+  },
+);
 `,
-      azure: `import { AzureBlobStorageProvider } from "balda-js";
+      azure: `import { Storage, AzureBlobStorageProvider } from "balda-js";
 
 /**
  * Azure Blob Storage Configuration
@@ -232,14 +239,21 @@ export const s3Provider = new S3StorageProvider({
  * - AZURE_STORAGE_KEY
  */
 
-export const azureProvider = new AzureBlobStorageProvider({
-  containerName: process.env.AZURE_CONTAINER_NAME || "your-container-name",
-  connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || "",
-  storageAccountName: process.env.AZURE_STORAGE_ACCOUNT || "",
-  storageAccountKey: process.env.AZURE_STORAGE_KEY || "",
-});
+export const storage = new Storage(
+  {
+    azure: new AzureBlobStorageProvider({
+      containerName: process.env.AZURE_CONTAINER_NAME || "your-container-name",
+      connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || "",
+      storageAccountName: process.env.AZURE_STORAGE_ACCOUNT || "",
+      storageAccountKey: process.env.AZURE_STORAGE_KEY || "",
+    }),
+  },
+  {
+    defaultProvider: "azure",
+  },
+);
 `,
-      local: `import { LocalStorageProvider } from "balda-js";
+      local: `import { Storage, LocalStorageProvider } from "balda-js";
 
 /**
  * Local Storage Configuration
@@ -252,9 +266,16 @@ export const azureProvider = new AzureBlobStorageProvider({
  * - LOCAL_STORAGE_SECRET_KEY
  */
 
-export const localProvider = new LocalStorageProvider({
-  directory: "./uploads",
-});
+export const storage = new Storage(
+  {
+    local: new LocalStorageProvider({
+      directory: "./uploads",
+    }),
+  },
+  {
+    defaultProvider: "local",
+  },
+);
 `,
     };
 
