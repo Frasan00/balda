@@ -3,6 +3,7 @@ import {
   defineLoggerConfig,
   logger,
   Server,
+  CronService,
 } from "../../src/index.js";
 import { NativeEnv } from "../../src/runtime/native_env.js";
 
@@ -83,6 +84,9 @@ const serverBuilder = new Server({
       header: "x-forwarded-for",
       hop: "first",
     },
+  },
+  cronUI: {
+    path: "/cron",
   },
 });
 

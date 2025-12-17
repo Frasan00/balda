@@ -34,6 +34,7 @@ import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import { ClientRouter } from "./router/router_type.js";
+import { CronUIOptions } from "../cron/cron.types.js";
 
 export type ServerPlugin = {
   bodyParser?: BodyParserOptions;
@@ -123,6 +124,11 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   abortSignal?: AbortSignal;
+  /**
+   * The cronUI options to apply to the server.
+   * By passing the "path" option, the UI will be enabled at the given path.
+   */
+  cronUI?: CronUIOptions;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -136,6 +142,7 @@ export type ResolvedServerOptions = {
   swagger: Parameters<typeof swagger>[0] | boolean;
   graphql?: GraphQLOptions;
   abortSignal?: AbortSignal;
+  cronUI?: CronUIOptions;
 };
 
 export type ServerErrorHandler = (

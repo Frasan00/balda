@@ -172,3 +172,7 @@ benchmark-results/
 
 # Docker
 .localstack/
+
+.idea/
+
+TODO.md

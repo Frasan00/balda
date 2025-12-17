@@ -1,9 +1,15 @@
 import { glob } from "glob";
 import type { TaskContext } from "node-cron";
+import {
+  CronUIOptions,
+  CronSchedule,
+  CronScheduleParams,
+} from "./cron.types.js";
 import { BaldaError } from "../errors/balda_error.js";
 import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
-import { CronSchedule, CronScheduleParams } from "./cron.types.js";
+import {cronUIInstance} from "./cron-ui.js";
+import {router} from "../server/router/router.js";
 
 export class CronService {
   static scheduledJobs: CronSchedule[] = [];
@@ -95,4 +101,16 @@ export const setCronGlobalErrorHandler = (
   ) => void,
 ) => {
   CronService.globalErrorHandler = globalErrorHandler.bind(CronService);
+};
+
+export const cronUi = async (cronUIOptions?: CronUIOptions) => {
+  if (!cronUIOptions || cronUIOptions.path.length === 0) {
+    throw new BaldaError("Cron UI path is required");
+  }
+
+  const html = await cronUIInstance.generate();
+
+  router.addOrUpdate("GET", cronUIOptions.path, [], (_req, res) => {
+    res.html(html);
+  });
 };

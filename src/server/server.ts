@@ -1,5 +1,6 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { AjvStateManager } from "../ajv/ajv.js";
+import { CronService, cronUi } from "../cron/cron.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
@@ -121,6 +122,7 @@ export class Server<
       swagger: options?.swagger ?? true,
       graphql: options?.graphql ?? undefined,
       abortSignal: options?.abortSignal,
+      cronUI: options?.cronUI ?? undefined,
     };
 
     if (options?.ajvInstance) {
@@ -839,6 +841,11 @@ export class Server<
 
     await this.importControllers(options?.controllerPatterns);
     this.applyPlugins(this.serverOptions.plugins);
+
+    if (this.serverOptions.cronUI) {
+      await cronUi(this.serverOptions.cronUI);
+    }
+
     this.registerNotFoundRoutes();
     if (this.#globalMiddlewares.length) {
       router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
