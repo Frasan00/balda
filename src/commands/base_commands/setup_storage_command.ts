@@ -165,12 +165,8 @@ export default class SetupStorageCommand extends Command {
       await nativeFs.mkdir(resolvedPath, { recursive: true });
     }
 
-    const configFile = nativePath.join(
-      resolvedPath,
-      `${storageType}.config.ts`,
-    );
+    const configFile = nativePath.join(resolvedPath, `storage.ts`);
     const configExists = await nativeFs.exists(configFile);
-
     if (configExists) {
       console.log(
         `\x1b[33m⚠️  Configuration file already exists: ${configFile}\x1b[0m`,
