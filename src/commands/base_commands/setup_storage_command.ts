@@ -253,15 +253,7 @@ export const storage = new Storage(
 
 /**
  * Local Storage Configuration
- *
- * Environment variables required:
- * - LOCAL_STORAGE_DIR (default: ./storage)
- *
- * Optional for signed URLs:
- * - LOCAL_STORAGE_BASE_URL
- * - LOCAL_STORAGE_SECRET_KEY
  */
-
 export const storage = new Storage(
   {
     local: new LocalStorageProvider({

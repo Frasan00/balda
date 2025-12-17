@@ -240,8 +240,8 @@ export class Request<
     return validateSchema(
       inputSchema,
       {
-        ...(this.body ? { body: this.body } : {}),
-        ...(this.query ? { query: this.query } : {}),
+        ...(this.body ?? {}),
+        ...(this.query ?? {}),
       },
       safe,
     );

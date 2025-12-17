@@ -61,6 +61,11 @@ const validateDecorator = (
       meta.documentation.query = options.query;
     }
 
+    if (options.all) {
+      meta.documentation.requestBody = options.body;
+      meta.documentation.query = options.query;
+    }
+
     MetadataStore.set(target, propertyKey, meta);
 
     descriptor.value = async function (...args: any[]) {
