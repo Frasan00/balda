@@ -1,8 +1,8 @@
-import type { SerializeOptions } from "./serialize_types.js";
+import { ZodError, type ZodType } from "zod";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
 import { validateSchema } from "../../validator/validator.js";
-import { ZodError, type ZodType } from "zod";
+import type { SerializeOptions } from "./serialize_types.js";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
@@ -55,7 +55,8 @@ export const serialize = <T extends ZodType>(
         if (schema && !safe) {
           const body = res.getBody();
           try {
-            res.send(validateSchema(schema, body, safe));
+            await validateSchema(schema, body, safe);
+            res.send(body);
           } catch (error) {
             if (error instanceof ZodError) {
               res.internalServerError({
