@@ -1,4 +1,4 @@
-import type PgBoss from "pg-boss";
+import type { PgBoss } from "pg-boss";
 import type { Job } from "pg-boss";
 import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
 import { PGBossConfiguration } from "./pgboss_configuration.js";
@@ -58,8 +58,9 @@ export class PGBossPubSub implements PubSub<"pgboss"> {
     });
 
     type PGBossCtor = new (config?: unknown) => PgBoss;
-    const maybeDefault = (mod as { default?: PGBossCtor }).default;
-    const Ctor: PGBossCtor = maybeDefault ?? (mod as unknown as PGBossCtor);
+    const maybeDefault = (mod.PgBoss as { default?: PGBossCtor }).default;
+    const Ctor: PGBossCtor =
+      maybeDefault ?? (mod.PgBoss as unknown as PGBossCtor);
 
     const { connectionString, boss } = PGBossConfiguration.options;
     const arg = connectionString ?? boss;

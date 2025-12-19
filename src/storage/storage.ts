@@ -6,9 +6,9 @@ import type {
   StorageProviderOptions,
 } from "./storage_types.js";
 
-export class Storage<T extends StorageProviderOptions>
-  implements StorageInterface
-{
+export class Storage<
+  T extends StorageProviderOptions,
+> implements StorageInterface {
   private readonly providerOptions: T;
   private readonly defaultProvider: keyof T;
   private readonly providerMap: Map<keyof T, StorageInterface>;

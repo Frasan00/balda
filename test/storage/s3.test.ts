@@ -21,9 +21,8 @@ describe("S3StorageProvider with LocalStack", () => {
     });
 
     try {
-      const { S3Client, CreateBucketCommand } = await import(
-        "@aws-sdk/client-s3"
-      );
+      const { S3Client, CreateBucketCommand } =
+        await import("@aws-sdk/client-s3");
       const client = new S3Client({
         region: process.env.AWS_REGION || "us-east-1",
         endpoint: process.env.AWS_ENDPOINT_URL || "http://localhost:4566",

@@ -81,9 +81,9 @@ import type {
 /**
  * The server class that is used to create and manage the server
  */
-export class Server<H extends NodeHttpClient = NodeHttpClient>
-  implements ServerInterface
-{
+export class Server<
+  H extends NodeHttpClient = NodeHttpClient,
+> implements ServerInterface {
   isListening: boolean;
   isProduction: boolean;
   graphql: GraphQL;
