@@ -1,3 +1,4 @@
+import { arg } from "../../decorators/command/arg.js";
 import { flag } from "../../decorators/command/flag.js";
 import { nativeFs } from "../../runtime/native_fs.js";
 import { nativePath } from "../../runtime/native_path.js";
@@ -23,22 +24,18 @@ export default class GenerateMqttCommand extends Command {
   })
   static path: string;
 
-  @flag({
+  @arg({
     description: "The MQTT topic to subscribe to",
-    type: "string",
-    aliases: "t",
-    name: "topic",
-    required: false,
-    defaultValue: "example/topic",
+    required: true,
   })
   static topic: string;
 
   static async handle(): Promise<void> {
-    const isValidLiteral = this.topic.match(/^[a-zA-Z_][a-zA-Z0-9_/]*$/);
+    const isValidLiteral = this.topic.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/);
     const mqttTemplate = this.getMqttTemplate(!!isValidLiteral);
     this.path = nativePath.join(
       this.path,
-      `${toLowerSnakeCase(this.topic.replace("/", "-"))}.ts`,
+      `${toLowerSnakeCase(this.topic.replace(/\//g, "_"))}.ts`,
     );
 
     if (!(await nativeFs.exists(nativePath.join(process.cwd(), this.path)))) {
