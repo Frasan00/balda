@@ -1,3 +1,4 @@
+import z from "zod";
 import { controller } from "../../src/decorators/controller/controller.js";
 import { del } from "../../src/decorators/handlers/del.js";
 import { get } from "../../src/decorators/handlers/get.js";
@@ -7,7 +8,6 @@ import { serialize } from "../../src/decorators/serialize/serialize.js";
 import { validate } from "../../src/index.js";
 import { Request } from "../../src/server/http/request.js";
 import { Response } from "../../src/server/http/response.js";
-import z from "zod";
 
 const UserIndexQuery = z.object({
   shouldFail: z.string().optional(),
@@ -39,6 +39,92 @@ const users = [
   },
 ];
 
+// OpenAPI schemas for AJV compilation
+const UserIndexQueryOpenApi = {
+  type: "object",
+  properties: {
+    shouldFail: { type: "string" },
+  },
+  additionalProperties: false,
+} as const;
+
+const UserResponseOpenApi = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      id: { type: "number" },
+      email: { type: "string", format: "email" },
+      name: { type: "string" },
+      age: { type: "number" },
+    },
+    required: ["id", "email", "name", "age"],
+    additionalProperties: false,
+  },
+} as const;
+
+const ShouldFailResponseOpenApi = {
+  type: "object",
+  properties: {
+    impossibleField: { type: "string" },
+  },
+  required: ["impossibleField"],
+  additionalProperties: false,
+} as const;
+
+const SingleUserResponseOpenApi = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    email: { type: "string", format: "email" },
+    name: { type: "string" },
+    age: { type: "number" },
+  },
+  required: ["id", "email", "name", "age"],
+  additionalProperties: false,
+} as const;
+
+const UserNotFoundResponseOpenApi = {
+  type: "object",
+  properties: {
+    error: { type: "string", enum: ["User not found"] },
+  },
+  required: ["error"],
+  additionalProperties: false,
+} as const;
+
+const UserAlreadyExistsResponseOpenApi = {
+  type: "object",
+  properties: {
+    error: { type: "string", enum: ["User already exists"] },
+  },
+  required: ["error"],
+  additionalProperties: false,
+} as const;
+
+const CreateUserBodyOpenApi = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    email: { type: "string", format: "email" },
+    name: { type: "string" },
+    age: { type: "number" },
+  },
+  required: ["id", "email", "name", "age"],
+  additionalProperties: false,
+} as const;
+
+const UpdateUserBodyOpenApi = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    email: { type: "string", format: "email" },
+    name: { type: "string" },
+    age: { type: "number" },
+  },
+  additionalProperties: false,
+} as const;
+
 @controller("/users")
 export class UsersController {
   @get("/")
@@ -55,6 +141,89 @@ export class UsersController {
     }
 
     res.json(users);
+  }
+
+  @get("/ajv")
+  @validate.query(UserIndexQueryOpenApi)
+  @serialize(UserResponseOpenApi)
+  @serialize(ShouldFailResponseOpenApi, { status: 201, safe: false })
+  async indexAjv(_req: Request, res: Response, qs: { shouldFail?: string }) {
+    if (qs.shouldFail === "true") {
+      return res.created(users);
+    }
+
+    res.json(users);
+  }
+
+  @get("/ajv/:id")
+  @serialize(SingleUserResponseOpenApi, { safe: false })
+  @serialize(UserNotFoundResponseOpenApi, { status: 404 })
+  async showAjv(req: Request<{ id: string }>, res: Response) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    res.ok(user);
+  }
+
+  @post("/ajv")
+  @validate.body(CreateUserBodyOpenApi)
+  @serialize(UserAlreadyExistsResponseOpenApi, { status: 409 })
+  @serialize(SingleUserResponseOpenApi)
+  async createAjv(
+    _req: Request,
+    res: Response,
+    body: {
+      id: number;
+      email: string;
+      name: string;
+      age: number;
+    },
+  ) {
+    const alreadyExists = users.find((user) => user.email === body.email);
+    if (alreadyExists) {
+      return res.conflict({ error: "User already exists" });
+    }
+
+    users.push(body);
+    res.created(body);
+  }
+
+  @patch("/ajv/:id")
+  @validate.body(UpdateUserBodyOpenApi)
+  @serialize(UserNotFoundResponseOpenApi, { status: 404 })
+  @serialize(SingleUserResponseOpenApi)
+  async updateAjv(
+    req: Request,
+    res: Response,
+    body: {
+      id?: number;
+      email?: string;
+      name?: string;
+      age?: number;
+    },
+  ) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    const updatedUser = { ...user, ...body };
+    users.splice(users.indexOf(user), 1, updatedUser);
+    res.ok(updatedUser);
+  }
+
+  @del("/ajv/:id")
+  @serialize(UserNotFoundResponseOpenApi, { status: 404 })
+  async destroyAjv(req: Request, res: Response) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    users.splice(users.indexOf(user), 1);
+    res.noContent();
   }
 
   @get("/:id")

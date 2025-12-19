@@ -1,13 +1,23 @@
-import { ZodError, type ZodType } from "zod";
+import type { ZodType } from "zod";
+import { AjvStateManager } from "../../ajv/ajv.js";
+import type { AjvCompileParams } from "../../ajv/ajv_types.js";
+import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
 import { validateSchema } from "../../validator/validator.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
 import type { SerializeOptions } from "./serialize_types.js";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
 
-export const serialize = <T extends ZodType>(
+/**
+ * WeakMap to cache schema objects by reference in serialize decorator.
+ * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
+ */
+const serializeSchemaRefCache = new WeakMap<object, symbol>();
+
+export const serialize = <T extends ZodType | AjvCompileParams[0]>(
   schema: T,
   options?: SerializeOptions,
 ) => {
@@ -55,10 +65,60 @@ export const serialize = <T extends ZodType>(
         if (schema && !safe) {
           const body = res.getBody();
           try {
-            await validateSchema(schema, body, safe);
-            res.send(body);
+            let cacheKey: string;
+
+            // Use WeakMap cache for schema object references
+            if (ZodLoader.isZodSchema(schema)) {
+              let refKey = serializeSchemaRefCache.get(schema);
+              if (!refKey) {
+                refKey = Symbol("serialize_zod_schema");
+                serializeSchemaRefCache.set(schema, refKey);
+              }
+
+              let compiledSchema = openapiSchemaMap.get(refKey);
+              if (!compiledSchema) {
+                const jsonSchema = schema.toJSONSchema();
+                compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
+                openapiSchemaMap.set(refKey, compiledSchema);
+              }
+
+              await validateSchema(compiledSchema, body, safe);
+              res.send(body);
+            } else if (typeof schema === "object" && schema !== null) {
+              // Plain JSON schema object
+              let refKey = serializeSchemaRefCache.get(schema);
+              if (!refKey) {
+                refKey = Symbol("serialize_json_schema");
+                serializeSchemaRefCache.set(schema, refKey);
+              }
+
+              let compiledSchema = openapiSchemaMap.get(refKey);
+              if (!compiledSchema) {
+                compiledSchema = AjvStateManager.ajv.compile(
+                  schema as AjvCompileParams[0],
+                );
+                openapiSchemaMap.set(refKey, compiledSchema);
+              }
+
+              await validateSchema(compiledSchema, body, safe);
+              res.send(body);
+            } else {
+              // Fallback to JSON.stringify for primitives or edge cases
+              cacheKey = JSON.stringify(schema);
+              let compiledSchema = openapiSchemaMap.get(cacheKey);
+              if (!compiledSchema) {
+                compiledSchema = AjvStateManager.ajv.compile(
+                  schema as AjvCompileParams[0],
+                );
+                openapiSchemaMap.set(cacheKey, compiledSchema);
+              }
+
+              await validateSchema(compiledSchema, body, safe);
+              res.send(body);
+            }
           } catch (error) {
-            if (error instanceof ZodError) {
+            const zod = await ZodLoader.load();
+            if (error instanceof zod.ZodError) {
               res.internalServerError({
                 received: body,
                 schema,

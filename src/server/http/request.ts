@@ -1,9 +1,19 @@
+import type { ZodAny } from "zod";
+import { AjvStateManager } from "../../ajv/ajv.js";
+import { AjvCompileParams } from "../../ajv/ajv_types.js";
+import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
+import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
 import type { FormFile } from "../../plugins/file/file_types.js";
 import { nativeCrypto } from "../../runtime/native_crypto.js";
-import { z, type ZodType } from "zod";
 import { NativeRequest } from "../../runtime/native_request.js";
 import { validateSchema } from "../../validator/validator.js";
-import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
+
+/**
+ * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
+ * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
+ */
+const schemaRefCache = new WeakMap<object, symbol>();
 
 /**
  * The request object.
@@ -22,41 +32,92 @@ export class Request<
     });
   }
 
+  private static compileAndValidate(
+    inputSchema: ZodAny | AjvCompileParams[0],
+    data: any,
+    safe: boolean,
+  ): any {
+    let jsonSchema: any;
+    let cacheKey: string;
+
+    if (ZodLoader.isZodSchema(inputSchema)) {
+      const zodSchema = inputSchema as ZodAny;
+
+      // Try to get cache key from WeakMap first
+      let refKey = schemaRefCache.get(zodSchema);
+      if (!refKey) {
+        refKey = Symbol("zod_schema");
+        schemaRefCache.set(zodSchema, refKey);
+      }
+
+      // Check if we already have a compiled schema
+      let cached = openapiSchemaMap.get(refKey);
+      if (cached) {
+        return validateSchema(cached, data, safe);
+      }
+
+      // Convert to JSON schema and compile
+      jsonSchema = zodSchema.toJSONSchema();
+      const compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
+      openapiSchemaMap.set(refKey, compiledSchema);
+      return validateSchema(compiledSchema, data, safe);
+    }
+
+    const plainSchema = inputSchema as AjvCompileParams[0];
+
+    // Try to use WeakMap cache for object references
+    if (typeof plainSchema === "object" && plainSchema !== null) {
+      let refKey = schemaRefCache.get(plainSchema);
+      if (!refKey) {
+        refKey = Symbol("json_schema");
+        schemaRefCache.set(plainSchema, refKey);
+      }
+
+      const cached = openapiSchemaMap.get(refKey);
+      if (cached) {
+        return validateSchema(cached, data, safe);
+      }
+
+      const compiledSchema = AjvStateManager.ajv.compile(plainSchema);
+      openapiSchemaMap.set(refKey, compiledSchema);
+      return validateSchema(compiledSchema, data, safe);
+    }
+
+    // Fallback to JSON.stringify for primitives or edge cases
+    cacheKey = JSON.stringify(plainSchema);
+    const cached = openapiSchemaMap.get(cacheKey);
+    if (cached) {
+      return validateSchema(cached, data, safe);
+    }
+
+    const compiledSchema = AjvStateManager.ajv.compile(plainSchema);
+    openapiSchemaMap.set(cacheKey, compiledSchema);
+    return validateSchema(compiledSchema, data, safe);
+  }
+
   /**
    * Enrich native request with validation methods.
    */
   static enrichRequest(request: Request): Request {
-    request.validate = <T extends ZodType>(
-      inputSchema: T | ((schema: typeof z) => T),
+    request.validate = (
+      inputSchema: ZodAny | AjvCompileParams[0],
       safe: boolean = false,
-    ): z.infer<T> => {
-      if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(z);
-      }
-
-      return validateSchema(inputSchema, request.body || {}, safe);
+    ): any => {
+      return Request.compileAndValidate(inputSchema, request.body || {}, safe);
     };
 
-    request.validateQuery = <T extends ZodType>(
-      inputSchema: T | ((schema: typeof z) => T),
+    request.validateQuery = (
+      inputSchema: ZodAny | AjvCompileParams[0],
       safe: boolean = false,
-    ): z.infer<T> => {
-      if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(z);
-      }
-
-      return validateSchema(inputSchema, request.query || {}, safe);
+    ): any => {
+      return Request.compileAndValidate(inputSchema, request.query || {}, safe);
     };
 
-    request.validateAll = <T extends ZodType>(
-      inputSchema: T | ((schema: typeof z) => T),
+    request.validateAll = (
+      inputSchema: ZodAny | AjvCompileParams[0],
       safe: boolean = false,
-    ): z.infer<T> => {
-      if (typeof inputSchema === "function") {
-        inputSchema = inputSchema(z);
-      }
-
-      return validateSchema(
+    ): any => {
+      return Request.compileAndValidate(
         inputSchema,
         {
           ...(request.body ? { body: request.body } : {}),
@@ -198,46 +259,38 @@ export class Request<
 
   /**
    * The validated body of the request.
-   * @param inputSchema - The schema to validate the body against.
+   * @param inputSchema - The schema to validate the body against (Zod schema or JSON Schema).
    * @param safe - If true, the function will return the original body if the validation fails instead of throwing an error.
    */
-  validate<T extends ZodType>(
-    inputSchema: T | ((schema: typeof z) => T),
+  validate(
+    inputSchema: ZodAny | AjvCompileParams[0],
     safe: boolean = false,
-  ): z.infer<T> {
-    if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(z);
-    }
-
-    return validateSchema(inputSchema, this.body || {}, safe);
+  ): any {
+    return Request.compileAndValidate(inputSchema, this.body || {}, safe);
   }
 
   /**
    * Validates the query string of the request.
+   * @param inputSchema - The schema to validate the query against (Zod schema or JSON Schema).
+   * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
    */
-  validateQuery<T extends ZodType>(
-    inputSchema: T | ((schema: typeof z) => T),
+  validateQuery(
+    inputSchema: ZodAny | AjvCompileParams[0],
     safe: boolean = false,
-  ): z.infer<T> {
-    if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(z);
-    }
-
-    return validateSchema(inputSchema, this.query || {}, safe);
+  ): any {
+    return Request.compileAndValidate(inputSchema, this.query || {}, safe);
   }
 
   /**
    * Validates the body and query string of the request.
+   * @param inputSchema - The schema to validate against (Zod schema or JSON Schema).
+   * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
    */
-  validateAll<T extends ZodType>(
-    inputSchema: T | ((schema: typeof z) => T),
+  validateAll(
+    inputSchema: ZodAny | AjvCompileParams[0],
     safe: boolean = false,
-  ): z.infer<T> {
-    if (typeof inputSchema === "function") {
-      inputSchema = inputSchema(z);
-    }
-
-    return validateSchema(
+  ): any {
+    return Request.compileAndValidate(
       inputSchema,
       {
         ...(this.body ?? {}),

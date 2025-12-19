@@ -1,4 +1,5 @@
 import type { ZodType } from "zod";
+import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
 export interface CustomValidationError {
   status?: number;
@@ -7,17 +8,17 @@ export interface CustomValidationError {
 
 export interface ValidationOptions {
   /**
-   * The schema to validate the request body against
+   * The schema to validate the request body against (Zod schema or OpenAPI schema)
    */
-  body?: ZodType;
+  body?: ZodType | AjvCompileParams[0];
   /**
-   * The schema to validate the query parameters against
+   * The schema to validate the query parameters against (Zod schema or OpenAPI schema)
    */
-  query?: ZodType;
+  query?: ZodType | AjvCompileParams[0];
   /**
-   * The schema to validate both body and query against
+   * The schema to validate both body and query against (Zod schema or OpenAPI schema)
    */
-  all?: ZodType;
+  all?: ZodType | AjvCompileParams[0];
   /**
    * Whether to use safe validation (returns original data if validation fails instead of throwing)
    * @default false

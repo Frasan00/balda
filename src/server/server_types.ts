@@ -35,6 +35,7 @@ import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import type { ClientRouter } from "./router/router_type.js";
+import type { Ajv } from "ajv";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -102,6 +103,16 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   graphql?: GraphQLOptions;
+  /**
+   * The ajv instance to use for the server for validation, by default a global instance is used, you can pass a custom instance to use for the server
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   ajvInstance: new Ajv(),
+   * });
+   * ```
+   */
+  ajvInstance?: Ajv;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */

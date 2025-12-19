@@ -1,5 +1,6 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { glob } from "glob";
+import { AjvStateManager } from "../ajv/ajv.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
@@ -122,6 +123,10 @@ export class Server<H extends NodeHttpClient = NodeHttpClient>
       useBodyParser: options?.useBodyParser ?? true,
       graphql: options?.graphql ?? undefined,
     };
+
+    if (options?.ajvInstance) {
+      AjvStateManager.setGlobalInstance(options.ajvInstance);
+    }
 
     this.httpsOptions =
       options?.nodeHttpClient === "https" ||

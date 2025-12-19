@@ -1,11 +1,13 @@
-import { ZodError, type ZodType } from "zod";
+import type { ZodType } from "zod";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
 import type {
   CustomValidationError,
   ValidationOptions,
 } from "./validate_types.js";
+import { AjvCompileParams } from "../../ajv/ajv_types.js";
 
 /**
  * Decorator to validate request data using Zod schemas.
@@ -41,6 +43,9 @@ import type {
 const validateDecorator = (
   options: ValidationOptions & { customError?: CustomValidationError },
 ) => {
+  // Schemas will be compiled lazily on first request via Request.compileAndValidate
+  // This avoids compilation errors at decorator evaluation time
+
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
 
@@ -102,7 +107,10 @@ const validateDecorator = (
 
         return originalMethod.apply(this, newArgs);
       } catch (error) {
-        if (!(error instanceof ZodError)) {
+        const zod = await ZodLoader.load();
+        const isZodError = error instanceof zod.ZodError;
+
+        if (!isZodError) {
           throw error;
         }
 
@@ -123,36 +131,36 @@ const validateDecorator = (
 };
 
 /**
- * Decorator to validate the query parameters against a TypezodBox schema
- * @param schema - The zod schema to validate the query parameters against
+ * Decorator to validate the query parameters against a Zod schema or OpenAPI schema
+ * @param schema - The Zod schema or OpenAPI schema to validate the query parameters against
  * @returns The decorator function
  */
 validateDecorator.query = (
-  schema: ZodType,
+  schema: ZodType | AjvCompileParams[0],
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ query: schema, customError });
 };
 
 /**
- * Decorator to validate the request body against a zod schema
- * @param schema - The zod schema to validate the request body against
+ * Decorator to validate the request body against a Zod schema
+ * @param schema - The Zod schema to validate the request body against
  * @returns The decorator function
  */
 validateDecorator.body = (
-  schema: ZodType,
+  schema: ZodType | AjvCompileParams[0],
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ body: schema, customError });
 };
 
 /**
- * Decorator to validate both the request body and query parameters against a zod schema
- * @param schema - The zod schema to validate both the request body and query parameters against
+ * Decorator to validate both the request body and query parameters against a Zod schema
+ * @param schema - The Zod schema to validate both the request body and query parameters against
  * @returns The decorator function
  */
 validateDecorator.all = (
-  schema: ZodType,
+  schema: ZodType | AjvCompileParams[0],
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ all: schema, customError });
