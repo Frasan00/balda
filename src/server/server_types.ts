@@ -1,26 +1,27 @@
 import type { RequestHandler } from "express";
-import type { CronService } from "../cron/cron.js";
+import type { GraphQLOptions } from "../graphql/graphql_types.js";
 import type { MockServer } from "../mock/mock_server.js";
+import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
+import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
+import type { CorsOptions } from "../plugins/cors/cors_types.js";
 import type { ExpressRouter } from "../plugins/express/express_types.js";
 import type { FilePluginOptions } from "../plugins/file/file_types.js";
 import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
+import type { JsonOptions } from "../plugins/json/json_options.js";
 import type { LogOptions } from "../plugins/log/log_types.js";
+import type { MethodOverrideOptions } from "../plugins/method_override/method_override_types.js";
 import type {
   RateLimiterKeyOptions,
   StorageOptions,
 } from "../plugins/rate_limiter/rate_limiter_types.js";
 import type { SessionOptions } from "../plugins/session/session_types.js";
 import type { StaticPluginOptions } from "../plugins/static/static_types.js";
+import type { swagger } from "../plugins/swagger/swagger.js";
 import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
 import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
-import type { ClientRouter } from "./router/router_type.js";
-import { SyncOrAsync } from "../type_util.js";
-import type { CorsOptions } from "../plugins/cors/cors_types.js";
-import type { JsonOptions } from "../plugins/json/json_options.js";
-import type { swagger } from "../plugins/swagger/swagger.js";
 import type {
   HttpsOptions,
   RuntimeServerMap,
@@ -29,14 +30,11 @@ import type {
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types.js";
+import { SyncOrAsync } from "../type_util.js";
 import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
-import type { MethodOverrideOptions } from "../plugins/method_override/method_override_types.js";
-import type { CompressionOptions } from "../plugins/compression/compression_types.js";
-import type { GraphQLOptions } from "../graphql/graphql_types.js";
-import { GraphQL } from "../graphql/graphql.js";
-import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
+import type { ClientRouter } from "./router/router_type.js";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -355,41 +353,6 @@ export interface ServerInterface {
    * ```
    */
   exit: (code?: number) => void;
-
-  /**
-   * Sets the global cron error handler
-   * @param globalErrorHandler - The global cron error handler
-   */
-  setGlobalCronErrorHandler: (
-    globalErrorHandler: (
-      ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
-    ) => void,
-
-    /**
-     * The graphql handler to apply to the server
-     */
-    graphql: GraphQL,
-  ) => void;
-
-  /**
-   * Starts the registered cron jobs
-   * @param cronJobPatterns - The cron job patterns to that will be imported and registered before starting the cron jobs
-   * @param onStart - The callback to be called when the cron jobs are started
-   */
-  startRegisteredCrons: (
-    cronJobPatterns?: string[],
-    onStart?: () => void,
-  ) => Promise<void>;
-
-  /**
-   * Starts the registered queue handlers
-   * @param queueHandlerPatterns - The queue handler patterns to import and register before starting
-   * @param onStart - The callback to be called after subscribers are started
-   */
-  startRegisteredQueues: (
-    queueHandlerPatterns?: string[],
-    onStart?: () => void,
-  ) => Promise<void>;
 }
 
 export type StandardMethodOptions = {

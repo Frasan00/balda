@@ -1,9 +1,9 @@
-import { defineQueueConfiguration } from "../../src/index.js";
+import { defineQueueConfiguration, QueueService } from "../../src/index.js";
 import { publish } from "../../src/queue/pub.js";
 import { Server } from "../../src/server/server.js";
 import { CustomPubSub } from "./schedules/custom.js";
-import "./schedules/custom.js";
 
+// Configure queue providers
 defineQueueConfiguration({
   bullmq: {
     connection: {
@@ -27,19 +27,25 @@ defineQueueConfiguration({
   custom: new CustomPubSub(),
 });
 
+// Import queue handlers from glob patterns
+await QueueService.massiveImportQueues(["test/queue/schedules/**/*.ts"]);
+
+// Start queue subscribers
+await QueueService.run();
+
+console.log("Queues started");
+
+// Publish test messages
+await publish.bullmq("test", { name: "test" });
+await publish.sqs("test", { name: "test" });
+await publish.pgboss("test", { name: "test" });
+await publish("custom", "test", { name: "test" });
+
+// Optional: Start HTTP server if needed
 const server = new Server({
   port: 3000,
   host: "0.0.0.0",
 });
-
-server.startRegisteredQueues(["test/queue/schedules/**/*.ts"], () =>
-  console.log("Queues started"),
-);
-
-publish.bullmq("test", { name: "test" });
-publish.sqs("test", { name: "test" });
-publish.pgboss("test", { name: "test" });
-publish("custom", "test", { name: "test" });
 
 server.listen(() => {
   console.log("Server is listening on port 3000");

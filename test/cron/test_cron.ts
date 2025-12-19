@@ -1,4 +1,4 @@
-import { cron } from "../../src/cron/decorator/cron_decorator";
+import { cron } from "../../src/cron/decorator/cron_decorator.js";
 
 export class TestCron {
   @cron("*/2 * * * * *")

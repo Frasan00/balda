@@ -16,6 +16,7 @@ import_map.json
 .nvmrc
 .env*
 elasticmq.conf
+mosquitto.conf
 
 # Development tools
 .prettierrc

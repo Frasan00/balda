@@ -1,20 +1,31 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { glob } from "glob";
-import { CronService } from "../cron/cron.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
 import { GraphQL } from "../graphql/graphql.js";
+import { logger } from "../logger/logger.js";
 import { MockServer } from "../mock/mock_server.js";
+import { asyncLocalStorage } from "../plugins/async_local_storage/async_local_storage.js";
+import type { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
+import { bodyParser } from "../plugins/body_parser/body_parser.js";
 import { compression } from "../plugins/compression/compression.js";
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import { cookie } from "../plugins/cookie/cookie.js";
 import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
+import { cors } from "../plugins/cors/cors.js";
+import type { CorsOptions } from "../plugins/cors/cors_types.js";
 import {
   createExpressAdapter,
   expressMiddleware,
   mountExpressRouter,
 } from "../plugins/express/express.js";
+import { fileParser } from "../plugins/file/file.js";
+import type { FilePluginOptions } from "../plugins/file/file_types.js";
+import { helmet } from "../plugins/helmet/helmet.js";
+import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
+import { json } from "../plugins/json/json.js";
+import type { JsonOptions } from "../plugins/json/json_options.js";
 import { log } from "../plugins/log/log.js";
 import type { LogOptions } from "../plugins/log/log_types.js";
 import { methodOverride } from "../plugins/method_override/method_override.js";
@@ -26,6 +37,9 @@ import type {
 } from "../plugins/rate_limiter/rate_limiter_types.js";
 import { session } from "../plugins/session/session.js";
 import type { SessionOptions } from "../plugins/session/session_types.js";
+import { serveStatic } from "../plugins/static/static.js";
+import type { StaticPluginOptions } from "../plugins/static/static_types.js";
+import { swagger } from "../plugins/swagger/swagger.js";
 import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import { timeout as timeoutMw } from "../plugins/timeout/timeout.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
@@ -33,26 +47,10 @@ import { trustProxy } from "../plugins/trust_proxy/trust_proxy.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
 import { urlencoded } from "../plugins/urlencoded/urlencoded.js";
 import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
-import { QueueService } from "../queue/queue_service.js";
+import { nativeCwd } from "../runtime/native_cwd.js";
 import { NativeEnv } from "../runtime/native_env.js";
 import { nativeFs } from "../runtime/native_fs.js";
 import { hash as nativeHash } from "../runtime/native_hash.js";
-import type { ClientRouter, Route } from "./router/router_type.js";
-import type { SyncOrAsync } from "../type_util.js";
-import { logger } from "../logger/logger.js";
-import { bodyParser } from "../plugins/body_parser/body_parser.js";
-import { cors } from "../plugins/cors/cors.js";
-import type { CorsOptions } from "../plugins/cors/cors_types.js";
-import { fileParser } from "../plugins/file/file.js";
-import type { FilePluginOptions } from "../plugins/file/file_types.js";
-import { helmet } from "../plugins/helmet/helmet.js";
-import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
-import { json } from "../plugins/json/json.js";
-import type { JsonOptions } from "../plugins/json/json_options.js";
-import { serveStatic } from "../plugins/static/static.js";
-import type { StaticPluginOptions } from "../plugins/static/static_types.js";
-import { swagger } from "../plugins/swagger/swagger.js";
-import { nativeCwd } from "../runtime/native_cwd.js";
 import { nativePath } from "../runtime/native_path.js";
 import { ServerConnector } from "../runtime/native_server/server_connector.js";
 import type {
@@ -64,7 +62,9 @@ import type {
   ServerTapOptions,
 } from "../runtime/native_server/server_types.js";
 import { runtime } from "../runtime/runtime.js";
+import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
+import type { ClientRouter, Route } from "./router/router_type.js";
 import { PROTECTED_KEYS } from "./server_constants.js";
 import type {
   NodeHttpClient,
@@ -76,8 +76,6 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
-import { asyncLocalStorage } from "../plugins/async_local_storage/async_local_storage.js";
-import type { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -495,47 +493,8 @@ export class Server<H extends NodeHttpClient = NodeHttpClient>
    * });
    */
   setNotFoundHandler(notFoundHandler?: ServerRouteHandler): void {
-    this.notFoundHandler = notFoundHandler;
+    this.notFoundHandler = notFoundHandler?.bind(this);
   }
-
-  setGlobalCronErrorHandler(
-    globalErrorHandler: (
-      ...args: Parameters<(typeof CronService)["globalErrorHandler"]>
-    ) => void,
-  ): void {
-    CronService.globalErrorHandler = globalErrorHandler;
-  }
-
-  startRegisteredCrons = async (
-    cronJobPatterns?: string[],
-    onStart?: () => void,
-  ) => {
-    if (cronJobPatterns?.length) {
-      await CronService.massiveImportCronJobs(cronJobPatterns);
-    }
-
-    CronService.run().then(() => {
-      onStart?.();
-    });
-  };
-
-  /**
-   * Starts the registered queue handlers
-   * @param queueHandlerPatterns - The queue handler patterns to import and register before starting
-   * @param onStart - The callback to be called after subscribers are started
-   */
-  startRegisteredQueues = async (
-    queueHandlerPatterns?: string[],
-    onStart?: () => void,
-  ) => {
-    if (queueHandlerPatterns?.length) {
-      await QueueService.massiveImportQueues(queueHandlerPatterns);
-    }
-
-    QueueService.run().then(() => {
-      onStart?.();
-    });
-  };
 
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {

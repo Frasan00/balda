@@ -9,34 +9,44 @@ services:
     env_file:
       - .env.test
     volumes:
-      - './.localstack:/var/lib/localstack'
-      - '/var/run/docker.sock:/var/run/docker.sock'
+      - "./.localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - local-network
+
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: balda-js-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
     networks:
       - local-network
 
   azurite:
-      image: mcr.microsoft.com/azure-storage/azurite:latest
-      container_name: balda-js-azurite-blob
-      restart: unless-stopped
-      ports:
-        - "10000:10000"  # Blob service
-      volumes:
-        - azurite_data:/data
-      command: >
-        azurite-blob
-        --blobHost 0.0.0.0
-        --blobPort 10000
-        --location /data
-        --loose
-      environment:
-        - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:10000/devstoreaccount1/"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-      networks:
-        - local-network
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: balda-js-azurite-blob
+    restart: unless-stopped
+    ports:
+      - "10000:10000" # Blob service
+    volumes:
+      - azurite_data:/data
+    command: >
+      azurite-blob
+      --blobHost 0.0.0.0
+      --blobPort 10000
+      --location /data
+      --loose
+    environment:
+      - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/devstoreaccount1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - local-network
 
 volumes:
   azurite_data:

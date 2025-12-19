@@ -1,6 +1,6 @@
 {
   "name": "balda-js",
-  "version": "0.0.83",
+  "version": "0.0.84",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -35,10 +35,7 @@
     "test:all": "yarn test && yarn test:bun && yarn test:deno",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "prepare": "husky",
-    "docs:dev": "cd docs && yarn start",
-    "docs:build": "cd docs && yarn build",
-    "docs:serve": "cd docs && yarn serve"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@adminjs/express": "^6.1.1",
@@ -69,6 +66,7 @@
     "husky": "^9.1.7",
     "ioredis": "^5.8.1",
     "lint-staged": "^16.1.2",
+    "mqtt": "^5.14.1",
     "node-cron": "^4.2.1",
     "node-gyp": "^11.2.0",
     "pg": "^8.16.3",
@@ -93,6 +91,12 @@
     "zod": "^4.2.1"
   },
   "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.952.0",
+    "@aws-sdk/client-sqs": "^3.911.0",
+    "@aws-sdk/cloudfront-signer": "^3.946.0",
+    "@aws-sdk/s3-presigned-post": "^3.952.0",
+    "@aws-sdk/s3-request-presigner": "^3.952.0",
+    "@azure/storage-blob": "^12.29.1",
     "bullmq": "^5.61.0",
     "esbuild": "^0.27.1",
     "esbuild-plugin-copy": "^2.1.1",
@@ -103,12 +107,7 @@
     "pg": "^8.16.3",
     "pg-boss": "^11.1.1",
     "sqs-consumer": "^14.0.1",
-    "@aws-sdk/client-s3": "^3.952.0",
-    "@aws-sdk/client-sqs": "^3.911.0",
-    "@aws-sdk/cloudfront-signer": "^3.946.0",
-    "@aws-sdk/s3-presigned-post": "^3.952.0",
-    "@aws-sdk/s3-request-presigner": "^3.952.0",
-    "@azure/storage-blob": "^12.29.1"
+    "mqtt": "^5.14.1"
   },
   "peerDependenciesMeta": {
     "bullmq": {
@@ -157,6 +156,9 @@
       "optional": true
     },
     "@azure/storage-blob": {
+      "optional": true
+    },
+    "mqtt": {
       "optional": true
     }
   },

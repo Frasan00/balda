@@ -1,6 +1,10 @@
-import { server } from "../server/instance.js";
+import { CronService } from "../../src/cron/cron.js";
 import "./test_cron_imported.js";
 
-server.startRegisteredCrons(["./test/cron/test_cron.ts"], () => {
-  console.log("cron started");
-});
+// Import cron jobs from glob patterns
+await CronService.massiveImportCronJobs(["test/cron/test_cron.ts"]);
+
+// Start the cron scheduler
+await CronService.run();
+
+console.log("Cron started");
