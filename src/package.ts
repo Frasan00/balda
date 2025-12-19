@@ -3,6 +3,33 @@ import * as readline from "node:readline";
 import { nativeFs } from "./runtime/native_fs.js";
 import { nativePath } from "./runtime/native_path.js";
 
+/**
+ * Check if packages are already installed in node_modules
+ */
+export const getUninstalledPackages = async (
+  packages: string[],
+): Promise<string[]> => {
+  const nodeModulesPath = nativePath.join(process.cwd(), "node_modules");
+  const hasNodeModules = await nativeFs.exists(nodeModulesPath);
+
+  if (!hasNodeModules) {
+    return packages;
+  }
+
+  const uninstalled: string[] = [];
+
+  for (const pkg of packages) {
+    const pkgPath = nativePath.join(nodeModulesPath, pkg);
+    const isInstalled = await nativeFs.exists(pkgPath);
+
+    if (!isInstalled) {
+      uninstalled.push(pkg);
+    }
+  }
+
+  return uninstalled;
+};
+
 export const getPackageManager = async (): Promise<
   [string, string, string]
 > => {

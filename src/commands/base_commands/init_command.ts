@@ -1,6 +1,11 @@
 import { flag } from "../../decorators/command/flag.js";
-import { getPackageManager, execWithPrompt } from "../../package.js";
+import {
+  execWithPrompt,
+  getPackageManager,
+  getUninstalledPackages,
+} from "../../package.js";
 import { nativeFs } from "../../runtime/native_fs.js";
+import { nativePath } from "../../runtime/native_path.js";
 import { Command } from "../base_command.js";
 
 export default class InitCommand extends Command {
@@ -33,6 +38,24 @@ export default class InitCommand extends Command {
   })
   static typescript: boolean;
 
+  @flag.boolean({
+    description: "Initialize MQTT service connection",
+    aliases: "m",
+    name: "mqtt",
+    required: false,
+    defaultValue: false,
+  })
+  static mqtt: boolean;
+
+  @flag.boolean({
+    description: "Initialize Cron service",
+    aliases: "c",
+    name: "cron",
+    required: false,
+    defaultValue: false,
+  })
+  static cron: boolean;
+
   static devDependencies: string[] = [
     "esbuild",
     "esbuild-plugin-copy",
@@ -47,20 +70,88 @@ export default class InitCommand extends Command {
 
     // if the package manager is npm, yarn or pnpm, install the dev dependencies since we're on node.js
     if (["npm", "yarn", "pnpm"].includes(packageManager)) {
-      const installed = await execWithPrompt(
-        `${packageManager} ${packageManagerCommand} ${this.devDependencies.join(" ")} -${devDependenciesCommand}`,
-        packageManager,
+      const uninstalledDevDeps = await getUninstalledPackages(
         this.devDependencies,
-        {
-          stdio: "inherit",
-        },
       );
 
-      if (!installed) {
+      if (uninstalledDevDeps.length) {
         this.logger.info(
-          "Installation cancelled by user. Project initialization aborted.",
+          `Found ${uninstalledDevDeps.length} missing dev dependencies`,
         );
-        return;
+        const installed = await execWithPrompt(
+          `${packageManager} ${packageManagerCommand} ${uninstalledDevDeps.join(" ")} -${devDependenciesCommand}`,
+          packageManager,
+          uninstalledDevDeps,
+          {
+            stdio: "inherit",
+          },
+        );
+
+        if (!installed) {
+          this.logger.info(
+            "Installation cancelled by user. Project initialization aborted.",
+          );
+          return;
+        }
+      }
+
+      if (!uninstalledDevDeps.length) {
+        this.logger.info("All dev dependencies are already installed");
+      }
+    }
+
+    // Handle optional service dependencies
+    if (this.mqtt && ["npm", "yarn", "pnpm"].includes(packageManager)) {
+      const uninstalledMqtt = await getUninstalledPackages(["mqtt"]);
+
+      if (uninstalledMqtt.length) {
+        const mqttInstalled = await execWithPrompt(
+          `${packageManager} ${packageManagerCommand} mqtt`,
+          packageManager,
+          ["mqtt"],
+          {
+            stdio: "inherit",
+          },
+          false,
+        );
+
+        if (!mqttInstalled) {
+          this.logger.info(
+            "MQTT installation cancelled by user. Skipping MQTT scaffolding.",
+          );
+          this.mqtt = false;
+        }
+      }
+
+      if (!uninstalledMqtt.length) {
+        this.logger.info("MQTT package is already installed");
+      }
+    }
+
+    if (this.cron && ["npm", "yarn", "pnpm"].includes(packageManager)) {
+      const uninstalledCron = await getUninstalledPackages(["node-cron"]);
+
+      if (uninstalledCron.length > 0) {
+        const cronInstalled = await execWithPrompt(
+          `${packageManager} ${packageManagerCommand} node-cron`,
+          packageManager,
+          ["node-cron"],
+          {
+            stdio: "inherit",
+          },
+          false,
+        );
+
+        if (!cronInstalled) {
+          this.logger.info(
+            "node-cron installation cancelled by user. Skipping Cron scaffolding.",
+          );
+          this.cron = false;
+        }
+      }
+
+      if (!uninstalledCron.length) {
+        this.logger.info("node-cron package is already installed");
       }
     }
 
@@ -84,6 +175,36 @@ export default class InitCommand extends Command {
       new TextEncoder().encode(indexTemplate),
     );
 
+    // Create MQTT configuration if requested
+    if (this.mqtt) {
+      const mqttDir = nativePath.join(this.srcPath, "mqtt");
+      if (!(await nativeFs.exists(mqttDir))) {
+        await nativeFs.mkdir(mqttDir, { recursive: true });
+      }
+
+      const mqttConfigTemplate = this.getMqttConfigTemplate();
+      this.logger.info(`Creating mqtt/mqtt.config.${ext} file...`);
+      await nativeFs.writeFile(
+        nativePath.join(mqttDir, `mqtt.config.${ext}`),
+        new TextEncoder().encode(mqttConfigTemplate),
+      );
+    }
+
+    // Create Cron configuration if requested
+    if (this.cron) {
+      const cronDir = nativePath.join(this.srcPath, "cron");
+      if (!(await nativeFs.exists(cronDir))) {
+        await nativeFs.mkdir(cronDir, { recursive: true });
+      }
+
+      const cronConfigTemplate = this.getCronConfigTemplate();
+      this.logger.info(`Creating cron/cron.config.${ext} file...`);
+      await nativeFs.writeFile(
+        nativePath.join(cronDir, `cron.config.${ext}`),
+        new TextEncoder().encode(cronConfigTemplate),
+      );
+    }
+
     this.logger.info(`Project initialized successfully!`);
   }
 
@@ -105,11 +226,55 @@ export { serverInstance as server };
   }
 
   static getIndexTemplate() {
-    return `import { server } from "./server.js";
+    const imports: string[] = ['import { server } from "./server.js";'];
+    const services: string[] = [];
 
+    if (this.mqtt) {
+      imports.push('import "./mqtt/mqtt.config.js";');
+      imports.push('import { MqttService } from "balda-js";');
+      services.push(`
+  // Initialize MQTT service
+  await MqttService.connect({
+    host: "localhost",
+    port: 1883,
+    protocol: "mqtt",
+  });
+  console.log("MQTT service connected");`);
+    }
+
+    if (this.cron) {
+      imports.push('import "./cron/cron.config.js";');
+      imports.push('import { CronService } from "balda-js";');
+      services.push(`
+  // Initialize Cron service
+  await CronService.run();
+  console.log("Cron service started");`);
+    }
+
+    const importsBlock = imports.join("\n");
+    const servicesBlock = services.length > 0 ? services.join("\n") : "";
+
+    return `${importsBlock}
+${servicesBlock ? `\n${servicesBlock}\n` : ""}
 server.listen(({ url }) => {
   console.log(\`Server is running on \${url}\`);
 });
+`;
+  }
+
+  static getMqttConfigTemplate() {
+    return `// MQTT Configuration
+// This file is imported to set up MQTT connection options
+// Add your MQTT handlers in separate files within this directory
+// Use: npx balda generate-mqtt <handler-name> to create new handlers
+`;
+  }
+
+  static getCronConfigTemplate() {
+    return `// Cron Configuration
+// This file is imported to set up Cron jobs
+// Add your cron jobs in separate files within this directory
+// Use: npx balda generate-cron <job-name> to create new cron jobs
 `;
   }
 }
