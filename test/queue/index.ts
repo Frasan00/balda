@@ -17,7 +17,7 @@ defineQueueConfiguration({
     client: { region: "us-east-1" },
     consumer: {
       queueUrlMap: {
-        test: "http://localhost:9324/queue/balda-js-development-test",
+        test: "http://localhost:9324/queue/balda-development-test",
       },
     },
   },

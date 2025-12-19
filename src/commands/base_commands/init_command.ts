@@ -13,7 +13,7 @@ export default class InitCommand extends Command {
   static description =
     "Initialize a new balda project in the current directory";
   static help = [
-    "Initialize a new balda project, it is given for granted that balda-js is installed in the project as a dependency",
+    "Initialize a new balda project, it is given for granted that balda is installed in the project as a dependency",
     "All the files are created in the /src directory (created if not exists)",
     "It adds a server.ts for the file instance and a index.ts for the entry point with a dummy hello world route",
     "Example: npx balda init -p ./src -t true",
@@ -209,7 +209,7 @@ export default class InitCommand extends Command {
   }
 
   static getServerTemplate() {
-    return `import { Server } from "balda-js";
+    return `import { Server } from "balda";
 
 const serverInstance = new Server({
   port: 80,
@@ -231,7 +231,7 @@ export { serverInstance as server };
 
     if (this.mqtt) {
       imports.push('import "./mqtt/mqtt.config.js";');
-      imports.push('import { MqttService } from "balda-js";');
+      imports.push('import { MqttService } from "balda";');
       services.push(`
   // Initialize MQTT service
   await MqttService.connect({
@@ -244,7 +244,7 @@ export { serverInstance as server };
 
     if (this.cron) {
       imports.push('import "./cron/cron.config.js";');
-      imports.push('import { CronService } from "balda-js";');
+      imports.push('import { CronService } from "balda";');
       services.push(`
   // Initialize Cron service
   await CronService.run();

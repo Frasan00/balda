@@ -3,7 +3,7 @@ import { logger } from "../logger/logger.js";
 /**
  * Base class for MQTT handlers with logger instance
  * @example
- * declare module "balda-js" {
+ * declare module "balda" {
  *   export interface BaseMqtt {
  *     logger: Logger;
  *   }

@@ -51,7 +51,7 @@ publishFactory.pgboss = async <T extends QueueTopicKey>(
 };
 
 /**
- * Main publisher for balda-js queue, has shortcuts for base providers, e.g. `publish.bullmq`
+ * Main publisher for balda queue, has shortcuts for base providers, e.g. `publish.bullmq`
  * @param provider - The provider to use
  * @param topic - The topic to publish to
  * @param payload - The payload to publish

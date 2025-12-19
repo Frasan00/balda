@@ -1,6 +1,6 @@
 {
-  "name": "balda-js",
-  "version": "0.0.85",
+  "name": "balda",
+  "version": "0.0.01",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -12,7 +12,7 @@
       "require": "./lib/index.cjs"
     }
   },
-  "repository": "git@github.com:Frasan00/balda-js.git",
+  "repository": "git@github.com:Frasan00/balda.git",
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
   "scripts": {

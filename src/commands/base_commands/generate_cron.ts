@@ -49,7 +49,7 @@ export default class GenerateCron extends Command {
   }
 
   static getCronTemplate() {
-    return `import { BaseCron, cron } from "balda-js";
+    return `import { BaseCron, cron } from "balda";
 
 export default class extends BaseCron {
   @cron("* * * * *")

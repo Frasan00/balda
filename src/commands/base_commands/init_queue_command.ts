@@ -129,7 +129,7 @@ export default class InitQueueCommand extends Command {
   }
 
   static getBullMQTemplate(): string {
-    return `import { defineBullMQConfiguration } from "balda-js";
+    return `import { defineBullMQConfiguration } from "balda";
 
 defineBullMQConfiguration({
   connection: {
@@ -152,7 +152,7 @@ defineBullMQConfiguration({
   }
 
   static getSQSTemplate(): string {
-    return `import { defineSQSConfiguration } from "balda-js";
+    return `import { defineSQSConfiguration } from "balda";
 
 defineSQSConfiguration({
   client: {
@@ -179,7 +179,7 @@ defineSQSConfiguration({
   }
 
   static getPGBossTemplate(): string {
-    return `import { definePGBossConfiguration } from "balda-js";
+    return `import { definePGBossConfiguration } from "balda";
 
 definePGBossConfiguration({
   connectionString:

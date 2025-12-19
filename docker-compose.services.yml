@@ -1,7 +1,7 @@
 services:
   redis:
     image: redis:7.0
-    container_name: balda-js-redis
+    container_name: balda-redis
     restart: unless-stopped
     tty: true
     ports:
@@ -10,7 +10,7 @@ services:
 
   sqs:
     image: softwaremill/elasticmq
-    container_name: balda-js-sqs
+    container_name: balda-sqs
     ports:
       - "9324:9324" # API
       - "9325:9325" # UI
@@ -21,7 +21,7 @@ services:
 
   postgres:
     image: postgres:17.4
-    container_name: balda-js-postgres
+    container_name: balda-postgres
     restart: unless-stopped
     tty: true
     ports:

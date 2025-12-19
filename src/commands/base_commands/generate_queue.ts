@@ -68,13 +68,13 @@ export default class GenerateQueueCommand extends Command {
   }
 
   static getQueueTemplate(isValidLiteral: boolean) {
-    return `import { BaseQueue, queue } from "balda-js";
+    return `import { BaseQueue, queue } from "balda";
 
 export type Payload = {
   // Add your payload here
 };
 
-declare module "balda-js" {
+declare module "balda" {
   export interface QueueTopic {
     ${isValidLiteral ? this.queueName : `'${this.queueName}'`}: Payload;
   }

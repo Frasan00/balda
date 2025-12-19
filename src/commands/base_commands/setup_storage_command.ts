@@ -182,7 +182,7 @@ export default class SetupStorageCommand extends Command {
 
   private static getConfigTemplate(storageType: string): string {
     const templates: Record<string, string> = {
-      s3: `import { Storage, S3StorageProvider } from "balda-js";
+      s3: `import { Storage, S3StorageProvider } from "balda";
 
 /**
  * S3 Storage Configuration
@@ -223,7 +223,7 @@ export const storage = new Storage(
   },
 );
 `,
-      azure: `import { Storage, AzureBlobStorageProvider } from "balda-js";
+      azure: `import { Storage, AzureBlobStorageProvider } from "balda";
 
 /**
  * Azure Blob Storage Configuration
@@ -249,7 +249,7 @@ export const storage = new Storage(
   },
 );
 `,
-      local: `import { Storage, LocalStorageProvider } from "balda-js";
+      local: `import { Storage, LocalStorageProvider } from "balda";
 
 /**
  * Local Storage Configuration

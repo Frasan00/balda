@@ -9,7 +9,7 @@ import { Ajv } from "ajv";
  *
  * ```typescript
  * import { Ajv } from 'ajv';
- * import { AjvStateManager } from 'balda-js';
+ * import { AjvStateManager } from 'balda';
  *
  * const customAjv = new Ajv({
  *   validateSchema: false, // Required - must be false

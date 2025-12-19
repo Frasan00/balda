@@ -1,4 +1,4 @@
-# Balda.js
+# Balda
 
 A **cross-runtime, FastAPI-inspired Node.js backend framework** that aims to work seamlessly across **Node.js**, **Bun**, and **Deno** runtimes. Built with TypeScript and designed for modern web development.
 
@@ -15,11 +15,11 @@ A **cross-runtime, FastAPI-inspired Node.js backend framework** that aims to wor
 ## Quick Start
 
 ```bash
-npm install balda-js
+npm install balda
 ```
 
 ```typescript
-import { Server, controller, get } from 'balda-js';
+import { Server, controller, get } from 'balda';
 
 @controller('/api')
 class ApiController {
@@ -35,7 +35,7 @@ server.listen();
 
 ## Documentation
 
-Visit the comprehensive documentation: **[https://frasan00.github.io/balda-js/](https://frasan00.github.io/balda-js/)**
+Visit the comprehensive documentation: **[https://frasan00.github.io/balda/](https://frasan00.github.io/balda/)**
 
 ## ⚠️ Development Status
 

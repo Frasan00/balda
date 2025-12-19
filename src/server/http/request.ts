@@ -148,7 +148,7 @@ export class Request<
    * @asyncLocalStorage middleware is required
    * @example
    * ```ts
-   * declare module "balda-js" {
+   * declare module "balda" {
    *   interface AsyncLocalStorageContext {
    *     userId: string;
    *   }

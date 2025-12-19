@@ -56,12 +56,12 @@ export default class GenerateMqttCommand extends Command {
   }
 
   static getMqttTemplate(isValidLiteral: boolean) {
-    return `import { BaseMqtt, mqtt } from "balda-js";
+    return `import { BaseMqtt, mqtt } from "balda";
 
 /**
  * Define your MQTT topics interface for type safety
  */
-declare module "balda-js" {
+declare module "balda" {
   interface MqttTopics {
     ${isValidLiteral ? `${this.topic}: string;` : `'${this.topic}': string;`}
   }

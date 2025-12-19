@@ -360,7 +360,7 @@ export const setMqttGlobalErrorHandler = (
 /**
  * Singleton instance for publishing MQTT messages
  * @example
- * import { mqtt } from 'balda-js';
+ * import { mqtt } from 'balda';
  *
  * await mqtt.publish('home/temperature', { value: 23.5, unit: 'C' }, { qos: 1 });
  */

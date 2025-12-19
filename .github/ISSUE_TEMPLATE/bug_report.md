@@ -41,7 +41,7 @@ What actually happened.
 
 ## Environment
 
-- **Balda.js Version**: [e.g., 0.0.58]
+- **Balda Version**: [e.g., 0.0.58]
 - **Runtime**: [e.g., Node.js 22.0.0 / Bun 1.0.0 / Deno 2.0.0]
 - **Operating System**: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
 - **TypeScript Version**: [e.g., 5.8.3]

@@ -55,7 +55,7 @@ export default class GeneratePluginCommand extends Command {
   }
 
   static getPluginTemplate() {
-    return `import { BasePlugin, Request, Response, NextFunction, ServerRouteMiddleware } from "balda-js";
+    return `import { BasePlugin, Request, Response, NextFunction, ServerRouteMiddleware } from "balda";
 
 export default class extends BasePlugin {
   async handle(): Promise<ServerRouteMiddleware> {

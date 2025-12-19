@@ -16,7 +16,7 @@ services:
 
   mqtt:
     image: eclipse-mosquitto:latest
-    container_name: balda-js-mqtt
+    container_name: balda-mqtt
     ports:
       - "1883:1883"
     volumes:
@@ -26,7 +26,7 @@ services:
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: balda-js-azurite-blob
+    container_name: balda-azurite-blob
     restart: unless-stopped
     ports:
       - "10000:10000" # Blob service

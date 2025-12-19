@@ -57,7 +57,7 @@ export default class GenerateMiddlewareCommand extends Command {
 
   static getMiddlewareTemplate() {
     const middlewareName = toPascalCase(this.middlewareName);
-    return `import type { Request, Response, NextFunction, ServerRouteMiddleware } from "balda-js";
+    return `import type { Request, Response, NextFunction, ServerRouteMiddleware } from "balda";
 
 /**
  * ${middlewareName} middleware

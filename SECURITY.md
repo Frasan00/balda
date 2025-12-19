@@ -10,7 +10,7 @@
 
 ## Reporting a Vulnerability
 
-We take the security of Balda.js seriously. If you discover a security vulnerability, please follow these steps:
+We take the security of Balda seriously. If you discover a security vulnerability, please follow these steps:
 
 ### 1. Do Not Open a Public Issue
 
@@ -20,7 +20,7 @@ Please **do not** report security vulnerabilities through public GitHub issues, 
 
 Report security vulnerabilities by:
 
-* Opening a private security advisory on GitHub: https://github.com/Frasan00/balda-js/security/advisories/new
+* Opening a private security advisory on GitHub: https://github.com/Frasan00/balda/security/advisories/new
 * Or by emailing the maintainers directly at: francesco.sangiovanni.7@gmail.com
 
 ### 3. Include Relevant Information
@@ -44,7 +44,7 @@ When reporting a vulnerability, please include:
 
 ## Security Best Practices
 
-When using Balda.js, follow these security best practices:
+When using Balda, follow these security best practices:
 
 ### 1. Input Validation
 
@@ -55,7 +55,7 @@ When using Balda.js, follow these security best practices:
 Example of safe validation:
 ```typescript
 import { z } from 'zod';
-import { post, body } from 'balda-js';
+import { post, body } from 'balda';
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -83,7 +83,7 @@ async createUser(req: Request, res: Response) {
 * Use the built-in CORS plugin with specific origins:
 
 ```typescript
-import { CorsPlugin } from 'balda-js';
+import { CorsPlugin } from 'balda';
 
 server.use(new CorsPlugin({
   origin: ['https://yourdomain.com'],
@@ -98,7 +98,7 @@ server.use(new CorsPlugin({
 * Configure appropriate limits for your endpoints
 
 ```typescript
-import { RateLimitPlugin } from 'balda-js';
+import { RateLimitPlugin } from 'balda';
 
 server.use(new RateLimitPlugin({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -122,7 +122,7 @@ server.use(new RateLimitPlugin({
 
 ### 7. Dependency Security
 
-* Keep Balda.js and all dependencies up to date
+* Keep Balda and all dependencies up to date
 * Regularly run `yarn audit` to check for known vulnerabilities
 * Review security advisories for dependencies
 * Use `yarn audit fix` to automatically fix vulnerabilities when possible
@@ -150,7 +150,7 @@ server.use(new RateLimitPlugin({
 
 ### Runtime Security
 
-Balda.js runs on multiple runtimes with different security models:
+Balda runs on multiple runtimes with different security models:
 
 * **Node.js**: Standard Node.js security considerations apply
 * **Bun**: Native speed but newer runtime with evolving security

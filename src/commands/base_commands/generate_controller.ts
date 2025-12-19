@@ -57,7 +57,7 @@ export default class GenerateControllerCommand extends Command {
 
   static getControllerTemplate() {
     const className = toPascalCase(this.controllerName);
-    return `import { controller, get, post, put, del, Request, Response } from "balda-js";
+    return `import { controller, get, post, put, del, Request, Response } from "balda";
 
 @controller("/${toDashCase(this.controllerName)}")
 export default class ${className}Controller {

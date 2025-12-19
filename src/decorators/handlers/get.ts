@@ -1,5 +1,5 @@
-import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import { MetadataStore } from "../../metadata_store.js";
+import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
 
@@ -12,7 +12,7 @@ type GetHandler = (req: Request, res: Response, ...args: any[]) => any;
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
- * import { get, controller, Request, Response } from "balda-js";
+ * import { get, controller, Request, Response } from "balda";
  *
  * @controller("/api")
  * class MyController {

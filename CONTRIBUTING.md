@@ -1,6 +1,6 @@
-# Contributing to Balda.js
+# Contributing to Balda
 
-First off, thank you for considering contributing to Balda.js!
+First off, thank you for considering contributing to Balda!
 
 ## ⚠️ Development Status
 
@@ -54,8 +54,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 1. Fork and clone the repository:
 ```bash
-git clone https://github.com/YOUR_USERNAME/balda-js.git
-cd balda-js
+git clone https://github.com/YOUR_USERNAME/balda.git
+cd balda
 ```
 
 2. Use the correct Node.js version:
@@ -97,7 +97,7 @@ yarn dev:deno
 
 ## Code Style Guide
 
-Balda.js follows strict TypeScript coding standards defined in the user rules:
+Balda follows strict TypeScript coding standards defined in the user rules:
 
 ### General Principles
 
