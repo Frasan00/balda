@@ -1,3 +1,3 @@
-import { server } from "./instance";
+import { server } from "./instance.js";
 
 server.listen();

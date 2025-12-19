@@ -4,7 +4,6 @@ const external = [
   "glob",
   "pino",
   "ajv",
-  "ajv-formats",
   "@aws-sdk/client-sqs",
   "sqs-consumer",
   "bullmq",
@@ -12,8 +11,8 @@ const external = [
   "pg",
   "pg-boss",
   "ws",
-  "socket.io",
   "node-cron",
+  "mqtt",
 ];
 
 export default defineConfig([

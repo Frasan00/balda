@@ -19,6 +19,7 @@ import_map.json
 .env*
 elasticmq.conf
 mosquitto.conf
+eslint.config.js
 
 # Development tools
 .prettierrc
