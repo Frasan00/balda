@@ -10,6 +10,7 @@ import GenerateMiddlewareCommand from "./base_commands/generate_middleware.js";
 import GenerateMqttCommand from "./base_commands/generate_mqtt.js";
 import GeneratePluginCommand from "./base_commands/generate_plugin.js";
 import GenerateQueueCommand from "./base_commands/generate_queue.js";
+import GenerateSdkCommand from "./base_commands/generate_sdk.js";
 import InitCommand from "./base_commands/init_command.js";
 import InitQueueCommand from "./base_commands/init_queue_command.js";
 import ListCommand from "./base_commands/list_command.js";
@@ -25,6 +26,7 @@ export const baseCommands = [
   GenerateQueueCommand,
   GenerateControllerCommand,
   GenerateMiddlewareCommand,
+  GenerateSdkCommand,
   InitCommand,
   InitQueueCommand,
   ListCommand,

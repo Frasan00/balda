@@ -1,4 +1,5 @@
-import { z, type ZodObject, type ZodType } from "zod";
+import type { ZodObject, ZodType } from "zod";
+import { AjvCompileReturnType } from "../../ajv/ajv_types.js";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
@@ -76,90 +77,42 @@ const escapeHtml = (str?: string): string => {
     .replace(/'/g, "&#039;");
 };
 
-function safeToJSONSchema(schema: ZodType): any {
-  try {
-    return z.toJSONSchema(schema);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes(
-        "Custom types cannot be represented in JSON Schema",
-      )
-    ) {
-      const def = (schema as any)._def;
-      // todo make this better
-      if (def?.typeName === "ZodInstanceof") {
-        const testFile = new File([], "test");
-        if (schema.safeParse(testFile).success) {
-          return { type: "string", format: "binary" };
-        }
-      }
-
-      if (def?.typeName === "ZodObject" && def?.shape) {
-        const properties: Record<string, any> = {};
-        const required: string[] = [];
-
-        for (const [key, fieldSchema] of Object.entries(def.shape)) {
-          try {
-            properties[key] = safeToJSONSchema(fieldSchema as ZodType);
-            const fieldDef = (fieldSchema as any)._def;
-            if (
-              fieldDef?.typeName !== "ZodOptional" &&
-              fieldDef?.typeName !== "ZodDefault"
-            ) {
-              required.push(key);
-            }
-          } catch {
-            properties[key] = { type: "string", format: "binary" };
-          }
-        }
-
-        return {
-          type: "object",
-          properties,
-          ...(required.length > 0 ? { required } : {}),
-        };
-      }
-
-      return { type: "object", description: "Custom type" };
-    }
-
-    throw error;
+function safeToJSONSchema(
+  schema: ZodType | AjvCompileReturnType | Record<string, unknown>,
+): Record<string, any> {
+  if (!schema || typeof schema !== "object") {
+    return { type: "string" };
   }
+
+  return schema as Record<string, unknown>;
 }
 
 function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const routes = router.getRoutes();
   const paths: Record<string, any> = {};
 
-  // Process models - convert Zod schemas to JSON Schema and normalize to Record
-  let processedModels: Record<string, any> | undefined;
+  // Process models - normalize to Record
+  let processedModels: Record<string, Record<string, unknown>> | undefined;
   if (globalOptions.models) {
     if (Array.isArray(globalOptions.models)) {
       // Array of models: extract name from $id/title or use index
       processedModels = globalOptions.models.reduce(
         (acc, model, index) => {
-          const isZodSchema =
-            model && typeof model === "object" && "_def" in model;
-          const jsonSchema = isZodSchema
-            ? safeToJSONSchema(model as ZodType)
-            : model;
+          const jsonSchema = safeToJSONSchema(model);
           const schemaName =
-            jsonSchema.$id || jsonSchema.title || `Model${index}`;
+            (jsonSchema as Record<string, string>).$id ||
+            (jsonSchema as Record<string, string>).title ||
+            `Model${index}`;
           acc[schemaName] = jsonSchema;
           return acc;
         },
-        {} as Record<string, any>,
+        {} as Record<string, Record<string, unknown>>,
       );
     } else {
-      // Record of models: use the key as name, convert Zod schemas if needed
+      // Record of models: use the key as name
       processedModels = {};
       for (const [name, model] of Object.entries(globalOptions.models)) {
-        const isZodSchema =
-          model && typeof model === "object" && "_def" in model;
-        processedModels[name] = isZodSchema
-          ? safeToJSONSchema(model as ZodType)
-          : model;
+        processedModels[name] = safeToJSONSchema(model);
       }
     }
   }
@@ -184,7 +137,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
 
     if (!paths[route.path]) paths[route.path] = {};
     const method = route.method.toLowerCase();
-    const operation: any = {
+    const operation: Record<string, any> = {
       summary: swaggerOptions?.name || `${method.toUpperCase()} ${route.path}`,
       description: swaggerOptions?.description || "",
       tags: swaggerOptions?.service ? [swaggerOptions.service] : [],
@@ -200,6 +153,11 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         for (const [name, schema] of Object.entries(
           (swaggerOptions.query as ZodObject).shape,
         )) {
+          // Skip if schema is invalid
+          if (!schema || typeof schema !== "object") {
+            continue;
+          }
+
           parameters.push({
             name,
             in: "query",
@@ -215,7 +173,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         }
       }
     }
-    if (swaggerOptions && (swaggerOptions as any).params) {
+    if (swaggerOptions && (swaggerOptions as Record<string, unknown>).params) {
       parameters = parameters.concat(
         extractPathParams(route.path, (swaggerOptions as any).params),
       );
