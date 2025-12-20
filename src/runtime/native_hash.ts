@@ -1,7 +1,34 @@
 class NativeHash {
-  private readonly ITERATIONS = 600_000;
-  private readonly SALT_LENGTH = 16;
-  private readonly KEY_LENGTH = 256;
+  private ITERATIONS = 600_000;
+  private SALT_LENGTH = 16;
+  private KEY_LENGTH = 256;
+
+  configure(options: {
+    iterations?: number;
+    saltLength?: number;
+    keyLength?: number;
+  }): void {
+    if (options.iterations !== undefined) {
+      if (options.iterations < 1) {
+        throw new Error("Iterations must be at least 1");
+      }
+      this.ITERATIONS = options.iterations;
+    }
+
+    if (options.saltLength !== undefined) {
+      if (options.saltLength < 8) {
+        throw new Error("Salt length must be at least 8 bytes");
+      }
+      this.SALT_LENGTH = options.saltLength;
+    }
+
+    if (options.keyLength !== undefined) {
+      if (options.keyLength < 128) {
+        throw new Error("Key length must be at least 128 bits");
+      }
+      this.KEY_LENGTH = options.keyLength;
+    }
+  }
 
   async hash(data: string): Promise<string> {
     if (!data) {

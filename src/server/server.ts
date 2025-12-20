@@ -488,16 +488,6 @@ export class Server<
     });
   }
 
-  /**
-   * Sets a custom handler for 404 Not Found responses.
-   * If not set, the default RouteNotFoundError will be used.
-   *
-   * @param notFoundHandler - Optional handler to customize 404 responses
-   * @example
-   * server.setNotFoundHandler((req, res) => {
-   *   res.status(404).json({ error: "Custom not found message" });
-   * });
-   */
   setNotFoundHandler(notFoundHandler?: ServerRouteHandler): void {
     this.notFoundHandler = notFoundHandler?.bind(this);
   }
@@ -524,17 +514,35 @@ export class Server<
     });
   }
 
+  async waitUntilListening(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.listen(() => {
+          resolve();
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   async close(): Promise<void> {
+    await this.disconnect();
+  }
+
+  async disconnect(): Promise<void> {
     await this.serverConnector.close();
     this.isListening = false;
   }
 
-  /**
-   * Returns a mock server instance that can be used to test the server without starting it
-   * It will import the controllers and apply the plugins to the mock server
-   * @param options - The options for the mock server
-   * @param options.controllerPatterns - Custom controller patterns to import if the mock server must not be initialized with the same controller patterns as the server
-   */
+  configureHash(options: {
+    iterations?: number;
+    saltLength?: number;
+    keyLength?: number;
+  }): void {
+    nativeHash.configure(options);
+  }
+
   async getMockServer(
     options?: Pick<ServerOptions, "controllerPatterns">,
   ): Promise<MockServer> {

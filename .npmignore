@@ -61,7 +61,12 @@ deno/
 
 # Scripts and misc
 speed_test.sh
+run-benchmarks.sh
 todo.md
+
+# Benchmark files
+BENCHMARK.md
+benchmark-results/
 
 # Community and contribution files
 CODE_OF_CONDUCT.md

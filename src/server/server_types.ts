@@ -1,3 +1,4 @@
+import type { Ajv } from "ajv";
 import type { RequestHandler } from "express";
 import type { GraphQLOptions } from "../graphql/graphql_types.js";
 import type { MockServer } from "../mock/mock_server.js";
@@ -34,7 +35,6 @@ import { SyncOrAsync } from "../type_util.js";
 import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
-import type { Ajv } from "ajv";
 import { ClientRouter } from "./router/router_type.js";
 
 export type ServerPlugin = {
@@ -345,21 +345,55 @@ export interface ServerInterface {
    */
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
   /**
-   * Set the not found handler for the server
-   * @param notFoundHandler - The not found handler to be applied to all routes
+   * Sets a custom handler for 404 Not Found responses.
+   * If not set, the default RouteNotFoundError will be used.
+   *
+   * @param notFoundHandler - Optional handler to customize 404 responses
+   * @example
+   * server.setNotFoundHandler((req, res) => {
+   *   res.status(404).json({ error: "Custom not found message" });
+   * });
    */
   setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
+   * It initializes the server without blocking the event loop, you can pass a callback to be called when the server is listening
+   * Use `waitUntilListening` instead if you want to wait for the server to be listening for requests before returning
    * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
    */
   listen: (cb?: ServerListenCallback) => void;
   /**
-   * Closes the server and frees the port
+   * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
+   * It initializes the server blocking the event loop, it will wait for the server to be listening for requests before returning
+   * Use `listen` instead if you want to initialize the server without blocking the event loop
+   * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
+   */
+  waitUntilListening: () => Promise<void>;
+  /**
+   * @alias disconnect
    */
   close: () => Promise<void>;
   /**
-   * Get a mock server instance, useful for testing purposes
+   * Closes the server and frees the port
+   */
+  disconnect: () => Promise<void>;
+  /**
+   * Configure hash settings for password hashing
+   * @param options - Hash configuration options
+   * @param options.iterations - Number of PBKDF2 iterations (default: 600,000)
+   * @param options.saltLength - Salt length in bytes (default: 16)
+   * @param options.keyLength - Key length in bits (default: 256)
+   */
+  configureHash: (options: {
+    iterations?: number;
+    saltLength?: number;
+    keyLength?: number;
+  }) => void;
+  /**
+   * Returns a mock server instance that can be used to test the server without starting it
+   * It will import the controllers and apply the plugins to the mock server
+   * @param options - The options for the mock server
+   * @param options.controllerPatterns - Custom controller patterns to import if the mock server must not be initialized with the same controller patterns as the server
    */
   getMockServer: () => Promise<MockServer>;
   /**

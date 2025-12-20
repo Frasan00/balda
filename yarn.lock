@@ -3873,6 +3873,13 @@
   resolved "https://registry.npmjs.org/@tsconfig/node16/-/node16-1.0.4.tgz#0b92dcc0cc1c81f6f306a381f28e31b1a56536e9"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
+"@types/autocannon@^7.12.7":
+  version "7.12.7"
+  resolved "https://registry.npmjs.org/@types/autocannon/-/autocannon-7.12.7.tgz#b62d06b5685be994565c86ba01a47ce4622ddee1"
+  integrity sha512-Pd4nPf7wRpacULa6D/EC9x3CwzFQXwA0z5WFuik/fvJjW44V3WzBTM3jtt8nSBoflUNgswPiMCtgrr1bwnAcMg==
+  dependencies:
+    "@types/node" "*"
+
 "@types/body-parser@*":
   version "1.19.6"
   resolved "https://registry.npmjs.org/@types/body-parser/-/body-parser-1.19.6.tgz#1859bebb8fd7dac9918a45d54c1971ab8b5af474"
@@ -7049,10 +7056,10 @@ perfect-debounce@^2.0.0:
   resolved "https://registry.npmjs.org/perfect-debounce/-/perfect-debounce-2.0.0.tgz#0ff94f1ecbe0a6bca4b1703a2ed08bbe43739aa7"
   integrity sha512-fkEH/OBiKrqqI/yIgjR92lMfs2K8105zt/VT6+7eTjNwisrsh47CeIED9z58zI7DfKdH3uHAn25ziRZn3kgAow==
 
-pg-boss@^12.5.3:
-  version "12.5.3"
-  resolved "https://registry.npmjs.org/pg-boss/-/pg-boss-12.5.3.tgz#a19dc78d93622f138da8bf4d4463f5c51a331bb5"
-  integrity sha512-ZoMDSkQYLtMVZ89tkOBxk6LHKXmcSr+L5/1NxNCZ34fQ7fsUV/kgw7WX8vegCPTaepZuxS7bblCMTiXD5PINeA==
+pg-boss@^12.5.4:
+  version "12.5.4"
+  resolved "https://registry.npmjs.org/pg-boss/-/pg-boss-12.5.4.tgz#93dd5ec0c8f8e1a0a51e46cdcd6ff992180d04cb"
+  integrity sha512-I52Gkpda6lLNZNDZVKN5sWYO2YKndI3bBwOGAHY7xC+UBYMHI3m2tWSmDGjuq/odf6zpGoFSKVUUukTEaBZocA==
   dependencies:
     cron-parser "^5.4.0"
     pg "^8.16.3"

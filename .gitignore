@@ -161,3 +161,6 @@ docs
 
 src/test.ts
 .adminjs/
+
+# Benchmark results
+benchmark-results/
