@@ -1,3 +1,4 @@
+import type { TSchema } from "@sinclair/typebox";
 import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import { AjvCompileParams } from "../../ajv/ajv_types.js";
@@ -6,12 +7,14 @@ import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage
 import type { FormFile } from "../../plugins/file/file_types.js";
 import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { NativeRequest } from "../../runtime/native_request.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 
 /**
  * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
  * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
+ * This cache is used for Zod, TypeBox, and plain JSON schemas.
  */
 const schemaRefCache = new WeakMap<object, symbol>();
 
@@ -33,13 +36,14 @@ export class Request<
   }
 
   private static compileAndValidate(
-    inputSchema: ZodAny | AjvCompileParams[0],
+    inputSchema: ZodAny | TSchema | AjvCompileParams[0],
     data: any,
     safe: boolean,
   ): any {
     let jsonSchema: any;
     let cacheKey: string;
 
+    // Handle Zod schemas (need conversion to JSON Schema)
     if (ZodLoader.isZodSchema(inputSchema)) {
       const zodSchema = inputSchema as ZodAny;
 
@@ -63,6 +67,30 @@ export class Request<
       return validateSchema(compiledSchema, data, safe);
     }
 
+    // Handle TypeBox schemas (already JSON Schema compliant)
+    if (TypeBoxLoader.isTypeBoxSchema(inputSchema)) {
+      const typeboxSchema = inputSchema as TSchema;
+
+      // Try to get cache key from WeakMap first
+      let refKey = schemaRefCache.get(typeboxSchema);
+      if (!refKey) {
+        refKey = Symbol("typebox_schema");
+        schemaRefCache.set(typeboxSchema, refKey);
+      }
+
+      // Check if we already have a compiled schema
+      let cached = openapiSchemaMap.get(refKey);
+      if (cached) {
+        return validateSchema(cached, data, safe);
+      }
+
+      // TypeBox schemas are already JSON Schema, compile directly
+      const compiledSchema = AjvStateManager.ajv.compile(typeboxSchema);
+      openapiSchemaMap.set(refKey, compiledSchema);
+      return validateSchema(compiledSchema, data, safe);
+    }
+
+    // Handle plain JSON schemas
     const plainSchema = inputSchema as AjvCompileParams[0];
 
     // Try to use WeakMap cache for object references

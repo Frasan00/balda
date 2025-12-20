@@ -18,8 +18,6 @@ export * from "./decorators/validation/validate_types.js";
 export * from "./cron/base_cron.js";
 export * from "./cron/cron.js";
 export * from "./cron/cron.types.js";
-export * from "./queue/decorator/queue_decorator.js";
-export * from "./queue/queue_service.js";
 
 // MQTT
 export * from "./mqtt/base_mqtt.js";
@@ -44,11 +42,16 @@ export type {
   SQSConfiguration,
   SQSConfigurationOptions,
 } from "./queue/providers/sqs/sqs_configuration.js";
-export * from "./queue/pub.js";
 export * from "./queue/queue.js";
 export * from "./queue/queue_config.js";
 export * from "./queue/queue_service.js";
-export * from "./queue/queue_types.js";
+export {
+  sqsQueue,
+  bullmqQueue,
+  pgbossQueue,
+  createQueue,
+} from "./queue/factories.js";
+export { TypedQueue, CustomTypedQueue } from "./queue/typed_queue.js";
 
 // Logger
 export * from "./logger/logger.js";

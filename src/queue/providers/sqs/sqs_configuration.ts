@@ -1,5 +1,4 @@
 import type { SQSClientConfig } from "@aws-sdk/client-sqs";
-import type { QueueTopicKey } from "../../queue_types.js";
 import type { SyncOrAsync } from "../../../type_util.js";
 
 export type SQSConfigurationOptions = {
@@ -8,7 +7,7 @@ export type SQSConfigurationOptions = {
     batchSize?: number;
     visibilityTimeout?: number;
     waitTimeSeconds?: number;
-    queueUrlMap: Record<QueueTopicKey, string>;
+    queueUrlMap: Record<string, string>;
   };
   errorHandler?: (error: Error) => SyncOrAsync;
 };

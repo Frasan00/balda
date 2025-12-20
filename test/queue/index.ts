@@ -1,45 +1,49 @@
 import { defineQueueConfiguration, QueueService } from "../../src/index.js";
-import { publish } from "../../src/queue/pub.js";
 import { Server } from "../../src/server/server.js";
-import { CustomPubSub } from "./schedules/custom.js";
+import { queues } from "./queues.js";
+
+// Import handlers to register decorators
+import "./schedules/bullmq.js";
+import "./schedules/custom.js";
+import "./schedules/pgboss.js";
+import "./schedules/sqs.js";
 
 // Configure queue providers
 defineQueueConfiguration({
   bullmq: {
     connection: {
-      host: "127.0.0.1",
+      host: "localhost",
+      port: 6379,
       password: "root",
-      username: "default",
       db: 0,
     },
   },
   sqs: {
-    client: { region: "us-east-1" },
+    client: {
+      region: "us-east-1",
+      endpoint: "http://localhost:9324",
+    },
     consumer: {
       queueUrlMap: {
-        test: "http://localhost:9324/queue/balda-development-test",
+        test: "http://localhost:9324/000000000000/balda-development-test",
       },
     },
   },
   pgboss: {
     connectionString: "postgres://root:root@localhost:5432/database",
   },
-  custom: new CustomPubSub(),
 });
-
-// Import queue handlers from glob patterns
-await QueueService.massiveImportQueues(["test/queue/schedules/**/*.ts"]);
 
 // Start queue subscribers
 await QueueService.run();
 
 console.log("Queues started");
 
-// Publish test messages
-await publish.bullmq("test", { name: "test" });
-await publish.sqs("test", { name: "test" });
-await publish.pgboss("test", { name: "test" });
-await publish("custom", "test", { name: "test" });
+// Publish test messages using centralized queue registry
+await queues.bullmq.publish({ name: "test" });
+await queues.sqs.publish({ name: "test" });
+await queues.pgboss.publish({ name: "test" });
+await queues.custom.publish({ name: "test" });
 
 // Optional: Start HTTP server if needed
 const server = new Server({

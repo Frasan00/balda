@@ -1,16 +1,13 @@
-import { queue } from "../../../src/index.js";
+import { queues } from "../queues.js";
 
-declare module "../../../src/queue/queue_types.js" {
-  export interface QueueTopic {
-    test: {
-      name: string;
-    };
-  }
-}
+// Define payload type
+type TestPayload = {
+  name: string;
+};
 
 export class BullMQHandler {
-  @queue.bullmq("test")
-  async handle(payload: { name: string }) {
+  @queues.bullmq.subscribe()
+  async handle(payload: TestPayload) {
     console.log("[BullMQ] Received payload:", payload);
   }
 }

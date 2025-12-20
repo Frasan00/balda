@@ -1,3 +1,4 @@
+import { Type } from "@sinclair/typebox";
 import z from "zod";
 import { controller } from "../../src/decorators/controller/controller.js";
 import { del } from "../../src/decorators/handlers/del.js";
@@ -124,6 +125,48 @@ const UpdateUserBodyOpenApi = {
   },
   additionalProperties: false,
 } as const;
+
+// TypeBox schemas
+const UserIndexQueryTypeBox = Type.Object({
+  shouldFail: Type.Optional(Type.String()),
+});
+
+const UserResponseTypeBox = Type.Object({
+  id: Type.Number(),
+  email: Type.String({ format: "email" }),
+  name: Type.String(),
+  age: Type.Number(),
+});
+
+const UserResponseArrayTypeBox = Type.Array(UserResponseTypeBox);
+
+const ShouldFailResponseTypeBox = Type.Object({
+  impossibleField: Type.String(),
+});
+
+const UserNotFoundResponseTypeBox = Type.Object({
+  error: Type.Literal("User not found"),
+});
+
+const UserAlreadyExistsResponseTypeBox = Type.Object({
+  error: Type.Literal("User already exists"),
+});
+
+const CreateUserBodyTypeBox = Type.Object({
+  id: Type.Number(),
+  email: Type.String({ format: "email" }),
+  name: Type.String(),
+  age: Type.Number(),
+});
+
+const UpdateUserBodyTypeBox = Type.Partial(
+  Type.Object({
+    id: Type.Number(),
+    email: Type.String({ format: "email" }),
+    name: Type.String(),
+    age: Type.Number(),
+  }),
+);
 
 @controller("/users")
 export class UsersController {
@@ -286,6 +329,93 @@ export class UsersController {
     status: 404,
   })
   async destroy(req: Request, res: Response) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    users.splice(users.indexOf(user), 1);
+    res.noContent();
+  }
+
+  @get("/typebox")
+  @validate.query(UserIndexQueryTypeBox)
+  @serialize(UserResponseArrayTypeBox)
+  @serialize(ShouldFailResponseTypeBox, { status: 201, safe: false })
+  async indexTypeBox(
+    _req: Request,
+    res: Response,
+    qs: { shouldFail?: string },
+  ) {
+    if (qs.shouldFail === "true") {
+      return res.created(users);
+    }
+
+    res.json(users);
+  }
+
+  @get("/typebox/:id")
+  @serialize(UserResponseTypeBox, { safe: false })
+  @serialize(UserNotFoundResponseTypeBox, { status: 404 })
+  async showTypeBox(req: Request<{ id: string }>, res: Response) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    res.ok(user);
+  }
+
+  @post("/typebox")
+  @validate.body(CreateUserBodyTypeBox)
+  @serialize(UserAlreadyExistsResponseTypeBox, { status: 409 })
+  @serialize(UserResponseTypeBox)
+  async createTypeBox(
+    _req: Request,
+    res: Response,
+    body: {
+      id: number;
+      email: string;
+      name: string;
+      age: number;
+    },
+  ) {
+    const alreadyExists = users.find((user) => user.email === body.email);
+    if (alreadyExists) {
+      return res.conflict({ error: "User already exists" });
+    }
+
+    users.push(body);
+    res.created(body);
+  }
+
+  @patch("/typebox/:id")
+  @validate.body(UpdateUserBodyTypeBox)
+  @serialize(UserNotFoundResponseTypeBox, { status: 404 })
+  @serialize(UserResponseTypeBox)
+  async updateTypeBox(
+    req: Request,
+    res: Response,
+    body: {
+      id?: number;
+      email?: string;
+      name?: string;
+      age?: number;
+    },
+  ) {
+    const user = users.find((user) => user.id === Number(req.params.id));
+    if (!user) {
+      return res.notFound({ error: "User not found" });
+    }
+
+    const updatedUser = { ...user, ...body };
+    users.splice(users.indexOf(user), 1, updatedUser);
+    res.ok(updatedUser);
+  }
+
+  @del("/typebox/:id")
+  @serialize(UserNotFoundResponseTypeBox, { status: 404 })
+  async destroyTypeBox(req: Request, res: Response) {
     const user = users.find((user) => user.id === Number(req.params.id));
     if (!user) {
       return res.notFound({ error: "User not found" });

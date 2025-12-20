@@ -2,49 +2,137 @@ import { glob } from "glob";
 import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
 import { QueueManager } from "./queue.js";
-import type { QueueProviderKey, QueueTopicKey } from "./queue_types.js";
+import type { BuiltInProviderKey, GenericPubSub } from "./queue_types.js";
 
-type QueueRegistration = {
+type QueueHandler = (payload: unknown) => Promise<void>;
+
+// Built-in provider queue registration
+type TypedQueueRegistration = {
   name: string;
-  topic: QueueTopicKey;
-  handler: (payload: any) => Promise<void>;
-  provider: QueueProviderKey;
+  topic: string;
+  handler: QueueHandler;
+  provider: BuiltInProviderKey;
+  queueOptions?: unknown;
+};
+
+// Custom provider queue registration
+type CustomQueueRegistration = {
+  name: string;
+  topic: string;
+  handler: QueueHandler;
+  pubsub: GenericPubSub;
 };
 
 export class QueueService {
-  static scheduledSubscribers: QueueRegistration[] = [];
+  static typedQueueSubscribers: Map<string, TypedQueueRegistration> = new Map();
+  static customQueueSubscribers: Map<string, CustomQueueRegistration> =
+    new Map();
 
-  static register(
+  /**
+   * Factory function for creating handler instances.
+   * Can be overridden to provide custom dependency injection.
+   * @default Creates new instance using constructor
+   */
+  static instanceFactory: (ctor: Function) => object = (ctor) =>
+    new (ctor as new () => object)();
+
+  static registerTypedQueue(
     name: string,
-    topic: QueueRegistration["topic"],
-    handler: QueueRegistration["handler"],
-    options?: { provider?: QueueProviderKey },
+    topic: string,
+    handler: QueueHandler,
+    provider: BuiltInProviderKey,
+    queueOptions?: unknown,
   ): void {
-    this.scheduledSubscribers.push({
+    const key = `${provider}:${topic}:${name}`;
+    if (this.typedQueueSubscribers.has(key)) {
+      logger.warn(
+        `Queue handler for ${key} already registered, overwriting previous handler`,
+      );
+    }
+
+    this.typedQueueSubscribers.set(key, {
       name,
       topic,
       handler,
-      provider: options?.provider ?? "bullmq",
+      provider,
+      queueOptions,
+    });
+  }
+
+  static registerCustomQueue(
+    name: string,
+    topic: string,
+    handler: QueueHandler,
+    pubsub: GenericPubSub,
+  ): void {
+    const key = `${pubsub.constructor.name}:${topic}:${name}`;
+    if (this.customQueueSubscribers.has(key)) {
+      logger.warn(
+        `Custom queue handler for ${key} already registered, overwriting previous handler`,
+      );
+    }
+
+    this.customQueueSubscribers.set(key, {
+      name,
+      topic,
+      handler,
+      pubsub,
     });
   }
 
   static async run() {
     logger.info("Subscribing queue handlers");
-    if (!this.scheduledSubscribers.length) {
+    const hasTyped = this.typedQueueSubscribers.size > 0;
+    const hasCustom = this.customQueueSubscribers.size > 0;
+
+    if (!hasTyped && !hasCustom) {
       logger.info("No queue handlers to subscribe");
       return;
     }
 
-    for (const { topic, handler, provider } of this.scheduledSubscribers) {
-      logger.info(`Subscribing to queue: ${String(topic)}`);
+    // Subscribe typed queue handlers (built-in providers)
+    for (const registration of this.typedQueueSubscribers.values()) {
+      const { topic, handler, provider, queueOptions } = registration;
+      logger.info(`Subscribing to queue: ${topic}`);
+
       const pubsub = QueueManager.getProvider(provider);
-      await pubsub.subscribe(topic, handler as any);
+
+      // Use subscribeWithConfig if queueOptions are provided
+      if (
+        queueOptions &&
+        "subscribeWithConfig" in pubsub &&
+        typeof pubsub.subscribeWithConfig === "function"
+      ) {
+        await pubsub.subscribeWithConfig(topic, handler, queueOptions);
+      } else {
+        await (
+          pubsub as typeof pubsub & {
+            subscribe(
+              topic: string,
+              handler: (payload: unknown) => Promise<void>,
+            ): Promise<void>;
+          }
+        ).subscribe(topic, handler);
+      }
+    }
+
+    // Subscribe custom queue handlers
+    for (const {
+      topic,
+      handler,
+      pubsub,
+    } of this.customQueueSubscribers.values()) {
+      logger.info(`Subscribing to custom queue: ${topic}`);
+      await pubsub.subscribe(topic, handler);
     }
 
     logger.info("Queue handlers subscribed");
   }
 
-  static async massiveImportQueues(queueHandlerPatterns: string[]) {
+  static async massiveImportQueues(
+    queueHandlerPatterns: string[],
+    options: { throwOnError?: boolean } = {},
+  ) {
     const allFiles: string[] = [];
 
     for (const pattern of queueHandlerPatterns) {
@@ -61,6 +149,9 @@ export class QueueService {
         await import(file).catch((error) => {
           logger.error(`Error importing queue handler: ${file}`);
           logger.error(error);
+          if (options.throwOnError) {
+            throw error;
+          }
         });
       }),
     );

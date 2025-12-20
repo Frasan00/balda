@@ -1,16 +1,13 @@
-import { queue } from "../../../src/index.js";
+import { queues } from "../queues.js";
 
-declare module "../../../src/queue/queue_types.js" {
-  export interface QueueTopic {
-    test: {
-      name: string;
-    };
-  }
-}
+// Define payload type
+type TestPayload = {
+  name: string;
+};
 
 export class PGBossHandler {
-  @queue.pgboss("test")
-  async handle(payload: { name: string }) {
+  @queues.pgboss.subscribe()
+  async handle(payload: TestPayload) {
     console.log("[PGBoss] Received payload:", payload);
   }
 }

@@ -1,9 +1,11 @@
+import type { TSchema } from "@sinclair/typebox";
 import type { ZodType } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 import type { SerializeOptions } from "./serialize_types.js";
@@ -14,10 +16,11 @@ const SERIALIZE_METADATA = Symbol("serializeMetadata");
 /**
  * WeakMap to cache schema objects by reference in serialize decorator.
  * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
+ * This cache is used for Zod, TypeBox, and plain JSON schemas.
  */
 const serializeSchemaRefCache = new WeakMap<object, symbol>();
 
-export const serialize = <T extends ZodType | AjvCompileParams[0]>(
+export const serialize = <T extends ZodType | TSchema | AjvCompileParams[0]>(
   schema: T,
   options?: SerializeOptions,
 ) => {
@@ -79,6 +82,22 @@ export const serialize = <T extends ZodType | AjvCompileParams[0]>(
               if (!compiledSchema) {
                 const jsonSchema = schema.toJSONSchema();
                 compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
+                openapiSchemaMap.set(refKey, compiledSchema);
+              }
+
+              await validateSchema(compiledSchema, body, safe);
+              res.send(body);
+            } else if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+              // TypeBox schema - already JSON Schema compliant
+              let refKey = serializeSchemaRefCache.get(schema);
+              if (!refKey) {
+                refKey = Symbol("serialize_typebox_schema");
+                serializeSchemaRefCache.set(schema, refKey);
+              }
+
+              let compiledSchema = openapiSchemaMap.get(refKey);
+              if (!compiledSchema) {
+                compiledSchema = AjvStateManager.ajv.compile(schema);
                 openapiSchemaMap.set(refKey, compiledSchema);
               }
 

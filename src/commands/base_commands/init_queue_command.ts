@@ -131,6 +131,7 @@ export default class InitQueueCommand extends Command {
   static getBullMQTemplate(): string {
     return `import { defineBullMQConfiguration } from "balda";
 
+// Configure BullMQ connection and default options
 defineBullMQConfiguration({
   connection: {
     host: process.env.REDIS_HOST || "localhost",
@@ -148,12 +149,49 @@ defineBullMQConfiguration({
     console.error(\`Job \${job.id} failed:\`, error);
   },
 });
+
+/**
+ * Best Practice: Create a centralized queue registry
+ * Define all your queues in one place for better organization and type safety
+ *
+ * Example usage:
+ *
+ * // queues.ts
+ * import { bullmqQueue } from "balda";
+ *
+ * export const queues = {
+ *   emailNotifications: bullmqQueue<{ email: string; subject: string }>("email-notifications"),
+ *   orderProcessing: bullmqQueue<{ orderId: string; userId: string }>("order-processing"),
+ * };
+ *
+ * // Publish to queue
+ * await queues.emailNotifications.publish({
+ *   email: "user@example.com",
+ *   subject: "Welcome!"
+ * });
+ *
+ * // Subscribe with decorator
+ * import { queues } from "./queues.js";
+ *
+ * export class EmailHandler {
+ *   @queues.emailNotifications.subscribe()
+ *   async handle(payload: { email: string; subject: string }) {
+ *     console.log("Sending email:", payload);
+ *   }
+ * }
+ *
+ * // Or subscribe with callback
+ * await queues.emailNotifications.subscribe(async (payload) => {
+ *   console.log("Processing:", payload);
+ * });
+ */
 `;
   }
 
   static getSQSTemplate(): string {
     return `import { defineSQSConfiguration } from "balda";
 
+// Configure SQS connection and consumer options
 defineSQSConfiguration({
   client: {
     region: process.env.AWS_REGION || "us-east-1",
@@ -175,12 +213,55 @@ defineSQSConfiguration({
     console.error("SQS error:", error);
   },
 });
+
+/**
+ * Best Practice: Create a centralized queue registry
+ * Define all your queues in one place for better organization and type safety
+ *
+ * Example usage:
+ *
+ * // queues.ts
+ * import { sqsQueue } from "balda";
+ *
+ * export const queues = {
+ *   emailNotifications: sqsQueue<{ email: string; subject: string }>(
+ *     "email-notifications",
+ *     { queueUrl: process.env.EMAIL_QUEUE_URL || "" }
+ *   ),
+ *   orderProcessing: sqsQueue<{ orderId: string; userId: string }>(
+ *     "order-processing",
+ *     { queueUrl: process.env.ORDER_QUEUE_URL || "" }
+ *   ),
+ * };
+ *
+ * // Publish to queue
+ * await queues.emailNotifications.publish({
+ *   email: "user@example.com",
+ *   subject: "Welcome!"
+ * });
+ *
+ * // Subscribe with decorator
+ * import { queues } from "./queues.js";
+ *
+ * export class EmailHandler {
+ *   @queues.emailNotifications.subscribe()
+ *   async handle(payload: { email: string; subject: string }) {
+ *     console.log("Sending email:", payload);
+ *   }
+ * }
+ *
+ * // Or subscribe with callback
+ * await queues.emailNotifications.subscribe(async (payload) => {
+ *   console.log("Processing:", payload);
+ * });
+ */
 `;
   }
 
   static getPGBossTemplate(): string {
     return `import { definePGBossConfiguration } from "balda";
 
+// Configure PGBoss connection
 definePGBossConfiguration({
   connectionString:
     process.env.DATABASE_URL ||
@@ -189,6 +270,42 @@ definePGBossConfiguration({
     console.error("PG-Boss error:", error);
   },
 });
+
+/**
+ * Best Practice: Create a centralized queue registry
+ * Define all your queues in one place for better organization and type safety
+ *
+ * Example usage:
+ *
+ * // queues.ts
+ * import { pgbossQueue } from "balda";
+ *
+ * export const queues = {
+ *   emailNotifications: pgbossQueue<{ email: string; subject: string }>("email-notifications"),
+ *   orderProcessing: pgbossQueue<{ orderId: string; userId: string }>("order-processing"),
+ * };
+ *
+ * // Publish to queue
+ * await queues.emailNotifications.publish({
+ *   email: "user@example.com",
+ *   subject: "Welcome!"
+ * });
+ *
+ * // Subscribe with decorator
+ * import { queues } from "./queues.js";
+ *
+ * export class EmailHandler {
+ *   @queues.emailNotifications.subscribe()
+ *   async handle(payload: { email: string; subject: string }) {
+ *     console.log("Sending email:", payload);
+ *   }
+ * }
+ *
+ * // Or subscribe with callback
+ * await queues.emailNotifications.subscribe(async (payload) => {
+ *   console.log("Processing:", payload);
+ * });
+ */
 `;
   }
 }

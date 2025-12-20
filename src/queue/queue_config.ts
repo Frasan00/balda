@@ -3,7 +3,7 @@ import type { CustomQueueConfiguration } from "./providers/custom/custom.js";
 import { definePGBossConfiguration } from "./providers/pgboss/pgboss_configuration.js";
 import { defineSQSConfiguration } from "./providers/sqs/sqs_configuration.js";
 import { QueueManager } from "./queue.js";
-import type { PubSub, QueueProviderKey } from "./queue_types.js";
+import type { GenericPubSub, QueueProviderKey } from "./queue_types.js";
 
 /**
  * Main entry point to define the queue configuration, meant to be called only once in the application bootstrap
@@ -62,7 +62,7 @@ export const defineQueueConfiguration = (
     if (!firstClassIntegrations.includes(provider)) {
       QueueManager.setProvider(
         provider,
-        options[provider] as PubSub<QueueProviderKey>,
+        options[provider] as GenericPubSub<QueueProviderKey>,
       );
     }
   }

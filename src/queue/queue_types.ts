@@ -1,15 +1,18 @@
+import type { SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
 import type { Queue } from "bullmq";
+import type { PgBoss } from "pg-boss";
 import type { BullMQPubSub } from "./providers/bullmq/bullmq.js";
 import type { PGBossPubSub } from "./providers/pgboss/pgboss.js";
 import type { SQSPubSub } from "./providers/sqs/sqs.js";
-import type { PgBoss } from "pg-boss";
-import type { SQSClient } from "@aws-sdk/client-sqs";
 
 type BullMQAddTaskOptions = Parameters<Queue["add"]>[2];
 export type PGBossSendOptions = Parameters<PgBoss["send"]>[2];
 export type SQSPublishOptions = Parameters<SQSClient["send"]>[0];
 
-export type PublishOptions<T extends QueueProviderKey> = T extends "bullmq"
+// Built-in provider keys
+export type BuiltInProviderKey = "bullmq" | "sqs" | "pgboss";
+
+export type PublishOptions<T extends BuiltInProviderKey> = T extends "bullmq"
   ? BullMQAddTaskOptions
   : T extends "sqs"
     ? SQSPublishOptions
@@ -17,21 +20,32 @@ export type PublishOptions<T extends QueueProviderKey> = T extends "bullmq"
       ? PGBossSendOptions
       : never;
 
-export interface QueueTopic {}
-export type QueueTopicKey = keyof QueueTopic;
+// Per-queue configuration options for factory functions
+export type SQSQueueOptions = {
+  queueUrl: string;
+  client?: SQSClientConfig;
+};
 
-export interface PubSub<P extends QueueProviderKey = any> {
-  publish: <T extends QueueTopicKey>(
-    topic: T,
-    payload: QueueTopic[T],
-    options: PublishOptions<P>,
-  ) => Promise<{ id: string }>;
-  subscribe: <T extends QueueTopicKey>(
-    topic: T,
-    handler: (payload: QueueTopic[T]) => Promise<void>,
-  ) => Promise<void>;
+export type BullMQQueueOptions = ConstructorParameters<typeof Queue>[1];
+
+export type PGBossQueueOptions = {
+  connectionString?: string;
+};
+
+// Generic PubSub interface for typed queues
+export interface GenericPubSub<TPayload = unknown> {
+  publish(
+    topic: string,
+    payload: TPayload,
+    options?: Record<string, unknown>,
+  ): Promise<{ id: string }>;
+  subscribe(
+    topic: string,
+    handler: (payload: TPayload) => Promise<void>,
+  ): Promise<void>;
 }
 
+// Built-in queue providers
 export interface QueueProvider {
   bullmq: BullMQPubSub;
   sqs: SQSPubSub;

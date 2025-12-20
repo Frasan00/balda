@@ -1,7 +1,9 @@
 import type { ZodType } from "zod";
+import type { TSchema } from "@sinclair/typebox";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 import type {
   CustomValidationError,
@@ -10,13 +12,13 @@ import type {
 import { AjvCompileParams } from "../../ajv/ajv_types.js";
 
 /**
- * Decorator to validate request data using Zod schemas.
+ * Decorator to validate request data using Zod, TypeBox, or plain JSON schemas.
  * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
  * Using this decorator will also update the Swagger documentation with the validated schema (except for the .all schema since there is no way to if using query strings or body).
  * @param options - Validation options including body, query, or all schemas
  * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
  * @warning Only synchronous Zod schemas are supported. Async refinements or transforms will throw an error.
- * @example
+ * @example Zod Schema
  * ```ts
  * import { validate } from "./validate.js";
  * import { controller, post } from "../handlers/post.js";
@@ -32,11 +34,27 @@ import { AjvCompileParams } from "../../ajv/ajv_types.js";
  * @controller("/users")
  * export class UserController {
  *   @post("/")
- *   @validate.body(PayloadSchema) // This will also update the Swagger documentation with the validated schemas and will override the existing schemas.
+ *   @validate.body(PayloadSchema)
  *   async createUser(req: Request, res: Response, payload: z.infer<typeof PayloadSchema>) {
  *     // payload is now validated and typed
  *     const { name, email } = payload;
  *   }
+ * }
+ * ```
+ *
+ * @example TypeBox Schema
+ * ```ts
+ * import { Type, Static } from "@sinclair/typebox";
+ *
+ * const PayloadSchema = Type.Object({
+ *   name: Type.String(),
+ *   email: Type.String({ format: "email" }),
+ * });
+ *
+ * @post("/")
+ * @validate.body(PayloadSchema)
+ * async createUser(req: Request, res: Response, payload: Static<typeof PayloadSchema>) {
+ *   const { name, email } = payload;
  * }
  * ```
  */

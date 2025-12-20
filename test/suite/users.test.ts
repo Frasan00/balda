@@ -162,4 +162,95 @@ describe("UsersController", () => {
     expect(res.statusCode()).toBe(404);
     expect(res.assertBodyDeepEqual({ error: "User not found" }));
   });
+
+  it("GET /users/typebox returns all users using TypeBox schema", async () => {
+    const res = await mockServer.get("/users/typebox");
+    expect(res.statusCode()).toBe(200);
+    expect(Array.isArray(res.body() as any)).toBe(true);
+    expect((res.body() as any).length).toBeGreaterThan(0);
+  });
+
+  it("GET /users/typebox?shouldFail=true should fail with TypeBox schema", async () => {
+    const res = await mockServer.get("/users/typebox", {
+      query: { shouldFail: "true" },
+    });
+    expect(res.statusCode()).toBe(500);
+  });
+
+  it("GET /users/typebox/:id returns a user if found", async () => {
+    const res = await mockServer.get("/users/typebox/4");
+    expect(res.statusCode()).toBe(200);
+    expect(res.assertBodySubset({ id: 4 }));
+  });
+
+  it("GET /users/typebox/:id returns 404 if not found", async () => {
+    const res = await mockServer.get("/users/typebox/999");
+    expect(res.statusCode()).toBe(404);
+    expect(res.assertBodyDeepEqual({ error: "User not found" }));
+  });
+
+  it("POST /users/typebox creates a new user with TypeBox validation", async () => {
+    const newUser = {
+      id: 6,
+      email: "typebox@example.com",
+      name: "TypeBox User",
+      age: 28,
+    };
+    const res = await mockServer.post("/users/typebox", { body: newUser });
+    expect(res.statusCode()).toBe(201);
+    expect(res.assertBodyDeepEqual(newUser));
+  });
+
+  it("POST /users/typebox returns 409 if user exists", async () => {
+    const existingUser = {
+      id: 7,
+      email: "typebox@example.com",
+      name: "TypeBox User",
+      age: 28,
+    };
+    const res = await mockServer.post("/users/typebox", { body: existingUser });
+    expect(res.statusCode()).toBe(409);
+    expect(res.assertBodyDeepEqual({ error: "User already exists" }));
+  });
+
+  it("POST /users/typebox validates body schema", async () => {
+    const invalidUser = { id: "not-a-number", email: "invalid-email" };
+    const res = await mockServer.post("/users/typebox", { body: invalidUser });
+    expect(res.statusCode()).toBe(500);
+  });
+
+  it("PATCH /users/typebox/:id updates a user with TypeBox validation", async () => {
+    const res = await mockServer.patch("/users/typebox/6", {
+      body: { name: "Updated via TypeBox" },
+    });
+    expect(res.statusCode()).toBe(200);
+    expect(res.assertBodySubset({ id: 6, name: "Updated via TypeBox" }));
+  });
+
+  it("PATCH /users/typebox/:id returns 404 if not found", async () => {
+    const res = await mockServer.patch("/users/typebox/999", {
+      body: { name: "Nope" },
+    });
+    expect(res.statusCode()).toBe(404);
+    expect(res.assertBodyDeepEqual({ error: "User not found" }));
+  });
+
+  it("PATCH /users/typebox/:id validates body schema", async () => {
+    const invalidUpdate = { age: "not-a-number" };
+    const res = await mockServer.patch("/users/typebox/6", {
+      body: invalidUpdate,
+    });
+    expect(res.statusCode()).toBe(500);
+  });
+
+  it("DELETE /users/typebox/:id deletes a user", async () => {
+    const res = await mockServer.delete("/users/typebox/6");
+    expect(res.statusCode()).toBe(204);
+  });
+
+  it("DELETE /users/typebox/:id returns 404 if not found", async () => {
+    const res = await mockServer.delete("/users/typebox/999");
+    expect(res.statusCode()).toBe(404);
+    expect(res.assertBodyDeepEqual({ error: "User not found" }));
+  });
 });

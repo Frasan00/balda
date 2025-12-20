@@ -1,22 +1,21 @@
 import type { Job, Queue, Worker } from "bullmq";
 import type {
+  BullMQQueueOptions,
+  GenericPubSub,
   PublishOptions,
-  PubSub,
-  QueueTopic,
-  QueueTopicKey,
 } from "../../queue_types.js";
 import { BullMQConfiguration } from "./bullmq_configuration.js";
 import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
 import { nativeCrypto } from "../../../runtime/native_crypto.js";
 
-export class BullMQPubSub implements PubSub<"bullmq"> {
+export class BullMQPubSub implements GenericPubSub {
   private queues: Map<string, Queue> = new Map();
   private workers: Map<string, Worker> = new Map();
   declare private bullmqClient: typeof import("bullmq");
 
-  async publish<T extends QueueTopicKey>(
-    topic: T,
-    payload: QueueTopic[T],
+  async publish<TPayload>(
+    topic: string,
+    payload: TPayload,
     options?: PublishOptions<"bullmq">,
   ): Promise<{ id: string }> {
     const queue = await this.getQueue(topic);
@@ -30,10 +29,10 @@ export class BullMQPubSub implements PubSub<"bullmq"> {
     return { id: jobId };
   }
 
-  async subscribe<T extends QueueTopicKey>(
-    topic: T,
-    handler: (payload: QueueTopic[T]) => Promise<void>,
-  ) {
+  async subscribe<TPayload>(
+    topic: string,
+    handler: (payload: TPayload) => Promise<void>,
+  ): Promise<void> {
     if (this.workers.has(topic)) {
       throw new Error(`[BullMQ] Already subscribed to topic "${topic}"`);
     }
@@ -81,5 +80,105 @@ export class BullMQPubSub implements PubSub<"bullmq"> {
     }
 
     return this.bullmqClient;
+  }
+
+  // Methods for TypedQueue with per-queue config
+  async publishWithConfig<TPayload>(
+    topic: string,
+    payload: TPayload,
+    options?: PublishOptions<"bullmq">,
+    queueConfig?: BullMQQueueOptions,
+  ): Promise<{ id: string }> {
+    const queue = await this.getQueueWithConfig(topic, queueConfig);
+    const jobId = nativeCrypto.randomUUID();
+
+    // Merge global default job options with queue-specific and call-time options
+    const mergedOptions = {
+      jobId,
+      ...BullMQConfiguration.options?.defaultJobOptions,
+      ...queueConfig?.defaultJobOptions,
+      ...options,
+    };
+
+    await queue.add(topic, payload, mergedOptions);
+    return { id: jobId };
+  }
+
+  async subscribeWithConfig<TPayload>(
+    topic: string,
+    handler: (payload: TPayload) => Promise<void>,
+    queueConfig?: BullMQQueueOptions,
+  ): Promise<void> {
+    const workerKey = this.getWorkerKey(topic, queueConfig);
+    if (this.workers.has(workerKey)) {
+      throw new Error(`[BullMQ] Already subscribed to topic "${topic}"`);
+    }
+
+    const globalConfig = BullMQConfiguration.options ?? {};
+    const { errorHandler } = globalConfig;
+    const bullmqClient = await this.getBullMQClient();
+
+    // Merge global config with queue-specific config
+    const workerOptions = {
+      ...globalConfig,
+      ...queueConfig,
+    };
+
+    // Remove non-worker options
+    delete (workerOptions as Record<string, unknown>).errorHandler;
+    delete (workerOptions as Record<string, unknown>).defaultJobOptions;
+
+    const worker = new bullmqClient.Worker(
+      topic,
+      async (job: Job) => {
+        try {
+          await handler(job.data);
+        } catch (error) {
+          (await errorHandler?.(job, error as Error)) ?? Promise.reject(error);
+        }
+      },
+      workerOptions,
+    );
+
+    this.workers.set(workerKey, worker);
+  }
+
+  private async getQueueWithConfig(
+    topic: string,
+    queueConfig?: BullMQQueueOptions,
+  ): Promise<Queue> {
+    const queueKey = this.getQueueKey(topic, queueConfig);
+
+    if (!this.queues.has(queueKey)) {
+      const bullmqClient = await import("bullmq").catch(() => {
+        throw new ClientNotFoundError("bullmq", "ioredis");
+      });
+
+      // Merge global config with queue-specific config
+      const mergedConfig = {
+        ...(BullMQConfiguration.options || { connection: {} }),
+        ...queueConfig,
+      };
+
+      const queue = new bullmqClient.Queue(topic, mergedConfig);
+      this.queues.set(queueKey, queue);
+    }
+
+    return this.queues.get(queueKey)!;
+  }
+
+  private getQueueKey(topic: string, queueConfig?: BullMQQueueOptions): string {
+    // Create a unique key based on topic and connection config
+    if (queueConfig?.connection) {
+      return `${topic}:${JSON.stringify(queueConfig.connection)}`;
+    }
+    return topic;
+  }
+
+  private getWorkerKey(
+    topic: string,
+    queueConfig?: BullMQQueueOptions,
+  ): string {
+    return this.getQueueKey(topic, queueConfig);
   }
 }

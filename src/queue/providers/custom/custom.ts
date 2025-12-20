@@ -1,7 +1,7 @@
 import { QueueManager } from "../../queue.js";
-import { PubSub, QueueProviderKey } from "../../queue_types.js";
+import { GenericPubSub, QueueProviderKey } from "../../queue_types.js";
 
-export type CustomQueueConfiguration = PubSub;
+export type CustomQueueConfiguration = GenericPubSub;
 
 /**
  * Define globally custom queue provider
@@ -10,7 +10,10 @@ export type CustomQueueConfiguration = PubSub;
  */
 export const defineCustomQueueProvider = (
   provider: Omit<QueueProviderKey, "bullmq">,
-  pubsub: PubSub,
+  pubsub: GenericPubSub,
 ): void => {
-  QueueManager.setProvider(provider as QueueProviderKey, pubsub);
+  QueueManager.setProvider(
+    provider as QueueProviderKey,
+    pubsub as GenericPubSub<QueueProviderKey>,
+  );
 };
