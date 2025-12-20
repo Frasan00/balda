@@ -164,3 +164,10 @@ src/test.ts
 
 # Benchmark results
 benchmark-results/
+
+# AI
+.claude/
+.cursor/
+
+# Docker
+.localstack/

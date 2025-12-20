@@ -76,3 +76,10 @@ SECURITY.md
 
 # AdminJS files
 .adminjs/
+
+# AI
+.claude/
+.cursor/
+
+# Docker
+.localstack/
