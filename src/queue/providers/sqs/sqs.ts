@@ -1,13 +1,13 @@
 import type { Message, SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
 import type { Consumer, ConsumerOptions } from "sqs-consumer";
 import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
-import { SQSConfiguration } from "./sqs_configuration.js";
 import type {
   GenericPubSub,
   PublishOptions,
   SQSPublishOptions,
   SQSQueueOptions,
 } from "../../queue_types.js";
+import { SQSConfiguration } from "./sqs_configuration.js";
 
 export class SQSPubSub implements GenericPubSub {
   private consumers: Map<string, Consumer> = new Map();
@@ -21,8 +21,6 @@ export class SQSPubSub implements GenericPubSub {
     payload: TPayload,
     options?: PublishOptions<"sqs">,
   ): Promise<{ id: string }> {
-    const { ...rest } = options ?? {};
-
     const sqs = await this.getClient();
     const { SendMessageCommand } = await this.getSqsLib();
     const queueUrl = await this.resolveQueueUrl(topic);
@@ -35,8 +33,8 @@ export class SQSPubSub implements GenericPubSub {
       MessageAttributes: {
         topic: { DataType: "String", StringValue: topic },
       },
-      ...(rest as SQSPublishOptions),
       QueueUrl: queueUrl,
+      ...(options ?? {}),
     });
 
     const response = await sqs.send(command);
@@ -133,11 +131,11 @@ export class SQSPubSub implements GenericPubSub {
       queueConfig?.queueUrl ?? (await this.resolveQueueUrl(topic));
 
     const command = new SendMessageCommand({
+      ...(rest as SQSPublishOptions),
       MessageBody: JSON.stringify(payload),
       MessageAttributes: {
         topic: { DataType: "String", StringValue: topic },
       },
-      ...(rest as SQSPublishOptions),
       QueueUrl: queueUrl,
     });
 

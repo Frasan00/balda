@@ -1,13 +1,16 @@
-import type { SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
-import type { Queue } from "bullmq";
-import type { PgBoss } from "pg-boss";
+import type {
+  SendMessageCommandInput,
+  SQSClientConfig,
+} from "@aws-sdk/client-sqs";
+import type { Queue, JobsOptions } from "bullmq";
 import type { BullMQPubSub } from "./providers/bullmq/bullmq.js";
 import type { PGBossPubSub } from "./providers/pgboss/pgboss.js";
 import type { SQSPubSub } from "./providers/sqs/sqs.js";
+import type { SendOptions } from "pg-boss";
 
-type BullMQAddTaskOptions = Parameters<Queue["add"]>[2];
-export type PGBossSendOptions = Parameters<PgBoss["send"]>[2];
-export type SQSPublishOptions = Parameters<SQSClient["send"]>[0];
+type BullMQAddTaskOptions = JobsOptions;
+export type PGBossSendOptions = SendOptions;
+export type SQSPublishOptions = Omit<SendMessageCommandInput, "MessageBody">;
 
 // Built-in provider keys
 export type BuiltInProviderKey = "bullmq" | "sqs" | "pgboss";
