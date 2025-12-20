@@ -84,16 +84,17 @@ import type {
 export class Server<
   H extends NodeHttpClient = NodeHttpClient,
 > implements ServerInterface {
+  readonly _brand = "BaldaServer" as const;
   isListening: boolean;
   isProduction: boolean;
   graphql: GraphQL;
+  readonly serverOptions: ResolvedServerOptions;
 
   readonly router: ClientRouter = router;
 
   private wasInitialized: boolean;
   private serverConnector: ServerConnector;
   private globalMiddlewares: ServerRouteMiddleware[] = [];
-  private serverOptions: ResolvedServerOptions;
   private controllerImportBlacklistedPaths: string[] = ["node_modules"];
   private notFoundHandler?: ServerRouteHandler;
   private readonly nativeEnv: NativeEnv = new NativeEnv();

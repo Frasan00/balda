@@ -4,7 +4,7 @@ import { flag } from "../../decorators/command/flag.js";
 import { execWithPrompt, getPackageManager } from "../../package.js";
 import { nativeFs } from "../../runtime/native_fs.js";
 import { nativePath } from "../../runtime/native_path.js";
-import type { Server } from "../../server/server.js";
+import { Server } from "../../server/server.js";
 import { Command } from "../base_command.js";
 
 export default class GenerateSdkCommand extends Command {
@@ -61,9 +61,8 @@ export default class GenerateSdkCommand extends Command {
     aliases: ["s"],
     name: "swagger-path",
     required: false,
-    defaultValue: "/docs",
   })
-  static swaggerPath: string;
+  static swaggerPath?: string;
 
   @flag({
     description: "HTTP client to use (axios or fetch)",
@@ -192,27 +191,27 @@ export default class GenerateSdkCommand extends Command {
       return;
     }
 
+    const possibleExports = Object.keys(serverModule);
+
     // Find the Server instance in the module exports
     let serverInstance: Server | null = null;
-    const possibleExports = [
-      "server",
-      "serverBuilder",
-      "app",
-      "default",
-      "Server",
-    ];
-
     for (const exportName of possibleExports) {
-      if (serverModule[exportName]) {
-        const candidate = serverModule[exportName] as Record<string, unknown>;
-        if (
-          candidate &&
-          typeof candidate === "object" &&
-          ((candidate.constructor as { name?: string })?.name === "Server" ||
-            typeof (candidate as { listen?: unknown }).listen === "function" ||
-            typeof (candidate as { start?: unknown }).start === "function")
-        ) {
-          serverInstance = candidate as unknown as Server;
+      let currentModule = serverModule[exportName] as {
+        default?: any;
+        [key: string]: any;
+      };
+
+      if ("default" in currentModule && currentModule.default) {
+        currentModule = currentModule.default;
+      }
+
+      if (
+        currentModule &&
+        "_brand" in currentModule &&
+        currentModule._brand === "BaldaServer"
+      ) {
+        if (typeof currentModule === "object" && "listen" in currentModule) {
+          serverInstance = currentModule as unknown as Server;
           console.log(`✅ Found server instance in export: "${exportName}"\n`);
           break;
         }
@@ -235,27 +234,27 @@ export default class GenerateSdkCommand extends Command {
     let serverPort = 80;
     let serverHost = "localhost";
 
+    serverUrl = `http://${serverHost}:${serverPort}`;
     try {
-      // Try to get server configuration
-      const serverWithOptions = serverInstance as Server & {
-        options?: { port?: number; host?: string };
-        listen?: () => Promise<void>;
-        close?: () => Promise<void>;
-      };
-
-      if (serverWithOptions.options) {
-        serverPort = serverWithOptions.options.port || 80;
-        serverHost = serverWithOptions.options.host || "localhost";
-      }
-
-      serverUrl = `http://${serverHost}:${serverPort}`;
-
       // Start the server
       console.log(`🌐 Starting server on ${serverUrl}...`);
-      if (typeof serverWithOptions.listen === "function") {
-        await serverWithOptions.listen();
-        wasStarted = true;
-        console.log(`✅ Server started successfully!\n`);
+      if (
+        typeof serverInstance.listen === "function" &&
+        !serverInstance.isListening
+      ) {
+        await new Promise<void>((res, rej) => {
+          try {
+            serverInstance.listen(() => {
+              wasStarted = true;
+              console.log(`✅ Server started successfully!\n`);
+              res();
+            });
+          } catch (error) {
+            rej(error);
+          }
+        }).catch((error) => {
+          console.error(`Failed to start the server, continuing...`);
+        });
       } else {
         throw new Error("Server instance does not have a listen() method");
       }
@@ -265,7 +264,17 @@ export default class GenerateSdkCommand extends Command {
     }
 
     // Step 4: Download OpenAPI spec
-    const swaggerJsonUrl = `${serverUrl}${this.swaggerPath}/json`;
+    const swaggerPath =
+      this.swaggerPath ??
+      (typeof serverInstance.serverOptions.swagger !== "boolean"
+        ? serverInstance.serverOptions.swagger?.path
+        : "/docs");
+    const swaggerJsonUrl = nativePath.join(
+      serverUrl,
+      swaggerPath ?? "/docs",
+      "/json",
+    );
+
     console.log(`📥 Downloading OpenAPI spec from: ${swaggerJsonUrl}`);
 
     let openApiSpec: Record<string, unknown>;

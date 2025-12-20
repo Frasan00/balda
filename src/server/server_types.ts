@@ -34,8 +34,8 @@ import { SyncOrAsync } from "../type_util.js";
 import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
-import type { ClientRouter } from "./router/router_type.js";
 import type { Ajv } from "ajv";
+import { ClientRouter } from "./router/router_type.js";
 
 export type ServerPlugin = {
   cors?: CorsOptions;
@@ -137,6 +137,10 @@ export type ServerErrorHandler = (
 
 export interface ServerInterface {
   /**
+   * Identifier for the balda server instance
+   */
+  _brand: "BaldaServer";
+  /**
    * Whether the server is in production mode NODE_ENV is set to "production"
    */
   isProduction: boolean;
@@ -161,6 +165,10 @@ export interface ServerInterface {
    * @warning Must be used before `listen` method
    */
   tapOptions?: ServerTapOptions;
+  /**
+   * Server options passed to the constructor
+   */
+  serverOptions: ResolvedServerOptions;
 
   /**
    * Main singleton router instance of the server
