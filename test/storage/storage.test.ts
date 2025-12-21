@@ -22,6 +22,10 @@ class CustomStorageProvider implements StorageInterface {
     return `custom://upload/${key}`;
   }
 
+  async getPublicUrl(key: string): Promise<string> {
+    return `custom://public/${key}`;
+  }
+
   async listObjects(prefix?: string): Promise<string[]> {
     const keys = Array.from(this.storage.keys());
     if (!prefix) {

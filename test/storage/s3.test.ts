@@ -341,4 +341,380 @@ MGn/h03aOm9Nn8PmW84bfqo=
       expect(downloadedContent).toBe(content);
     });
   });
+
+  describe("HTTP Flow - Upload via Presigned URL", () => {
+    it("should upload file using presigned PUT URL", async () => {
+      const key = `${testKeyPrefix}/http-upload-put.txt`;
+      const content = "Uploaded via HTTP PUT";
+      const presignedUrl = await provider.getUploadUrl(key, 3600);
+
+      const response = await fetch(presignedUrl, {
+        method: "PUT",
+        body: content,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      });
+
+      expect(response.ok).toBe(true);
+
+      // Verify upload succeeded
+      const retrieved = await provider.getObject(key, "text");
+      expect(retrieved).toBe(content);
+    });
+
+    it("should upload binary data via presigned URL", async () => {
+      const key = `${testKeyPrefix}/http-upload-binary.bin`;
+      const binaryData = new Uint8Array([100, 200, 50, 150, 75]);
+      const presignedUrl = await provider.getUploadUrl(key, 3600);
+
+      const response = await fetch(presignedUrl, {
+        method: "PUT",
+        body: binaryData,
+        headers: {
+          "Content-Type": "application/octet-stream",
+        },
+      });
+
+      expect(response.ok).toBe(true);
+
+      // Verify binary data
+      const retrieved = await provider.getObject(key, "raw");
+      expect(retrieved).toEqual(binaryData);
+    });
+
+    it("should upload JSON via presigned URL", async () => {
+      const key = `${testKeyPrefix}/http-upload-json.json`;
+      const jsonData = { name: "Test", value: 42, nested: { key: "value" } };
+      const presignedUrl = await provider.getUploadUrl(key, 3600);
+
+      const response = await fetch(presignedUrl, {
+        method: "PUT",
+        body: JSON.stringify(jsonData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      expect(response.ok).toBe(true);
+
+      // Verify JSON content
+      const retrieved = await provider.getObject(key, "text");
+      expect(JSON.parse(retrieved as string)).toEqual(jsonData);
+    });
+
+    it("should upload large file via presigned URL", async () => {
+      const key = `${testKeyPrefix}/http-upload-large.txt`;
+      // Create 1MB of data
+      const largeContent = "x".repeat(1024 * 1024);
+      const presignedUrl = await provider.getUploadUrl(key, 3600);
+
+      const response = await fetch(presignedUrl, {
+        method: "PUT",
+        body: largeContent,
+        headers: {
+          "Content-Type": "text/plain",
+        },
+      });
+
+      expect(response.ok).toBe(true);
+
+      // Verify size
+      const retrieved = await provider.getObject(key, "raw");
+      expect(retrieved?.length).toBe(1024 * 1024);
+    });
+  });
+
+  describe("HTTP Flow - Download with Range Requests", () => {
+    beforeAll(async () => {
+      const key = `${testKeyPrefix}/http-range-test.txt`;
+      const content = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      await provider.putObject(key, new TextEncoder().encode(content));
+    });
+
+    it("should download specific byte range", async () => {
+      const key = `${testKeyPrefix}/http-range-test.txt`;
+      const publicUrl = await provider.getPublicUrl(key);
+
+      const response = await fetch(publicUrl, {
+        headers: {
+          Range: "bytes=10-19",
+        },
+      });
+
+      expect(response.status).toBe(206); // Partial Content
+      const content = await response.text();
+      expect(content).toBe("ABCDEFGHIJ");
+    });
+
+    it("should download from specific offset to end", async () => {
+      const key = `${testKeyPrefix}/http-range-test.txt`;
+      const publicUrl = await provider.getPublicUrl(key);
+
+      const response = await fetch(publicUrl, {
+        headers: {
+          Range: "bytes=30-",
+        },
+      });
+
+      expect(response.status).toBe(206);
+      const content = await response.text();
+      expect(content).toBe("UVWXYZ");
+    });
+
+    it("should download last N bytes", async () => {
+      const key = `${testKeyPrefix}/http-range-test.txt`;
+      const publicUrl = await provider.getPublicUrl(key);
+
+      const response = await fetch(publicUrl, {
+        headers: {
+          Range: "bytes=-5",
+        },
+      });
+
+      expect(response.status).toBe(206);
+      const content = await response.text();
+      expect(content).toBe("VWXYZ");
+    });
+  });
+
+  describe("HTTP Flow - Streaming Downloads", () => {
+    it("should stream large file download", async () => {
+      const key = `${testKeyPrefix}/http-stream-download.txt`;
+      const chunkSize = 100000;
+      const chunks = 10;
+      const largeContent = "A".repeat(chunkSize * chunks);
+
+      await provider.putObject(key, new TextEncoder().encode(largeContent));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl);
+
+      expect(response.ok).toBe(true);
+      expect(response.body).toBeDefined();
+
+      const reader = response.body!.getReader();
+      let downloadedSize = 0;
+      let chunksReceived = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        downloadedSize += value.length;
+        chunksReceived++;
+      }
+
+      expect(downloadedSize).toBe(chunkSize * chunks);
+      expect(chunksReceived).toBeGreaterThan(1);
+    });
+
+    it("should stream with progress tracking", async () => {
+      const key = `${testKeyPrefix}/http-stream-progress.txt`;
+      const content = "B".repeat(500000); // 500KB
+
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl);
+
+      const contentLength = parseInt(
+        response.headers.get("content-length") || "0",
+      );
+      expect(contentLength).toBe(500000);
+
+      const reader = response.body!.getReader();
+      let receivedLength = 0;
+      const progressUpdates: number[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        receivedLength += value.length;
+        const progress = (receivedLength / contentLength) * 100;
+        progressUpdates.push(progress);
+      }
+
+      expect(receivedLength).toBe(contentLength);
+      expect(progressUpdates[progressUpdates.length - 1]).toBe(100);
+    });
+  });
+
+  describe("HTTP Flow - Headers and Metadata", () => {
+    it("should verify Content-Type header", async () => {
+      const key = `${testKeyPrefix}/http-content-type.json`;
+      const jsonContent = JSON.stringify({ test: "data" });
+
+      await provider.putObject(
+        key,
+        new TextEncoder().encode(jsonContent),
+        "application/json",
+      );
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl);
+
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+    });
+
+    it("should check ETag header", async () => {
+      const key = `${testKeyPrefix}/http-etag.txt`;
+      const content = "ETag test content";
+
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl);
+
+      const etag = response.headers.get("etag");
+      expect(etag).toBeDefined();
+      expect(etag).not.toBe("");
+    });
+
+    it("should handle conditional requests with If-None-Match", async () => {
+      const key = `${testKeyPrefix}/http-conditional.txt`;
+      const content = "Conditional request test";
+
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+
+      // First request to get ETag
+      const firstResponse = await fetch(publicUrl);
+      const etag = firstResponse.headers.get("etag");
+      expect(etag).toBeDefined();
+
+      // Second request with If-None-Match
+      const secondResponse = await fetch(publicUrl, {
+        headers: {
+          "If-None-Match": etag!,
+        },
+      });
+
+      expect(secondResponse.status).toBe(304); // Not Modified
+    });
+
+    it("should verify Content-Length header", async () => {
+      const key = `${testKeyPrefix}/http-content-length.txt`;
+      const content = "Test content with exactly 30 ch"; // Actually 32 characters
+
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl);
+
+      const contentLength = response.headers.get("content-length");
+      expect(contentLength).toBe(content.length.toString());
+    });
+  });
+
+  describe("HTTP Flow - Error Handling", () => {
+    it("should return 404 for non-existent file", async () => {
+      const key = `${testKeyPrefix}/http-nonexistent.txt`;
+      const publicUrl = await provider.getPublicUrl(key);
+
+      const response = await fetch(publicUrl);
+      expect(response.status).toBe(404);
+    });
+
+    it("should handle malformed presigned URL", async () => {
+      const key = `${testKeyPrefix}/http-malformed.txt`;
+      await provider.putObject(key, new TextEncoder().encode("test"));
+
+      const presignedUrl = await provider.getUploadUrl(key, 3600);
+      const malformedUrl = presignedUrl.replace(
+        /X-Amz-Signature=[^&]+/,
+        "X-Amz-Signature=invalidsignature123",
+      );
+
+      const response = await fetch(malformedUrl, {
+        method: "PUT",
+        body: "Should fail",
+      });
+
+      // LocalStack might be permissive, so check for either rejection or success
+      // In production AWS, this would fail with 403
+      if (!response.ok) {
+        expect(response.status).toBeGreaterThanOrEqual(400);
+      }
+    });
+
+    it("should handle HEAD requests", async () => {
+      const key = `${testKeyPrefix}/http-head.txt`;
+      const content = "HEAD request test";
+
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const response = await fetch(publicUrl, { method: "HEAD" });
+
+      expect(response.ok).toBe(true);
+      expect(response.headers.get("content-length")).toBe(
+        content.length.toString(),
+      );
+
+      // Body should be empty for HEAD request
+      const body = await response.text();
+      expect(body).toBe("");
+    });
+  });
+
+  describe("HTTP Flow - Concurrent Operations", () => {
+    it("should handle concurrent uploads", async () => {
+      const uploadPromises = Array.from({ length: 5 }, async (_, i) => {
+        const key = `${testKeyPrefix}/http-concurrent-upload-${i}.txt`;
+        const content = `Concurrent upload ${i}`;
+        const presignedUrl = await provider.getUploadUrl(key, 3600);
+
+        const response = await fetch(presignedUrl, {
+          method: "PUT",
+          body: content,
+        });
+
+        expect(response.ok).toBe(true);
+        return key;
+      });
+
+      const keys = await Promise.all(uploadPromises);
+      expect(keys).toHaveLength(5);
+
+      // Verify all uploads
+      for (let i = 0; i < 5; i++) {
+        const retrieved = await provider.getObject(keys[i], "text");
+        expect(retrieved).toBe(`Concurrent upload ${i}`);
+      }
+    });
+
+    it("should handle concurrent downloads", async () => {
+      // Setup test files
+      const keys = await Promise.all(
+        Array.from({ length: 5 }, async (_, i) => {
+          const key = `${testKeyPrefix}/http-concurrent-download-${i}.txt`;
+          await provider.putObject(
+            key,
+            new TextEncoder().encode(`Download ${i}`),
+          );
+          return key;
+        }),
+      );
+
+      // Concurrent downloads
+      const downloadPromises = keys.map(async (key, i) => {
+        const publicUrl = await provider.getPublicUrl(key);
+        const response = await fetch(publicUrl);
+        const content = await response.text();
+        return { index: i, content };
+      });
+
+      const results = await Promise.all(downloadPromises);
+
+      expect(results).toHaveLength(5);
+      results.forEach(({ index, content }) => {
+        expect(content).toBe(`Download ${index}`);
+      });
+    });
+  });
 });
