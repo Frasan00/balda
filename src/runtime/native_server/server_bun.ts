@@ -93,7 +93,7 @@ export class ServerBun implements ServerInterface {
           }
         }
 
-        const response = await executeMiddlewareChain(
+        return executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((baldaRequest, res) => {
@@ -105,19 +105,6 @@ export class ServerBun implements ServerInterface {
             }),
           baldaRequest,
         );
-
-        // Optimize response creation - use Response.json for JSON content
-        if (response.headers["Content-Type"] === "application/json") {
-          return Response.json(response.getBody(), {
-            status: response.responseStatus,
-            headers: response.headers,
-          });
-        }
-
-        return new Response(response.getBody(), {
-          status: response.responseStatus,
-          headers: response.headers,
-        });
       },
       // Pass websocket config to Bun.serve if provided
       ...(websocket ? { websocket } : {}),

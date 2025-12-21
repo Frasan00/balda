@@ -115,7 +115,7 @@ export class ServerDeno implements ServerInterface {
           return response;
         }
 
-        const res = await executeMiddlewareChain(
+        const response = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((baldaRequest, res) => {
@@ -128,18 +128,7 @@ export class ServerDeno implements ServerInterface {
           baldaRequest,
         );
 
-        // Optimize response creation - use Response.json for JSON content
-        if (res.headers["Content-Type"] === "application/json") {
-          return Response.json(res.getBody(), {
-            status: res.responseStatus,
-            headers: res.headers,
-          });
-        }
-
-        return new Response(res.getBody(), {
-          status: res.responseStatus,
-          headers: res.headers,
-        });
+        return response as unknown as globalThis.Response;
       },
       ...rest,
     });

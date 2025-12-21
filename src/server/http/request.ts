@@ -13,6 +13,7 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import { canHaveBody } from "../../runtime/native_server/server_utils.js";
 
 /**
  * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
@@ -36,9 +37,12 @@ export class Request<Params extends Record<string, string> = any>
    * @returns The new request object.
    */
   static fromRequest(request: globalThis.Request): Request {
+    const hasBody = canHaveBody(request.method);
     return new Request(request.url, {
       method: request.method,
-      body: request.body,
+      ...(hasBody && request.body
+        ? { body: request.body, duplex: "half" as const }
+        : {}),
       headers: request.headers,
       signal: request.signal,
       referrer: request.referrer,
