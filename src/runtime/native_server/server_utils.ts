@@ -6,40 +6,29 @@ import type {
   ServerRouteMiddleware,
 } from "./server_types.js";
 
-const isPromise = <T = unknown>(value: unknown): value is Promise<T> => {
-  return (
-    value != null &&
-    typeof value === "object" &&
-    typeof (value as Promise<T>).then === "function"
-  );
-};
-
 export const executeMiddlewareChain = async (
   middlewares: ServerRouteMiddleware[],
   handler: ServerRouteHandler,
   req: Request,
   res: Response,
 ): Promise<Response> => {
+  if (!middlewares || middlewares.length === 0) {
+    await handler(req, res);
+    return res;
+  }
+
   let currentIndex = -1;
 
   const next = async (): Promise<void> => {
     currentIndex++;
 
     if (currentIndex >= middlewares.length) {
-      const result = handler(req, res);
-      if (isPromise(result)) {
-        await result;
-      }
-
+      await handler(req, res);
       return;
     }
 
     const middleware = middlewares[currentIndex];
-    const result = middleware(req, res, next);
-
-    if (isPromise(result)) {
-      await result;
-    }
+    await middleware(req, res, next);
   };
 
   await next();

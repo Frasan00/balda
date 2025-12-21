@@ -83,6 +83,11 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
     this.needsHeaderFiltering =
       this.nodeHttpClient === "http2" || this.nodeHttpClient === "http2-secure";
 
+    const graphqlEnabled = this.graphql.isEnabled;
+    const graphqlEndpoint = graphqlEnabled
+      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
+      : "";
+
     this.runtimeServer = this.createServer(
       async (
         req: IncomingMessage,
@@ -99,13 +104,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           queryIndex === -1 ? urlString : urlString.slice(0, queryIndex);
         const search = queryIndex === -1 ? "" : urlString.slice(queryIndex + 1);
 
-        // GraphQL handler
-        if (
-          this.graphql.isEnabled &&
-          pathname.startsWith(
-            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
-          )
-        ) {
+        // GraphQL handler - early return if disabled
+        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
           const handler = await this.ensureGraphQLHandler();
           if (handler) {
             handler(req, httpResponse);
@@ -136,7 +136,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         request.setQueryString(search);
         request.params = match?.params ?? {};
 
-        const response = new Response();
+        const response = Response.acquire();
         response.nodeResponse = httpResponse;
 
         const responseResult = await executeMiddlewareChain(
@@ -152,6 +152,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         );
 
         if (httpResponse.headersSent || httpResponse.writableEnded) {
+          Response.release(responseResult);
           return;
         }
 
@@ -165,6 +166,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
             body as unknown as WebReadableStream,
             httpResponse,
           );
+          Response.release(responseResult);
           return;
         }
 
@@ -187,6 +189,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         } else {
           httpResponse.end(body != null ? String(body) : undefined);
         }
+
+        Response.release(responseResult);
       },
     );
   }

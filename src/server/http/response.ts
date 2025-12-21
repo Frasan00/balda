@@ -5,12 +5,34 @@ import { nativeFile } from "../../runtime/native_file.js";
 import { nativePath } from "../../runtime/native_path.js";
 
 /**
+ * Simple object pool for Response instances to reduce allocations
+ */
+const responsePool: Response[] = [];
+const MAX_POOL_SIZE = 100;
+
+/**
  * The response object.
  * This is the main object that is passed to the handler function.
  * It contains the response body, status, headers, etc.
  * It also contains the methods to send the response.
  */
 export class Response {
+  static acquire(): Response {
+    const pooled = responsePool.pop();
+    if (pooled) {
+      pooled.reset();
+      return pooled;
+    }
+    return new Response();
+  }
+
+  static release(response: Response): void {
+    if (responsePool.length < MAX_POOL_SIZE) {
+      response.reset();
+      responsePool.push(response);
+    }
+  }
+
   static toWebResponse(response: Response): globalThis.Response {
     const body = response.getBody();
     const contentType = response.headers["Content-Type"]?.toLowerCase();
@@ -53,6 +75,19 @@ export class Response {
   constructor(status: number = 200) {
     this.responseStatus = status;
     this.headers = {};
+  }
+
+  /**
+   * Reset the response object to initial state for pooling
+   * @internal
+   */
+  reset(): void {
+    this.responseStatus = 200;
+    this.headers = {};
+    this.body = undefined;
+    this.nodeResponse = undefined as any;
+    this.cookie = undefined;
+    this.clearCookie = undefined;
   }
 
   /**

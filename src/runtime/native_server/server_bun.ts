@@ -43,6 +43,10 @@ export class ServerBun implements ServerInterface {
   listen(): void {
     const tapOptions = this.tapOptions?.bun;
     const { fetch, websocket, ...rest } = tapOptions ?? {};
+    const graphqlEnabled = this.graphql.isEnabled;
+    const graphqlEndpoint = graphqlEnabled
+      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
+      : "";
 
     this.runtimeServer = Bun.serve({
       port: this.port,
@@ -59,13 +63,8 @@ export class ServerBun implements ServerInterface {
         const search =
           queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
 
-        // GraphQL handler
-        if (
-          this.graphql.isEnabled &&
-          pathname.startsWith(
-            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
-          )
-        ) {
+        // GraphQL handler - early return if disabled
+        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
           const baldaRequest = Request.fromRequest(req);
           const handler = await this.ensureGraphQLHandler();
           if (handler) {
@@ -77,7 +76,6 @@ export class ServerBun implements ServerInterface {
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
-        // Lazy query parsing - only parse when accessed
         baldaRequest.setQueryString(search);
         baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
@@ -94,21 +92,23 @@ export class ServerBun implements ServerInterface {
           }
         }
 
-        const baldaResponse = await executeMiddlewareChain(
+        const baldaResponse = Response.acquire();
+
+        await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((baldaRequest, res) => {
+            ((req, res) => {
               res.notFound({
-                ...errorFactory(
-                  new RouteNotFoundError(baldaRequest.url, baldaRequest.method),
-                ),
+                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
               });
             }),
           baldaRequest,
-          new Response(),
+          baldaResponse,
         );
 
-        return Response.toWebResponse(baldaResponse);
+        const webResponse = Response.toWebResponse(baldaResponse);
+        Response.release(baldaResponse);
+        return webResponse;
       },
       // Pass websocket config to Bun.serve if provided
       ...(websocket ? { websocket } : {}),

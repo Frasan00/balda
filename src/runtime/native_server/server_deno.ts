@@ -43,6 +43,10 @@ export class ServerDeno implements ServerInterface {
   listen(): void {
     const tapOptions = this.tapOptions?.deno;
     const { handler, ...rest } = tapOptions ?? {};
+    const graphqlEnabled = this.graphql.isEnabled;
+    const graphqlEndpoint = graphqlEnabled
+      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
+      : "";
 
     this.runtimeServer = Deno.serve({
       port: this.port,
@@ -59,13 +63,8 @@ export class ServerDeno implements ServerInterface {
         const search =
           queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
 
-        // GraphQL handler - check early before route matching
-        if (
-          this.graphql.isEnabled &&
-          pathname.startsWith(
-            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
-          )
-        ) {
+        // GraphQL handler - early return if disabled
+        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
           const baldaRequest = Request.fromRequest(req);
           const graphqlHandler = await this.ensureGraphQLHandler();
           if (graphqlHandler) {
@@ -77,7 +76,6 @@ export class ServerDeno implements ServerInterface {
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
-        // Lazy query parsing - only parse when accessed
         baldaRequest.setQueryString(search);
         baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
@@ -116,21 +114,23 @@ export class ServerDeno implements ServerInterface {
           return response;
         }
 
-        const baldaResponse = await executeMiddlewareChain(
+        const baldaResponse = Response.acquire();
+
+        await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((baldaRequest, res) => {
+            ((req, res) => {
               res.notFound({
-                ...errorFactory(
-                  new RouteNotFoundError(baldaRequest.url, baldaRequest.method),
-                ),
+                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
               });
             }),
           baldaRequest,
-          new Response(),
+          baldaResponse,
         );
 
-        return Response.toWebResponse(baldaResponse);
+        const webResponse = Response.toWebResponse(baldaResponse);
+        Response.release(baldaResponse);
+        return webResponse;
       },
       ...rest,
     });
