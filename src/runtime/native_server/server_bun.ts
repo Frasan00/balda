@@ -2,6 +2,7 @@ import { errorFactory } from "../../errors/error_factory.js";
 import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import { GraphQL } from "../../graphql/graphql.js";
 import { Request } from "../../server/http/request.js";
+import { Response } from "../../server/http/response.js";
 import { router } from "../../server/router/router.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
@@ -104,6 +105,7 @@ export class ServerBun implements ServerInterface {
               });
             }),
           baldaRequest,
+          new Response(),
         );
       },
       // Pass websocket config to Bun.serve if provided

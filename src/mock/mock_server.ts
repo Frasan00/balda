@@ -1,6 +1,4 @@
 import { logger } from "../logger/logger.js";
-import { MockResponse } from "./mock_response.js";
-import { MockServerOptions } from "./mock_server_types.js";
 import { HttpMethod } from "../runtime/native_server/server_types.js";
 import {
   canHaveBody,
@@ -11,6 +9,8 @@ import { Response } from "../server/http/response.js";
 import { router } from "../server/router/router.js";
 import type { Server } from "../server/server.js";
 import { NodeHttpClient } from "../server/server_types.js";
+import { MockResponse } from "./mock_response.js";
+import { MockServerOptions } from "./mock_server_types.js";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
@@ -102,6 +102,7 @@ export class MockServer {
         route.middleware,
         route.handler,
         req,
+        new Response(),
       );
       return new MockResponse(res);
     } catch (error) {

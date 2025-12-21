@@ -10,7 +10,7 @@ const isPromise = <T = unknown>(value: unknown): value is Promise<T> => {
   return (
     value != null &&
     typeof value === "object" &&
-    typeof (value as any).then === "function"
+    typeof (value as Promise<T>).then === "function"
   );
 };
 
@@ -18,7 +18,7 @@ export const executeMiddlewareChain = async (
   middlewares: ServerRouteMiddleware[],
   handler: ServerRouteHandler,
   req: Request,
-  res: Response = new Response(),
+  res: Response,
 ): Promise<Response> => {
   let currentIndex = -1;
 
@@ -30,6 +30,7 @@ export const executeMiddlewareChain = async (
       if (isPromise(result)) {
         await result;
       }
+
       return;
     }
 
@@ -39,20 +40,20 @@ export const executeMiddlewareChain = async (
     if (isPromise(result)) {
       await result;
     }
-    // If middleware didn't call next() and didn't return promise, the chain stops here
   };
 
-  // Start the middleware chain
   await next();
   return res;
 };
+
+const METHODS_WITH_BODY = new Set(["post", "put", "patch"]);
 
 export const canHaveBody = (method?: string) => {
   if (!method) {
     return true;
   }
 
-  return ["post", "put", "patch"].includes(method.toLowerCase());
+  return METHODS_WITH_BODY.has(method.toLowerCase());
 };
 
 /**

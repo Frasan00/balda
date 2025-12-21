@@ -2,6 +2,7 @@ import { errorFactory } from "../../errors/error_factory.js";
 import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import { GraphQL } from "../../graphql/graphql.js";
 import { Request } from "../../server/http/request.js";
+import { Response } from "../../server/http/response.js";
 import { router } from "../../server/router/router.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
@@ -85,7 +86,7 @@ export class ServerDeno implements ServerInterface {
         // User input handler
         const handlerResponse = await handler?.(baldaRequest, info);
         if (handlerResponse) {
-          return new Response(null, { status: 426 });
+          return new globalThis.Response(null, { status: 426 });
         }
 
         // ws upgrade handler
@@ -126,6 +127,7 @@ export class ServerDeno implements ServerInterface {
               });
             }),
           baldaRequest,
+          new Response(),
         );
 
         return response as unknown as globalThis.Response;
