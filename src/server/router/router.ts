@@ -24,6 +24,12 @@ class Node {
   }
 }
 
+type CachedRoute = {
+  middleware: ServerRouteMiddleware[];
+  handler: ServerRouteHandler;
+  params: Params;
+};
+
 /**
  * Singleton that handles the routing of requests to the appropriate handler(s).
  */
@@ -32,6 +38,7 @@ export class Router {
   private routes: Route[];
   private middlewares: ServerRouteMiddleware[];
   private basePath: string;
+  private staticRouteCache: Map<string, CachedRoute>;
 
   /**
    * Create a new router with an optional base path and default middlewares.
@@ -45,6 +52,7 @@ export class Router {
     this.routes = [];
     this.middlewares = middlewares;
     this.basePath = this.normalizeBasePath(basePath);
+    this.staticRouteCache = new Map();
   }
 
   /** Returns a shallow copy of all registered routes. */
@@ -76,6 +84,17 @@ export class Router {
     const clean = path.split("?")[0];
     const trimmed = clean.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
+
+    // if route is static, we can cache it and get it in O(1)
+    const isStaticRoute = !path.includes(":") && !path.includes("*");
+    if (isStaticRoute) {
+      const cacheKey = `${method}:${clean}`;
+      this.staticRouteCache.set(cacheKey, {
+        middleware,
+        handler,
+        params: {},
+      });
+    }
 
     let node = root;
     for (const seg of segments) {
@@ -123,6 +142,7 @@ export class Router {
   /**
    * Find the matching route for the given HTTP method and path.
    * Returns the resolved middleware chain, handler, and extracted params; or null if not found.
+   * Uses O(1) cache lookup for static routes, falls back to O(k) tree traversal for dynamic routes.
    */
   find(
     method: string,
@@ -133,12 +153,21 @@ export class Router {
     params: Params;
   } | null {
     method = method.toUpperCase();
+    const clean = rawPath.split("?")[0];
+
+    // O(1) lookup for static routes
+    const cacheKey = `${method}:${clean}`;
+    const cachedRoute = this.staticRouteCache.get(cacheKey);
+    if (cachedRoute) {
+      return cachedRoute;
+    }
+
+    // fall back to O(k) tree traversal for dynamic routes
     const root = this.trees.get(method);
     if (!root) {
       return null;
     }
 
-    const clean = rawPath.split("?")[0];
     const trimmed = clean.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
     const params: Params = {};
@@ -542,10 +571,11 @@ export class Router {
     middlewares: ServerRouteMiddleware[],
   ): void {
     for (const route of this.routes) {
+      const updatedMiddleware = [...middlewares, ...(route.middleware || [])];
       this.addOrUpdate(
         route.method as HttpMethod,
         route.path,
-        [...middlewares, ...(route.middleware || [])],
+        updatedMiddleware,
         route.handler,
       );
     }

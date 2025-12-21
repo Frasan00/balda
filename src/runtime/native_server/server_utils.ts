@@ -6,36 +6,44 @@ import type {
   ServerRouteMiddleware,
 } from "./server_types.js";
 
-/**
- * Execute a middleware chain
- */
+const isPromise = <T = unknown>(value: unknown): value is Promise<T> => {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    typeof (value as any).then === "function"
+  );
+};
+
 export const executeMiddlewareChain = async (
   middlewares: ServerRouteMiddleware[],
   handler: ServerRouteHandler,
   req: Request,
   res: Response = new Response(),
 ): Promise<Response> => {
-  let currentIndex = 0;
-  if (!middlewares.length) {
-    await handler(req, res);
-    return res;
-  }
+  let currentIndex = -1;
 
   const next = async (): Promise<void> => {
     currentIndex++;
 
     if (currentIndex >= middlewares.length) {
-      await handler(req, res);
+      const result = handler(req, res);
+      if (isPromise(result)) {
+        await result;
+      }
       return;
     }
 
     const middleware = middlewares[currentIndex];
-    await middleware(req, res, next);
+    const result = middleware(req, res, next);
+
+    if (isPromise(result)) {
+      await result;
+    }
+    // If middleware didn't call next() and didn't return promise, the chain stops here
   };
 
-  const firstMiddleware = middlewares[0];
-  await firstMiddleware(req, res, next);
-
+  // Start the middleware chain
+  await next();
   return res;
 };
 
