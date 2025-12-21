@@ -41,12 +41,21 @@ const serverBuilder = new Server({
     },
   },
   plugins: {
+    bodyParser: {
+      json: {
+        sizeLimit: "20mb",
+      },
+      urlencoded: {
+        extended: true,
+      },
+      fileParser: {
+        maxFiles: 10,
+        maxFileSize: "10mb",
+      },
+    },
     static: {
       source: "public",
       path: "/public",
-    },
-    json: {
-      sizeLimit: "20mb",
     },
     cors: {
       origin: "*",
@@ -58,9 +67,6 @@ const serverBuilder = new Server({
     },
     cookie: {
       secret: "secret",
-    },
-    urlencoded: {
-      extended: true,
     },
     log: {
       logResponse: true,

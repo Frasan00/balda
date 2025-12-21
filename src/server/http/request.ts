@@ -4,9 +4,8 @@ import { AjvStateManager } from "../../ajv/ajv.js";
 import { AjvCompileParams } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
-import type { FormFile } from "../../plugins/file/file_types.js";
 import { nativeCrypto } from "../../runtime/native_crypto.js";
-import { NativeRequest } from "../../runtime/native_request.js";
+import type { FormFile } from "../../plugins/body_parser/file/file_types.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
@@ -28,22 +27,43 @@ const schemaRefCache = new WeakMap<object, symbol>();
  * It contains the request body, query parameters, files, cookies, etc.
  * It also contains the validation methods.
  */
-export class Request<
-  Params extends Record<string, string> = any,
-> extends NativeRequest {
-  static fromRequest(request: Request | NativeRequest): Request {
+export class Request<Params extends Record<string, string> = any>
+  extends globalThis.Request
+{
+  /**
+   * Creates a new request object from a Web API Request object.
+   * @param request - The Web API Request object to create a new request object from.
+   * @returns The new request object.
+   */
+  static fromRequest(request: globalThis.Request): Request {
     return new Request(request.url, {
       method: request.method,
       body: request.body,
       headers: request.headers,
+      signal: request.signal,
+      referrer: request.referrer,
+      referrerPolicy: request.referrerPolicy,
+      mode: request.mode,
+      credentials: request.credentials,
+      cache: request.cache,
+      redirect: request.redirect,
+      integrity: request.integrity,
+      keepalive: request.keepalive,
     });
   }
 
-  private static compileAndValidate(
+  /**
+   * Compiles and validates the request data against the input schema.
+   * @param inputSchema - The schema to validate the request data against (Zod, TypeBox, or plain JSON schema).
+   * @param data - The request data to validate.
+   * @param safe - If true, the function will return the original data if the validation fails instead of throwing an error.
+   * @returns The validated data.
+   */
+  private static compileAndValidate<T extends RequestSchema>(
     inputSchema: RequestSchema,
-    data: any,
+    data: T,
     safe: boolean,
-  ): any {
+  ): ValidatedData<T> {
     let jsonSchema: any;
     let cacheKey: string;
 
@@ -128,52 +148,16 @@ export class Request<
   }
 
   /**
-   * Enrich native request with validation methods.
+   * The raw Web API Request body.
+   * @warning if using body parser middleware, this property will be read and the parsed body will be set to the `parsedBody` property.
+   * @warning this body can be read once so be careful not to use it after the body parser middleware has been applied.
    */
-  static enrichRequest(request: Request): Request {
-    request.validate = (
-      inputSchema: RequestSchema,
-      safe: boolean = false,
-    ): any => {
-      return Request.compileAndValidate(inputSchema, request.body || {}, safe);
-    };
+  declare readonly body: globalThis.Request["body"];
 
-    request.validateQuery = (
-      inputSchema: RequestSchema,
-      safe: boolean = false,
-    ): any => {
-      return Request.compileAndValidate(inputSchema, request.query || {}, safe);
-    };
-
-    request.validateAll = (
-      inputSchema: RequestSchema,
-      safe: boolean = false,
-    ): any => {
-      return Request.compileAndValidate(
-        inputSchema,
-        {
-          ...(request.body ? { body: request.body } : {}),
-          ...(request.query ? { query: request.query } : {}),
-        },
-        safe,
-      );
-    };
-
-    request.file = (fieldName: string) => {
-      return request.files.find((file) => file.formName === fieldName) ?? null;
-    };
-
-    request.files = [];
-    request.saveSession = async () => {};
-    request.destroySession = async () => {};
-    request.session = {};
-    request.cookies = {};
-    request.cookie = (name: string) => {
-      return request.cookies[name];
-    };
-
-    return request;
-  }
+  /**
+   * The parsed body of the request from the body parser middleware.
+   */
+  declare parsedBody: any;
 
   /**
    * The context of the request. Can be augmented extending AsyncLocalStorageContext interface
@@ -262,11 +246,6 @@ export class Request<
    */
   query: Record<string, string> = {};
 
-  /**
-   * The raw body of the request. Only available for POST, PUT, PATCH and DELETE requests.
-   */
-  declare rawBody?: ArrayBuffer;
-
   declare private _id: string;
 
   /**
@@ -285,11 +264,6 @@ export class Request<
   }
 
   /**
-   * The parsed body of the request
-   */
-  override body: any;
-
-  /**
    * The validated body of the request.
    * @param inputSchema - The schema to validate the body against (Zod schema or JSON Schema).
    * @param safe - If true, the function will return the original body if the validation fails instead of throwing an error.
@@ -298,7 +272,7 @@ export class Request<
     inputSchema: T,
     safe: boolean = false,
   ): ValidatedData<T> {
-    return Request.compileAndValidate(inputSchema, this.body || {}, safe);
+    return Request.compileAndValidate(inputSchema, this.parsedBody || {}, safe);
   }
 
   /**
@@ -325,7 +299,7 @@ export class Request<
     return Request.compileAndValidate(
       inputSchema,
       {
-        ...(this.body ?? {}),
+        ...(this.parsedBody ?? {}),
         ...(this.query ?? {}),
       },
       safe,

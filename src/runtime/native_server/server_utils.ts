@@ -44,7 +44,7 @@ export const canHaveBody = (method?: string) => {
     return true;
   }
 
-  return ["post", "put", "patch", "delete"].includes(method.toLowerCase());
+  return ["post", "put", "patch"].includes(method.toLowerCase());
 };
 
 /**

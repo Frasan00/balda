@@ -50,15 +50,15 @@ export class ServerDeno implements ServerInterface {
         const url = new URL(req.url);
         const match = router.find(req.method as HttpMethod, url.pathname);
 
-        Request.enrichRequest(req as Request);
-        req.params = match?.params ?? {};
-        req.query = Object.fromEntries(url.searchParams.entries());
-        (req as any).ip =
+        const baldaRequest = Request.fromRequest(req);
+        baldaRequest.params = match?.params ?? {};
+        baldaRequest.query = Object.fromEntries(url.searchParams.entries());
+        baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
           info.remoteAddr?.hostname;
 
         // User input handler
-        const handlerResponse = await handler?.(req, info);
+        const handlerResponse = await handler?.(baldaRequest, info);
         if (handlerResponse) {
           return new Response(null, { status: 426 });
         }
@@ -72,16 +72,16 @@ export class ServerDeno implements ServerInterface {
         ) {
           const graphqlHandler = await this.ensureGraphQLHandler();
           if (graphqlHandler) {
-            return graphqlHandler.fetch(req, { info });
+            return graphqlHandler.fetch(baldaRequest, { info });
           }
         }
 
         // ws upgrade handler
         if (
-          req.headers.get("upgrade") === "websocket" &&
+          baldaRequest.headers.get("upgrade") === "websocket" &&
           this.tapOptions?.deno?.websocket
         ) {
-          const { socket, response } = Deno.upgradeWebSocket(req);
+          const { socket, response } = Deno.upgradeWebSocket(baldaRequest);
 
           // Set event handlers instead of calling them immediately
           if (this.tapOptions?.deno?.websocket?.open) {
@@ -106,12 +106,14 @@ export class ServerDeno implements ServerInterface {
         const res = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((req, res) => {
+            ((baldaRequest, res) => {
               res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+                ...errorFactory(
+                  new RouteNotFoundError(baldaRequest.url, baldaRequest.method),
+                ),
               });
             }),
-          req as Request,
+          baldaRequest,
         );
 
         const responseHeaders = res.headers;

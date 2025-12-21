@@ -26,7 +26,7 @@ function toBaldaToExpressRequest(
   const headersObj = Object.fromEntries(baldaReq.headers.entries());
 
   const expressReq = {
-    body: baldaReq.body,
+    body: baldaReq.parsedBody,
     query: baldaReq.query as any,
     params: baldaReq.params,
     cookies: baldaReq.cookies,
@@ -63,7 +63,7 @@ function toBaldaToExpressRequest(
     param: (name: string) => baldaReq.params[name] ?? baldaReq.query[name],
     files: baldaReq.files,
     file: baldaReq.file,
-    rawBody: baldaReq.rawBody,
+    rawBody: baldaReq.parsedBody,
   } as unknown as ExpressRequest;
 
   return expressReq;

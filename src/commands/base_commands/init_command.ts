@@ -215,8 +215,10 @@ const serverInstance = new Server({
   port: 80,
   host: "0.0.0.0",
   plugins: {
-    json: {
-      sizeLimit: "100kb",
+    bodyParser: {
+      json: {
+        sizeLimit: "100kb",
+      }
     },
   },
 });

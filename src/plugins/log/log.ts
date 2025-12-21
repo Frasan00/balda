@@ -12,7 +12,7 @@ import type { Response } from "../../server/http/response.js";
 export const log = (options?: LogOptions): ServerRouteMiddleware => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const body = req.body;
+      const body = req.parsedBody;
       if (options?.logRequest ?? true) {
         logger.info({
           type: "request",

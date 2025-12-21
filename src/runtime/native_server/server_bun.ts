@@ -50,15 +50,15 @@ export class ServerBun implements ServerInterface {
         const url = new URL(req.url);
         const match = router.find(req.method as HttpMethod, url.pathname);
 
-        Request.enrichRequest(req as Request);
-        req.params = match?.params ?? {};
-        req.query = Object.fromEntries(url.searchParams.entries());
-        (req as any).ip =
+        const baldaRequest = Request.fromRequest(req);
+        baldaRequest.params = match?.params ?? {};
+        baldaRequest.query = Object.fromEntries(url.searchParams.entries());
+        baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
           server.requestIP(req)?.address;
 
         // User input handler
-        await fetch?.call(this, req as unknown as Request, server);
+        await fetch?.call(this, baldaRequest, server);
 
         // GraphQL handler
         if (
@@ -69,13 +69,13 @@ export class ServerBun implements ServerInterface {
         ) {
           const handler = await this.ensureGraphQLHandler();
           if (handler) {
-            return handler.fetch(req, { server });
+            return handler.fetch(baldaRequest, { server });
           }
         }
 
         // ws upgrade handler - only attempt if websocket config exists and request is upgrade
-        if (websocket && req.headers.get("upgrade") === "websocket") {
-          const success = server.upgrade(req, { data: {} });
+        if (websocket && baldaRequest.headers.get("upgrade") === "websocket") {
+          const success = server.upgrade(baldaRequest, { data: {} });
           if (success) {
             return;
           }
@@ -84,12 +84,14 @@ export class ServerBun implements ServerInterface {
         const response = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
-            ((req, res) => {
+            ((baldaRequest, res) => {
               res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+                ...errorFactory(
+                  new RouteNotFoundError(baldaRequest.url, baldaRequest.method),
+                ),
               });
             }),
-          req as Request,
+          baldaRequest,
         );
 
         const responseHeaders = response.headers;

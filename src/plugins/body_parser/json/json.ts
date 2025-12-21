@@ -1,11 +1,11 @@
-import { errorFactory } from "../../errors/error_factory.js";
-import { JsonNotValidError } from "../../errors/json_not_valid.js";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
-import { canHaveBody } from "../../runtime/native_server/server_utils.js";
-import type { NextFunction } from "../../server/http/next.js";
-import type { Request } from "../../server/http/request.js";
-import type { Response } from "../../server/http/response.js";
-import { parseSizeLimit } from "../../utils.js";
+import { errorFactory } from "../../../errors/error_factory.js";
+import { JsonNotValidError } from "../../../errors/json_not_valid.js";
+import type { ServerRouteMiddleware } from "../../../runtime/native_server/server_types.js";
+import { canHaveBody } from "../../../runtime/native_server/server_utils.js";
+import type { NextFunction } from "../../../server/http/next.js";
+import type { Request } from "../../../server/http/request.js";
+import type { Response } from "../../../server/http/response.js";
+import { parseSizeLimit } from "../../../utils.js";
 import type { JsonOptions } from "./json_options.js";
 
 // 100kb in bytes
@@ -22,28 +22,16 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
       return next();
     }
 
+    if (req.bodyUsed) {
+      return next();
+    }
+
     const sizeLimit =
       parseSizeLimit(options?.sizeLimit, DEFAULT_SIZE) ?? DEFAULT_SIZE;
-    const arrayBuffer = req.rawBody;
 
-    if (!arrayBuffer) {
-      if (options?.parseEmptyBodyAsObject) {
-        req.body = {};
-      }
-
-      return next();
-    }
-
-    const byteLength = arrayBuffer.byteLength;
-    if (!byteLength) {
-      if (options?.parseEmptyBodyAsObject) {
-        req.body = {};
-      }
-
-      return next();
-    }
-
-    if (byteLength > sizeLimit) {
+    // Check Content-Length
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && Number.parseInt(contentLength) > sizeLimit) {
       const customErrorMessage = {
         status: 413,
         message: "ERR_REQUEST_BODY_TOO_LARGE",
@@ -55,10 +43,12 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
       });
     }
 
+    if (req.parsedBody) {
+      return next();
+    }
+
     try {
-      const encoding = options?.encoding ?? "utf-8";
-      const decodedBody = new TextDecoder(encoding).decode(arrayBuffer);
-      req.body = JSON.parse(decodedBody);
+      req.parsedBody = await req.json();
     } catch (error) {
       if (error instanceof SyntaxError) {
         return res.badRequest({

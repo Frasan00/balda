@@ -1,7 +1,7 @@
+import { json } from "../../src/plugins/body_parser/json/json.js";
 import { compression } from "../../src/plugins/compression/compression.js";
 import { cors } from "../../src/plugins/cors/cors.js";
 import { helmet } from "../../src/plugins/helmet/helmet.js";
-import { json } from "../../src/plugins/json/json.js";
 import { log as logPlugin } from "../../src/plugins/log/log.js";
 import { Server } from "../../src/server/server.js";
 

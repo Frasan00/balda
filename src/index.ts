@@ -26,6 +26,12 @@ export * from "./mqtt/mqtt.types.js";
 
 // Queue
 export * from "./queue/base_queue.js";
+export {
+  bullmqQueue,
+  createQueue,
+  pgbossQueue,
+  sqsQueue,
+} from "./queue/factories.js";
 export * from "./queue/providers/bullmq/bullmq.js";
 export type {
   BullMQConfiguration,
@@ -45,13 +51,7 @@ export type {
 export * from "./queue/queue.js";
 export * from "./queue/queue_config.js";
 export * from "./queue/queue_service.js";
-export {
-  sqsQueue,
-  bullmqQueue,
-  pgbossQueue,
-  createQueue,
-} from "./queue/factories.js";
-export { TypedQueue, CustomTypedQueue } from "./queue/typed_queue.js";
+export { CustomTypedQueue, TypedQueue } from "./queue/typed_queue.js";
 
 // Logger
 export * from "./logger/logger.js";
@@ -98,9 +98,7 @@ export * from "./plugins/cookie/cookie.js";
 export * from "./plugins/cors/cors.js";
 export * from "./plugins/express/express.js";
 export * from "./plugins/express/express_types.js";
-export * from "./plugins/file/file.js";
 export * from "./plugins/helmet/helmet.js";
-export * from "./plugins/json/json.js";
 export * from "./plugins/log/log.js";
 export * from "./plugins/method_override/method_override.js";
 export * from "./plugins/rate_limiter/rate_limiter.js";
@@ -109,7 +107,6 @@ export * from "./plugins/static/static.js";
 export * from "./plugins/static/static_types.js";
 export * from "./plugins/timeout/timeout.js";
 export * from "./plugins/trust_proxy/trust_proxy.js";
-export * from "./plugins/urlencoded/urlencoded.js";
 
 // Policy
 export * from "./server/policy/policy_decorator.js";

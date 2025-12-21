@@ -131,7 +131,7 @@ const validateDecorator = (
 
         if (options.customError) {
           return res.status(options.customError.status || 400).json({
-            received: req.body,
+            received: req.parsedBody,
             schema: options.body,
             error,
           });

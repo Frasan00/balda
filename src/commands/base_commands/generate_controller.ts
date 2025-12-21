@@ -73,12 +73,12 @@ export default class ${className}Controller {
 
   @post("/")
   async create(req: Request, res: Response) {
-    return { message: \`Create ${this.controllerName.toLowerCase()}\`, data: req.body };
+    return { message: \`Create ${this.controllerName.toLowerCase()}\`, data: req.parsedBody };
   }
 
   @put("/:id")
   async update(req: Request, res: Response) {
-    return { message: \`Update ${this.controllerName.toLowerCase()} with id \${req.params.id}\`, data: req.body };
+    return { message: \`Update ${this.controllerName.toLowerCase()} with id \${req.params.id}\`, data: req.parsedBody };
   }
 
   @del("/:id")

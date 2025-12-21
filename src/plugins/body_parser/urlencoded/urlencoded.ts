@@ -1,16 +1,16 @@
+import type { ServerRouteMiddleware } from "../../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../../server/http/next.js";
+import type { Request } from "../../../server/http/request.js";
+import type { Response } from "../../../server/http/response.js";
+import { parseSizeLimit } from "../../../utils.js";
 import type { UrlEncodedOptions } from "./urlencoded_types.js";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
-import type { NextFunction } from "../../server/http/next.js";
-import type { Request } from "../../server/http/request.js";
-import type { Response } from "../../server/http/response.js";
-import { parseSizeLimit } from "../../utils.js";
 
 // 1MB in bytes
 const DEFAULT_SIZE = 1024 * 1024;
 
 /**
  * URL-encoded form data parser middleware
- * Parses application/x-www-form-urlencoded bodies and populates req.body
+ * Parses application/x-www-form-urlencoded bodies and populates req.parsedBody
  * @param options URL-encoded parsing options
  * @param options.limit The maximum size of the URL-encoded body. Supports "5mb", "100kb" format. Defaults to "1mb".
  * @param options.extended Whether to parse extended syntax (objects and arrays). Defaults to false.
@@ -34,6 +34,16 @@ export const urlencoded = (
     const contentType = req.headers.get("content-type") || "";
     if (!contentType.includes("application/x-www-form-urlencoded")) {
       return next();
+    }
+
+    // Check Content-Length header BEFORE parsing
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > opts.limit) {
+      res.status(413).json({
+        error: "Payload too large",
+        message: "Request body exceeds the size limit",
+      });
+      return;
     }
 
     try {
@@ -66,8 +76,13 @@ async function parseUrlEncodedBody(
     parameterLimit: number;
   },
 ): Promise<void> {
-  const arrayBuffer = req.rawBody!;
+  if (req.parsedBody || req.bodyUsed) {
+    return;
+  }
 
+  const arrayBuffer = await req.arrayBuffer();
+
+  // Check body size
   if (arrayBuffer.byteLength > opts.limit) {
     throw new Error(
       `Body size ${arrayBuffer.byteLength} exceeds limit ${opts.limit}`,
@@ -77,7 +92,7 @@ async function parseUrlEncodedBody(
   const decoder = new TextDecoder(opts.charset);
   const bodyString = decoder.decode(arrayBuffer);
   const parsed = parseUrlEncodedString(bodyString, opts);
-  req.body = parsed;
+  req.parsedBody = parsed;
 }
 
 /**

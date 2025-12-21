@@ -1,31 +1,24 @@
-import { BaldaError } from "../../errors/balda_error.js";
-import { errorFactory } from "../../errors/error_factory.js";
-import { FileTooLargeError } from "../../errors/file_too_large.js";
-import { nativeCrypto } from "../../runtime/native_crypto.js";
-import { nativeOs } from "../../runtime/native_os.js";
-import { nativePath } from "../../runtime/native_path.js";
-import type {
-  FilePluginOptions,
-  FormFile,
-} from "../../plugins/file/file_types.js";
-import { nativeFs } from "../../runtime/native_fs.js";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
-import type { NextFunction } from "../../server/http/next.js";
-import type { Request } from "../../server/http/request.js";
-import type { Response } from "../../server/http/response.js";
-import { parseSizeLimit } from "../../utils.js";
+import { BaldaError } from "../../../errors/balda_error.js";
+import { errorFactory } from "../../../errors/error_factory.js";
+import { FileTooLargeError } from "../../../errors/file_too_large.js";
+import { nativeCrypto } from "../../../runtime/native_crypto.js";
+import { nativeFs } from "../../../runtime/native_fs.js";
+import { nativeOs } from "../../../runtime/native_os.js";
+import { nativePath } from "../../../runtime/native_path.js";
+import type { ServerRouteMiddleware } from "../../../runtime/native_server/server_types.js";
+import type { NextFunction } from "../../../server/http/next.js";
+import type { Request } from "../../../server/http/request.js";
+import type { Response } from "../../../server/http/response.js";
+import { parseSizeLimit } from "../../../utils.js";
+import type { FilePluginOptions, FormFile } from "./file_types.js";
 
-// 1MB in bytes
-const DEFAULT_SIZE = 1024 * 1024;
+// 1MB in bytes for individual files
+const DEFAULT_FILE_SIZE = 1024 * 1024;
+// 10MB in bytes for total request
+const DEFAULT_TOTAL_SIZE = 10 * 1024 * 1024;
 
 /**
  * Middleware to handle multipart/form-data file uploads with security validations.
- *  - Validates files against `FilePluginOptions`: size limits, file count, MIME types.
- *  - Sanitizes filenames to prevent path traversal attacks.
- *  - Uses cryptographically secure random filenames (UUID) in temporary storage.
- *  - Stores uploaded files in a runtime-agnostic temporary directory and exposes them via `req.files`.
- *  - Automatically cleans up temporary files after request completion or on error.
- *  - Can be used as global middleware or route-specific middleware.
  */
 export const fileParser = (
   options?: FilePluginOptions,
@@ -40,8 +33,21 @@ export const fileParser = (
         return next();
       }
 
-      if (!req.rawBody) {
+      if (req.parsedBody || req.bodyUsed) {
         return next();
+      }
+
+      // Check Content-Length BEFORE reading body
+      const contentLength = req.headers.get("content-length");
+      const maxTotalSize =
+        parseSizeLimit(options?.maxFileSize, DEFAULT_TOTAL_SIZE) ??
+        DEFAULT_TOTAL_SIZE;
+
+      if (contentLength && parseInt(contentLength) > maxTotalSize) {
+        return res.status(413).json({
+          error: "Payload too large",
+          message: `Total request size exceeds ${maxTotalSize} bytes`,
+        });
       }
 
       const boundaryMatch = contentType.match(/boundary=(.*)(;|$)/i);
@@ -51,7 +57,16 @@ export const fileParser = (
 
       const boundary = boundaryMatch[1].replace(/(^\s*"?|"?\s*$)/g, "");
 
-      const bodyBuf = new Uint8Array(req.rawBody);
+      const bodyBuf = new Uint8Array(await req.arrayBuffer());
+
+      // Double-check actual body size
+      if (bodyBuf.length > maxTotalSize) {
+        return res.status(413).json({
+          error: "Payload too large",
+          message: `Total request size exceeds ${maxTotalSize} bytes`,
+        });
+      }
+
       const boundaryBuf = new TextEncoder().encode(`--${boundary}`);
       const CRLFCRLF = new Uint8Array([13, 10, 13, 10]);
 
@@ -117,7 +132,8 @@ export const fileParser = (
       const files: FormFile[] = [];
       const fields: Record<string, string> = {};
       const maxFileSizeBytes =
-        parseSizeLimit(options?.maxFileSize, DEFAULT_SIZE) ?? DEFAULT_SIZE;
+        parseSizeLimit(options?.maxFileSize, DEFAULT_FILE_SIZE) ??
+        DEFAULT_FILE_SIZE;
 
       for (const part of parts) {
         const disposition = part.headers
@@ -182,8 +198,8 @@ export const fileParser = (
             });
           }
 
-          const sanitizedName = sanitizeFilename(originalName);
-          const extension = nativePath.extName(sanitizedName);
+          // Get extension from MIME type, not from filename
+          const extension = getExtensionFromMimeType(mimeType);
           const tmpPath = nativePath.join(
             await nativeOs.tmpdir(),
             `${nativeCrypto.randomUUID()}${extension}`,
@@ -204,7 +220,7 @@ export const fileParser = (
       }
 
       req.files = files;
-      req.body = fields;
+      req.parsedBody = fields;
 
       await next();
 
@@ -227,4 +243,28 @@ const sanitizeFilename = (filename: string): string => {
     .replace(/\0/g, "")
     .replace(/[\x00-\x1f\x80-\x9f]/g, "")
     .trim();
+};
+
+// Map MIME types to safe extensions
+const getExtensionFromMimeType = (mimeType: string): string => {
+  const mimeMap: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "application/pdf": ".pdf",
+    "text/plain": ".txt",
+    "application/json": ".json",
+    "text/csv": ".csv",
+    "application/octet-stream": ".bin",
+    "application/x-www-form-urlencoded": ".urlencoded",
+    "application/xml": ".xml",
+    "application/yaml": ".yaml",
+    "application/yml": ".yml",
+    "application/csv": ".csv",
+    "application/txt": ".txt",
+    "application/markdown": ".markdown",
+  };
+
+  return mimeMap[mimeType.toLowerCase()] || ".bin";
 };

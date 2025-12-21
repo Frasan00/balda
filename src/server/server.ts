@@ -9,7 +9,6 @@ import { logger } from "../logger/logger.js";
 import { MockServer } from "../mock/mock_server.js";
 import { asyncLocalStorage } from "../plugins/async_local_storage/async_local_storage.js";
 import type { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
-import { bodyParser } from "../plugins/body_parser/body_parser.js";
 import { compression } from "../plugins/compression/compression.js";
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import { cookie } from "../plugins/cookie/cookie.js";
@@ -21,12 +20,8 @@ import {
   expressMiddleware,
   mountExpressRouter,
 } from "../plugins/express/express.js";
-import { fileParser } from "../plugins/file/file.js";
-import type { FilePluginOptions } from "../plugins/file/file_types.js";
 import { helmet } from "../plugins/helmet/helmet.js";
 import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
-import { json } from "../plugins/json/json.js";
-import type { JsonOptions } from "../plugins/json/json_options.js";
 import { log } from "../plugins/log/log.js";
 import type { LogOptions } from "../plugins/log/log_types.js";
 import { methodOverride } from "../plugins/method_override/method_override.js";
@@ -46,8 +41,6 @@ import { timeout as timeoutMw } from "../plugins/timeout/timeout.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
 import { trustProxy } from "../plugins/trust_proxy/trust_proxy.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
-import { urlencoded } from "../plugins/urlencoded/urlencoded.js";
-import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
 import { NativeEnv } from "../runtime/native_env.js";
 import { nativeFs } from "../runtime/native_fs.js";
@@ -77,6 +70,8 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
+import { bodyParser } from "../plugins/body_parser/body_parser.js";
+import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -121,7 +116,6 @@ export class Server<
       plugins: options?.plugins ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
-      useBodyParser: options?.useBodyParser ?? true,
       graphql: options?.graphql ?? undefined,
     };
 
@@ -149,10 +143,6 @@ export class Server<
       httpsOptions: this.httpsOptions,
       graphql: this.graphql,
     });
-
-    if (this.serverOptions.useBodyParser) {
-      this.use(bodyParser());
-    }
   }
 
   get url(): string {
@@ -618,17 +608,14 @@ export class Server<
   private applyPlugins(plugins: ServerPlugin): void {
     Object.entries(plugins).forEach(([pluginName, pluginOptions]) => {
       switch (pluginName as keyof ServerPlugin) {
+        case "bodyParser":
+          this.use(bodyParser(pluginOptions as BodyParserOptions));
+          break;
         case "cors":
           this.use(cors(pluginOptions as CorsOptions));
           break;
-        case "json":
-          this.use(json(pluginOptions as JsonOptions));
-          break;
         case "static":
           this.use(serveStatic(pluginOptions as StaticPluginOptions));
-          break;
-        case "fileParser":
-          this.use(fileParser(pluginOptions as FilePluginOptions));
           break;
         case "helmet":
           this.use(helmet(pluginOptions as HelmetOptions));
@@ -652,9 +639,6 @@ export class Server<
           };
 
           this.use(rateLimiter(keyOptions, storageOptions));
-          break;
-        case "urlencoded":
-          this.use(urlencoded(pluginOptions as UrlEncodedOptions));
           break;
         case "trustProxy":
           this.use(trustProxy(pluginOptions as TrustProxyOptions));

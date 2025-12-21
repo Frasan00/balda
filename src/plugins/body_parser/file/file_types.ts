@@ -1,4 +1,4 @@
-import type { FileAllowedMimeType } from "../static/static_types.js";
+import { FileAllowedMimeType } from "../../static/static_types.js";
 
 export type FormFile = {
   /**

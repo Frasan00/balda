@@ -7,9 +7,7 @@ import type { CompressionOptions } from "../plugins/compression/compression_type
 import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
 import type { CorsOptions } from "../plugins/cors/cors_types.js";
 import type { ExpressRouter } from "../plugins/express/express_types.js";
-import type { FilePluginOptions } from "../plugins/file/file_types.js";
 import type { HelmetOptions } from "../plugins/helmet/helmet_types.js";
-import type { JsonOptions } from "../plugins/json/json_options.js";
 import type { LogOptions } from "../plugins/log/log_types.js";
 import type { MethodOverrideOptions } from "../plugins/method_override/method_override_types.js";
 import type {
@@ -22,7 +20,6 @@ import type { swagger } from "../plugins/swagger/swagger.js";
 import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
-import type { UrlEncodedOptions } from "../plugins/urlencoded/urlencoded_types.js";
 import type {
   HttpsOptions,
   RuntimeServerMap,
@@ -36,16 +33,15 @@ import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import { ClientRouter } from "./router/router_type.js";
+import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 
 export type ServerPlugin = {
+  bodyParser?: BodyParserOptions;
   cors?: CorsOptions;
-  json?: JsonOptions;
   static?: StaticPluginOptions;
-  fileParser?: FilePluginOptions;
   helmet?: HelmetOptions;
   cookie?: CookieMiddlewareOptions;
   log?: LogOptions;
-  urlencoded?: UrlEncodedOptions;
   rateLimiter?: {
     keyOptions?: RateLimiterKeyOptions;
     storageOptions?: StorageOptions;
@@ -73,8 +69,6 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
   plugins?: ServerPlugin;
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;
-  /** Whether to use the body parser plugin, by default it is true, it is really recommended to use it */
-  useBodyParser?: boolean;
   /**
    * The swagger options to apply to the server, by default swagger plugin is applied with standard options, you can pass a boolean to enable or disable the plugin or you can pass an object to apply custom options to the plugin
    * @example
@@ -123,7 +117,6 @@ export type ResolvedServerOptions = {
   controllerPatterns: string[];
   plugins: ServerPlugin;
   tapOptions: ServerTapOptions;
-  useBodyParser: boolean;
   swagger: Parameters<typeof swagger>[0] | boolean;
   graphql?: GraphQLOptions;
 };
