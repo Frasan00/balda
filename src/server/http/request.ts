@@ -3,16 +3,16 @@ import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import { AjvCompileParams } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
-import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
-import { nativeCrypto } from "../../runtime/native_crypto.js";
-import type { FormFile } from "../../plugins/body_parser/file/file_types.js";
-import { TypeBoxLoader } from "../../validator/typebox_loader.js";
-import { validateSchema } from "../../validator/validator.js";
-import { ZodLoader } from "../../validator/zod_loader.js";
 import type {
   RequestSchema,
   ValidatedData,
 } from "../../decorators/validation/validate_types.js";
+import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
+import type { FormFile } from "../../plugins/body_parser/file/file_types.js";
+import { nativeCrypto } from "../../runtime/native_crypto.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
+import { validateSchema } from "../../validator/validator.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
 
 /**
  * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
@@ -242,25 +242,78 @@ export class Request<Params extends Record<string, string> = any>
   params: Params = {} as Params;
 
   /**
-   * The query parameters of the request.
+   * Private properties for lazy query parsing
    */
-  query: Record<string, string> = {};
+  #query?: Record<string, string>;
+  #queryString?: string;
+  #queryParsed = false;
 
-  declare private _id: string;
+  /**
+   * The query parameters of the request.
+   * Lazy parsed - only parses URLSearchParams when accessed
+   */
+  get query(): Record<string, string> {
+    if (this.#queryParsed) {
+      return this.#query!;
+    }
+
+    if (!this.#queryString || this.#queryString === "") {
+      this.#query = {};
+    } else {
+      // Simple cases
+      if (this.#queryString.length < 50 && !this.#queryString.includes("&")) {
+        const eqIndex = this.#queryString.indexOf("=");
+        if (eqIndex === -1) {
+          this.#query = { [this.#queryString]: "" };
+        } else {
+          const key = this.#queryString.slice(0, eqIndex);
+          const value = decodeURIComponent(
+            this.#queryString.slice(eqIndex + 1),
+          );
+          this.#query = { [key]: value };
+        }
+      } else {
+        // Complex query with multiple parameters
+        this.#query = Object.fromEntries(
+          new URLSearchParams(this.#queryString),
+        );
+      }
+    }
+
+    this.#queryParsed = true;
+    return this.#query!;
+  }
+
+  set query(value: Record<string, string>) {
+    this.#query = value;
+    this.#queryParsed = true;
+  }
+
+  /**
+   * Set the raw query string (called by server implementations)
+   * @internal
+   */
+  setQueryString(queryString: string): void {
+    this.#queryString = queryString;
+    this.#queryParsed = false;
+    this.#query = undefined;
+  }
+
+  #id?: string;
 
   /**
    * The id of the request.
    */
   get id(): string {
-    if (!this._id) {
-      this._id = nativeCrypto.randomUUID();
+    if (!this.#id) {
+      this.#id = nativeCrypto.randomUUID();
     }
 
-    return this._id;
+    return this.#id;
   }
 
   set id(value: string) {
-    this._id = value;
+    this.#id = value;
   }
 
   /**

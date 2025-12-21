@@ -76,9 +76,8 @@ export class ServerBun implements ServerInterface {
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
-        baldaRequest.query = search
-          ? Object.fromEntries(new URLSearchParams(search))
-          : {};
+        // Lazy query parsing - only parse when accessed
+        baldaRequest.setQueryString(search);
         baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
           server.requestIP(req)?.address;

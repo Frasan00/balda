@@ -57,6 +57,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
   >;
+  private readonly needsHeaderFiltering: boolean;
 
   constructor(input?: ServerConnectInput<H>) {
     this.routes = input?.routes ?? [];
@@ -77,6 +78,10 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         ? "https"
         : "http";
     this.url = `${protocol}://${this.host}:${this.port}`;
+
+    // Only HTTP/2 protocols need header filtering for pseudo-headers
+    this.needsHeaderFiltering =
+      this.nodeHttpClient === "http2" || this.nodeHttpClient === "http2-secure";
 
     this.runtimeServer = this.createServer(
       async (
@@ -110,19 +115,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
         const match = router.find(req.method as HttpMethod, pathname);
 
-        // Filtering HTTP/2 pseudo-headers
-        const filteredHeaders: Record<string, string> = {};
-        for (const key in req.headers) {
-          if (key.charCodeAt(0) === 58) {
-            continue;
-          }
-          const value = req.headers[key];
-          if (value !== undefined) {
-            filteredHeaders[key] = Array.isArray(value)
-              ? value.join(", ")
-              : value;
-          }
-        }
+        // Optimized header processing
+        const filteredHeaders = this.processHeaders(req.headers);
 
         const request = new Request(`${this.url}${urlString}`, {
           method: req.method,
@@ -138,9 +132,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ??
           req.socket.remoteAddress;
 
-        request.query = search
-          ? Object.fromEntries(new URLSearchParams(search))
-          : {};
+        // Lazy query parsing - only parse when accessed
+        request.setQueryString(search);
         request.params = match?.params ?? {};
 
         const response = new Response();
@@ -212,6 +205,41 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         }
       });
     });
+  }
+
+  /**
+   * Optimized header processing
+   * Only filters HTTP/2 pseudo-headers when using HTTP/2 protocol
+   */
+  private processHeaders(
+    headers: IncomingMessage["headers"],
+  ): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    if (this.needsHeaderFiltering) {
+      const columnCharCode = ":".charCodeAt(0);
+      // HTTP/2: Filter pseudo-headers (start with ':')
+      for (const key in headers) {
+        if (key.charCodeAt(0) === columnCharCode) {
+          continue;
+        }
+        const value = headers[key];
+        if (value !== undefined) {
+          result[key] = Array.isArray(value) ? value.join(", ") : value;
+        }
+      }
+      return result;
+    }
+
+    // HTTP/1.1: No pseudo-headers, just normalize arrays
+    for (const key in headers) {
+      const value = headers[key];
+      if (value !== undefined) {
+        result[key] = Array.isArray(value) ? value.join(", ") : value;
+      }
+    }
+
+    return result;
   }
 
   private async readRequestBody(req: IncomingMessage): Promise<string> {
