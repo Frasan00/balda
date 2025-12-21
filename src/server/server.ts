@@ -1,5 +1,4 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
-import { glob } from "glob";
 import { AjvStateManager } from "../ajv/ajv.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
@@ -9,6 +8,8 @@ import { logger } from "../logger/logger.js";
 import { MockServer } from "../mock/mock_server.js";
 import { asyncLocalStorage } from "../plugins/async_local_storage/async_local_storage.js";
 import type { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
+import { bodyParser } from "../plugins/body_parser/body_parser.js";
+import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 import { compression } from "../plugins/compression/compression.js";
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import { cookie } from "../plugins/cookie/cookie.js";
@@ -70,8 +71,6 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
-import { bodyParser } from "../plugins/body_parser/body_parser.js";
-import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -545,32 +544,48 @@ export class Server<
   ): Promise<void> {
     const controllerPatterns =
       customControllerPatterns ?? this.serverOptions.controllerPatterns;
-    let controllerPaths = await Promise.all(
-      controllerPatterns.map(async (pattern) => {
-        return glob(pattern, {
-          absolute: true,
-          cwd: nativeCwd.getCwd(),
-        });
-      }),
-    ).then((paths) => paths.flat());
 
-    controllerPaths = controllerPaths.flat();
-    controllerPaths = controllerPaths.filter(
-      (path) =>
-        !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
-          path.includes(blacklistedPath),
-        ),
-    );
+    // Skip controller import if no patterns provided
+    if (!controllerPatterns || controllerPatterns.length === 0) {
+      return;
+    }
 
-    logger.debug(`Found ${controllerPaths.length} controllers to import`);
-    await Promise.all(
-      controllerPaths.map(async (controllerPath) => {
-        logger.debug(`Importing controller ${controllerPath}`);
-        await import(controllerPath).catch((err) => {
-          logger.error(`Error importing controller ${controllerPath}: ${err}`);
-        });
-      }),
-    );
+    try {
+      const { glob } = await import("glob");
+
+      let controllerPaths = await Promise.all(
+        controllerPatterns.map(async (pattern) => {
+          return glob(pattern, {
+            absolute: true,
+            cwd: nativeCwd.getCwd(),
+          });
+        }),
+      ).then((paths) => paths.flat());
+
+      controllerPaths = controllerPaths.flat();
+      controllerPaths = controllerPaths.filter(
+        (path) =>
+          !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
+            path.includes(blacklistedPath),
+          ),
+      );
+
+      logger.debug(`Found ${controllerPaths.length} controllers to import`);
+      await Promise.all(
+        controllerPaths.map(async (controllerPath) => {
+          logger.debug(`Importing controller ${controllerPath}`);
+          await import(controllerPath).catch((err) => {
+            logger.error(
+              `Error importing controller ${controllerPath}: ${err}`,
+            );
+          });
+        }),
+      );
+    } catch (error) {
+      logger.warn(
+        `Could not auto-import controllers: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   private extractOptionsAndHandlerFromRouteRegistration(

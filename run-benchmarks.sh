@@ -59,7 +59,7 @@ run_benchmark() {
     elif [ "$RUNTIME" == "bun" ]; then
         bun run "$script" "$RESULTS_DIR" 2>&1 | tee "$log_file"
     elif [ "$RUNTIME" == "deno" ]; then
-        deno run --allow-all "$script" "$RESULTS_DIR" 2>&1 | tee "$log_file"
+        deno run --allow-all --sloppy-imports --import-map import_map.json "$script" "$RESULTS_DIR" 2>&1 | tee "$log_file"
     fi
 
     local exit_code=$?

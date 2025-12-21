@@ -447,7 +447,8 @@ describe("AzureBlobStorageProvider with Azurite", () => {
   describe("HTTP Flow - Download with Range Requests", () => {
     beforeAll(async () => {
       const key = `${testKeyPrefix}/http-range-test.txt`;
-      const content = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      const content =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
       await provider.putObject(key, new TextEncoder().encode(content));
     });
 
