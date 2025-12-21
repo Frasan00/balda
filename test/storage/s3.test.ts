@@ -306,4 +306,39 @@ MGn/h03aOm9Nn8PmW84bfqo=
       expect(url).toContain("Expires=");
     });
   });
+
+  describe("getPublicUrl", () => {
+    it("should generate public URL for S3 object", async () => {
+      const key = `${testKeyPrefix}/public-test.txt`;
+      const url = await provider.getPublicUrl(key);
+
+      expect(url).toBeDefined();
+      expect(url).toContain(bucketName);
+      expect(url).toContain(key);
+    });
+
+    it("should work with LocalStack endpoint", async () => {
+      const key = `${testKeyPrefix}/public-localstack.txt`;
+      await provider.putObject(key, new TextEncoder().encode("Public content"));
+
+      const url = await provider.getPublicUrl(key);
+
+      expect(url).toBeDefined();
+      expect(url).toContain(key);
+    });
+
+    it("should allow HTTP access to public URL", async () => {
+      const key = `${testKeyPrefix}/public-http-test.txt`;
+      const content = "Public HTTP test content";
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+
+      const response = await fetch(publicUrl);
+      expect(response.ok).toBe(true);
+
+      const downloadedContent = await response.text();
+      expect(downloadedContent).toBe(content);
+    });
+  });
 });

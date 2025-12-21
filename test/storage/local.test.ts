@@ -207,4 +207,12 @@ describe("LocalStorageProvider", () => {
       );
     });
   });
+
+  describe("getPublicUrl", () => {
+    it("should throw error - not supported", async () => {
+      await expect(provider.getPublicUrl("test.txt")).rejects.toThrow(
+        "`getPublicUrl` is not available in local storage provider",
+      );
+    });
+  });
 });

@@ -79,6 +79,20 @@ export class S3StorageProvider implements StorageInterface {
     );
   }
 
+  async getPublicUrl(key: string): Promise<string> {
+    await this.ensureClient();
+    const { region, endpoint } = this.options.s3ClientConfig;
+    const bucketName = this.options.s3ClientConfig.bucketName;
+
+    if (endpoint) {
+      const endpointUrl =
+        typeof endpoint === "string" ? endpoint : endpoint.toString();
+      return `${endpointUrl}/${bucketName}/${key}`;
+    }
+
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
+  }
+
   async listObjects(prefix?: string): Promise<string[]> {
     await this.ensureClient();
     const command = new this.s3Lib.ListObjectsV2Command({

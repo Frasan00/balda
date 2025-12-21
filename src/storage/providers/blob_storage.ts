@@ -89,6 +89,12 @@ export class AzureBlobStorageProvider implements StorageInterface {
     return `${blockBlobClient.url}?${sasToken}`;
   }
 
+  async getPublicUrl(key: string): Promise<string> {
+    await this.ensureClient();
+    const blockBlobClient = this.containerClient.getBlockBlobClient(key);
+    return blockBlobClient.url;
+  }
+
   async listObjects(prefix?: string): Promise<string[]> {
     await this.ensureClient();
 

@@ -286,4 +286,47 @@ describe("AzureBlobStorageProvider with Azurite", () => {
       expect(text).toBe("SAS functional test");
     });
   });
+
+  describe("getPublicUrl", () => {
+    it("should generate public URL for blob", async () => {
+      const key = `${testKeyPrefix}/public-test.txt`;
+      const url = await provider.getPublicUrl(key);
+
+      expect(url).toBeDefined();
+      expect(url).toContain(containerName);
+      expect(url).toContain(key);
+      expect(url).not.toContain("sig=");
+      expect(url).not.toContain("se=");
+    });
+
+    it("should generate URL without SAS token", async () => {
+      const key = `${testKeyPrefix}/public-no-sas.txt`;
+      await provider.putObject(key, new TextEncoder().encode("Public content"));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const sasUrl = await provider.getDownloadUrl(key, 3600);
+
+      expect(publicUrl).toBeDefined();
+      expect(sasUrl).toContain("sig=");
+      expect(publicUrl).not.toContain("sig=");
+      expect(sasUrl.split("?")[0]).toBe(publicUrl);
+    });
+
+    it("should allow HTTP access to public URL with SAS", async () => {
+      const key = `${testKeyPrefix}/public-http-test.txt`;
+      const content = "Public HTTP test content";
+      await provider.putObject(key, new TextEncoder().encode(content));
+
+      const publicUrl = await provider.getPublicUrl(key);
+      const sasUrl = await provider.getDownloadUrl(key, 3600);
+
+      const response = await fetch(sasUrl);
+      expect(response.ok).toBe(true);
+
+      const downloadedContent = await response.text();
+      expect(downloadedContent).toBe(content);
+
+      expect(publicUrl).toBe(sasUrl.split("?")[0]);
+    });
+  });
 });

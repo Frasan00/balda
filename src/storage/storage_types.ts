@@ -19,14 +19,26 @@ export interface StorageInterface {
    * Get the download signed url of the object
    * @param key - The key of the object
    * @returns The download signed url of the object
+   * @warning not available in local storage provider
+   * @throws if using local storage provider
    */
   getDownloadUrl: (key: string, expiresInSeconds?: number) => Promise<string>;
   /**
    * Get the upload signed url of the object
    * @param key - The key of the object
    * @returns The upload signed url of the object
+   * @warning not available in local storage provider
+   * @throws if using local storage provider
    */
   getUploadUrl: (key: string, expiresInSeconds?: number) => Promise<string>;
+  /**
+   * Get the public url of the object
+   * @param key - The key of the object
+   * @returns The public url of the object
+   * @warning not available in local storage provider
+   * @throws if using local storage provider
+   */
+  getPublicUrl: (key: string) => Promise<string>;
   /**
    * List the objects from the storage
    * @param prefix - The prefix of the objects

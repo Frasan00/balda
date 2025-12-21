@@ -38,6 +38,12 @@ export class LocalStorageProvider implements StorageInterface {
     );
   }
 
+  async getPublicUrl(_key: string): Promise<string> {
+    throw new BaldaError(
+      "`getPublicUrl` is not available in local storage provider",
+    );
+  }
+
   async listObjects(prefix?: string): Promise<string[]> {
     if (!this.wasDirectoryEnsured) {
       await this.ensureDirectoryExists();
@@ -168,6 +174,7 @@ export class LocalStorageProvider implements StorageInterface {
 
   private async ensureDirectoryExists() {
     if (await nativeFs.exists(this.options.directory)) {
+      this.wasDirectoryEnsured = true;
       return;
     }
 

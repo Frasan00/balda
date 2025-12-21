@@ -52,6 +52,13 @@ export class Storage<
     return provider.getUploadUrl(key, expiresInSeconds);
   }
 
+  async getPublicUrl(key: string): Promise<string> {
+    const provider = this.providerOptions[
+      this.defaultProvider
+    ] as StorageInterface;
+    return provider.getPublicUrl(key);
+  }
+
   async listObjects(prefix?: string): Promise<string[]> {
     const provider = this.providerOptions[
       this.defaultProvider
