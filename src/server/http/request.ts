@@ -10,6 +10,10 @@ import { NativeRequest } from "../../runtime/native_request.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import type {
+  RequestSchema,
+  ValidatedData,
+} from "../../decorators/validation/validate_types.js";
 
 /**
  * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
@@ -36,7 +40,7 @@ export class Request<
   }
 
   private static compileAndValidate(
-    inputSchema: ZodAny | TSchema | AjvCompileParams[0],
+    inputSchema: RequestSchema,
     data: any,
     safe: boolean,
   ): any {
@@ -128,21 +132,21 @@ export class Request<
    */
   static enrichRequest(request: Request): Request {
     request.validate = (
-      inputSchema: ZodAny | AjvCompileParams[0],
+      inputSchema: RequestSchema,
       safe: boolean = false,
     ): any => {
       return Request.compileAndValidate(inputSchema, request.body || {}, safe);
     };
 
     request.validateQuery = (
-      inputSchema: ZodAny | AjvCompileParams[0],
+      inputSchema: RequestSchema,
       safe: boolean = false,
     ): any => {
       return Request.compileAndValidate(inputSchema, request.query || {}, safe);
     };
 
     request.validateAll = (
-      inputSchema: ZodAny | AjvCompileParams[0],
+      inputSchema: RequestSchema,
       safe: boolean = false,
     ): any => {
       return Request.compileAndValidate(
@@ -290,10 +294,10 @@ export class Request<
    * @param inputSchema - The schema to validate the body against (Zod schema or JSON Schema).
    * @param safe - If true, the function will return the original body if the validation fails instead of throwing an error.
    */
-  validate(
-    inputSchema: ZodAny | AjvCompileParams[0],
+  validate<T extends RequestSchema>(
+    inputSchema: T,
     safe: boolean = false,
-  ): any {
+  ): ValidatedData<T> {
     return Request.compileAndValidate(inputSchema, this.body || {}, safe);
   }
 
@@ -302,10 +306,10 @@ export class Request<
    * @param inputSchema - The schema to validate the query against (Zod schema or JSON Schema).
    * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
    */
-  validateQuery(
-    inputSchema: ZodAny | AjvCompileParams[0],
+  validateQuery<T extends RequestSchema>(
+    inputSchema: T,
     safe: boolean = false,
-  ): any {
+  ): ValidatedData<T> {
     return Request.compileAndValidate(inputSchema, this.query || {}, safe);
   }
 
@@ -314,10 +318,10 @@ export class Request<
    * @param inputSchema - The schema to validate against (Zod schema or JSON Schema).
    * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
    */
-  validateAll(
-    inputSchema: ZodAny | AjvCompileParams[0],
+  validateAll<T extends RequestSchema>(
+    inputSchema: T,
     safe: boolean = false,
-  ): any {
+  ): ValidatedData<T> {
     return Request.compileAndValidate(
       inputSchema,
       {

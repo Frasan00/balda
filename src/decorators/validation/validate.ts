@@ -1,15 +1,12 @@
-import type { ZodType } from "zod";
-import type { TSchema } from "@sinclair/typebox";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 import type {
   CustomValidationError,
+  RequestSchema,
   ValidationOptions,
 } from "./validate_types.js";
-import { AjvCompileParams } from "../../ajv/ajv_types.js";
 
 /**
  * Decorator to validate request data using Zod, TypeBox, or plain JSON schemas.
@@ -35,7 +32,7 @@ import { AjvCompileParams } from "../../ajv/ajv_types.js";
  * export class UserController {
  *   @post("/")
  *   @validate.body(PayloadSchema)
- *   async createUser(req: Request, res: Response, payload: z.infer<typeof PayloadSchema>) {
+ *   async createUser(req: Request, res: Response, payload: ValidatedData<typeof PayloadSchema>) {
  *     // payload is now validated and typed
  *     const { name, email } = payload;
  *   }
@@ -150,11 +147,11 @@ const validateDecorator = (
 
 /**
  * Decorator to validate the query parameters against a Zod schema or OpenAPI schema
- * @param schema - The Zod schema or OpenAPI schema to validate the query parameters against
+ * @param schema - The schema to validate the query parameters against (Zod, TypeBox, or plain JSON schema)
  * @returns The decorator function
  */
 validateDecorator.query = (
-  schema: ZodType | AjvCompileParams[0],
+  schema: RequestSchema,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ query: schema, customError });
@@ -162,11 +159,11 @@ validateDecorator.query = (
 
 /**
  * Decorator to validate the request body against a Zod schema
- * @param schema - The Zod schema to validate the request body against
+ * @param schema - The schema to validate the request body against (Zod, TypeBox, or plain JSON schema)
  * @returns The decorator function
  */
 validateDecorator.body = (
-  schema: ZodType | AjvCompileParams[0],
+  schema: RequestSchema,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ body: schema, customError });
@@ -174,11 +171,11 @@ validateDecorator.body = (
 
 /**
  * Decorator to validate both the request body and query parameters against a Zod schema
- * @param schema - The Zod schema to validate both the request body and query parameters against
+ * @param schema - The schema to validate both the request body and query parameters against (Zod, TypeBox, or plain JSON schema)
  * @returns The decorator function
  */
 validateDecorator.all = (
-  schema: ZodType | AjvCompileParams[0],
+  schema: RequestSchema,
   customError?: CustomValidationError,
 ) => {
   return validateDecorator({ all: schema, customError });

@@ -1,5 +1,3 @@
-import type { TSchema } from "@sinclair/typebox";
-import type { ZodType } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
@@ -9,6 +7,7 @@ import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 import type { SerializeOptions } from "./serialize_types.js";
+import type { RequestSchema } from "../validation/validate_types.js";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
@@ -20,7 +19,7 @@ const SERIALIZE_METADATA = Symbol("serializeMetadata");
  */
 const serializeSchemaRefCache = new WeakMap<object, symbol>();
 
-export const serialize = <T extends ZodType | TSchema | AjvCompileParams[0]>(
+export const serialize = <T extends RequestSchema>(
   schema: T,
   options?: SerializeOptions,
 ) => {
