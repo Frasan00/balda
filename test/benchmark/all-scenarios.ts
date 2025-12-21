@@ -55,6 +55,24 @@ const runAllScenarios = async (): Promise<BenchmarkResult[]> => {
           scenario.name,
           STANDARD_CONFIG,
         );
+      } else if (scenario.name === "large-payload") {
+        result = await runBenchmark(
+          `http://localhost:${scenario.port}/large`,
+          scenario.name,
+          STANDARD_CONFIG,
+        );
+      } else if (scenario.name === "with-compression") {
+        result = await runBenchmark(
+          `http://localhost:${scenario.port}/compressed`,
+          scenario.name,
+          STANDARD_CONFIG,
+        );
+      } else if (scenario.name === "all-plugins") {
+        result = await runBenchmark(
+          `http://localhost:${scenario.port}/`,
+          scenario.name,
+          STANDARD_CONFIG,
+        );
       } else {
         result = await runBenchmark(
           `http://localhost:${scenario.port}/`,

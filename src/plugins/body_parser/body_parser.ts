@@ -14,6 +14,11 @@ export const bodyParser = (): ServerRouteMiddleware => {
       return next();
     }
 
+    // Check if body has already been read to prevent "Body is unusable" error
+    if (req.bodyUsed || req.rawBody !== undefined) {
+      return next();
+    }
+
     req.rawBody = await req.arrayBuffer();
     Object.defineProperty(req, "body", {
       value: undefined,
