@@ -11,6 +11,24 @@ import { nativePath } from "../../runtime/native_path.js";
  * It also contains the methods to send the response.
  */
 export class Response {
+  static toWebResponse(response: Response): globalThis.Response {
+    const body = response.getBody();
+    const contentType = response.headers["Content-Type"]?.toLowerCase();
+
+    // If body is already serialized JSON string, use it directly
+    if (contentType === "application/json" && typeof body === "object") {
+      return globalThis.Response.json(body, {
+        status: response.responseStatus,
+        headers: response.headers,
+      });
+    }
+
+    return new globalThis.Response(body, {
+      status: response.responseStatus,
+      headers: response.headers,
+    });
+  }
+
   /**
    * The node http response object available only on the node runtime, useful for direct response manipulation
    * @warning undefined on other runtimes since they already use Web API Response object

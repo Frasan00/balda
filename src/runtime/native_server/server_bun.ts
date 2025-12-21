@@ -94,7 +94,7 @@ export class ServerBun implements ServerInterface {
           }
         }
 
-        return executeMiddlewareChain(
+        const baldaResponse = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((baldaRequest, res) => {
@@ -107,6 +107,8 @@ export class ServerBun implements ServerInterface {
           baldaRequest,
           new Response(),
         );
+
+        return Response.toWebResponse(baldaResponse);
       },
       // Pass websocket config to Bun.serve if provided
       ...(websocket ? { websocket } : {}),

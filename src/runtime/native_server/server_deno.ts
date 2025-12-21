@@ -116,7 +116,7 @@ export class ServerDeno implements ServerInterface {
           return response;
         }
 
-        const response = await executeMiddlewareChain(
+        const baldaResponse = await executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((baldaRequest, res) => {
@@ -130,7 +130,7 @@ export class ServerDeno implements ServerInterface {
           new Response(),
         );
 
-        return response as unknown as globalThis.Response;
+        return Response.toWebResponse(baldaResponse);
       },
       ...rest,
     });
