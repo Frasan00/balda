@@ -47,31 +47,44 @@ export class ServerBun implements ServerInterface {
       port: this.port,
       hostname: this.hostname,
       fetch: async (req, server) => {
-        const url = new URL(req.url);
-        const match = router.find(req.method as HttpMethod, url.pathname);
+        const urlString = req.url;
+        const protocolEnd = urlString.indexOf("://") + 3;
+        const pathStart = urlString.indexOf("/", protocolEnd);
+        const pathAndQuery =
+          pathStart === -1 ? "/" : urlString.slice(pathStart);
+        const queryIndex = pathAndQuery.indexOf("?");
+        const pathname =
+          queryIndex === -1 ? pathAndQuery : pathAndQuery.slice(0, queryIndex);
+        const search =
+          queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
+
+        // GraphQL handler
+        if (
+          this.graphql.isEnabled &&
+          pathname.startsWith(
+            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
+          )
+        ) {
+          const baldaRequest = Request.fromRequest(req);
+          const handler = await this.ensureGraphQLHandler();
+          if (handler) {
+            return handler.fetch(baldaRequest, { server });
+          }
+        }
+
+        const match = router.find(req.method as HttpMethod, pathname);
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
-        baldaRequest.query = Object.fromEntries(url.searchParams.entries());
+        baldaRequest.query = search
+          ? Object.fromEntries(new URLSearchParams(search))
+          : {};
         baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
           server.requestIP(req)?.address;
 
         // User input handler
         await fetch?.call(this, baldaRequest, server);
-
-        // GraphQL handler
-        if (
-          this.graphql.isEnabled &&
-          url.pathname.startsWith(
-            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
-          )
-        ) {
-          const handler = await this.ensureGraphQLHandler();
-          if (handler) {
-            return handler.fetch(baldaRequest, { server });
-          }
-        }
 
         // ws upgrade handler - only attempt if websocket config exists and request is upgrade
         if (websocket && baldaRequest.headers.get("upgrade") === "websocket") {
@@ -94,8 +107,8 @@ export class ServerBun implements ServerInterface {
           baldaRequest,
         );
 
-        const responseHeaders = response.headers;
-        if (responseHeaders["Content-Type"] === "application/json") {
+        // Optimize response creation - use Response.json for JSON content
+        if (response.headers["Content-Type"] === "application/json") {
           return Response.json(response.getBody(), {
             status: response.responseStatus,
             headers: response.headers,

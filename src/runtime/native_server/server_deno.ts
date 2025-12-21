@@ -47,12 +47,38 @@ export class ServerDeno implements ServerInterface {
       port: this.port,
       hostname: this.hostname,
       handler: async (req, info) => {
-        const url = new URL(req.url);
-        const match = router.find(req.method as HttpMethod, url.pathname);
+        const urlString = req.url;
+        const protocolEnd = urlString.indexOf("://") + 3;
+        const pathStart = urlString.indexOf("/", protocolEnd);
+        const pathAndQuery =
+          pathStart === -1 ? "/" : urlString.slice(pathStart);
+        const queryIndex = pathAndQuery.indexOf("?");
+        const pathname =
+          queryIndex === -1 ? pathAndQuery : pathAndQuery.slice(0, queryIndex);
+        const search =
+          queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
+
+        // GraphQL handler - check early before route matching
+        if (
+          this.graphql.isEnabled &&
+          pathname.startsWith(
+            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
+          )
+        ) {
+          const baldaRequest = Request.fromRequest(req);
+          const graphqlHandler = await this.ensureGraphQLHandler();
+          if (graphqlHandler) {
+            return graphqlHandler.fetch(baldaRequest, { info });
+          }
+        }
+
+        const match = router.find(req.method as HttpMethod, pathname);
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
-        baldaRequest.query = Object.fromEntries(url.searchParams.entries());
+        baldaRequest.query = search
+          ? Object.fromEntries(new URLSearchParams(search))
+          : {};
         baldaRequest.ip =
           req.headers.get("x-forwarded-for")?.split(",")[0] ??
           info.remoteAddr?.hostname;
@@ -61,19 +87,6 @@ export class ServerDeno implements ServerInterface {
         const handlerResponse = await handler?.(baldaRequest, info);
         if (handlerResponse) {
           return new Response(null, { status: 426 });
-        }
-
-        // GraphQL handler
-        if (
-          this.graphql.isEnabled &&
-          url.pathname.startsWith(
-            this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
-          )
-        ) {
-          const graphqlHandler = await this.ensureGraphQLHandler();
-          if (graphqlHandler) {
-            return graphqlHandler.fetch(baldaRequest, { info });
-          }
         }
 
         // ws upgrade handler
@@ -116,8 +129,8 @@ export class ServerDeno implements ServerInterface {
           baldaRequest,
         );
 
-        const responseHeaders = res.headers;
-        if (responseHeaders["Content-Type"] === "application/json") {
+        // Optimize response creation - use Response.json for JSON content
+        if (res.headers["Content-Type"] === "application/json") {
           return Response.json(res.getBody(), {
             status: res.responseStatus,
             headers: res.headers,

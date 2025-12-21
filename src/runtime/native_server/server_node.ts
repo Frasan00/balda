@@ -10,13 +10,16 @@ import {
   type Http2ServerResponse,
 } from "node:http2";
 import { createServer as httpsCreateServer } from "node:https";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { errorFactory } from "../../errors/error_factory.js";
 import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import { GraphQL } from "../../graphql/graphql.js";
-import { NodeHttpClient } from "../../server/server_types.js";
 import { Request } from "../../server/http/request.js";
 import { Response } from "../../server/http/response.js";
 import { router } from "../../server/router/router.js";
+import { NodeHttpClient } from "../../server/server_types.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
   HttpMethod,
@@ -33,24 +36,13 @@ import {
   executeMiddlewareChain,
 } from "./server_utils.js";
 
-async function pipeReadableStreamToNodeResponse(
-  stream: ReadableStream,
+const pipeReadableStreamToNodeResponse = async (
+  stream: WebReadableStream,
   res: ServerResponse,
-) {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        res.end();
-        break;
-      }
-      res.write(value);
-    }
-  } catch (error) {
-    res.destroy(error as Error);
-  }
-}
+): Promise<void> => {
+  const nodeStream = Readable.fromWeb(stream);
+  return pipeline(nodeStream, res);
+};
 
 export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   port: number;
@@ -96,9 +88,16 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           await preHandler?.(req);
         }
 
+        const urlString = req.url!;
+        const queryIndex = urlString.indexOf("?");
+        const pathname =
+          queryIndex === -1 ? urlString : urlString.slice(0, queryIndex);
+        const search = queryIndex === -1 ? "" : urlString.slice(queryIndex + 1);
+
+        // GraphQL handler
         if (
           this.graphql.isEnabled &&
-          req.url?.startsWith(
+          pathname.startsWith(
             this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql",
           )
         ) {
@@ -109,10 +108,12 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           }
         }
 
-        const match = router.find(req.method as HttpMethod, req.url!);
+        const match = router.find(req.method as HttpMethod, pathname);
+
+        // Filtering HTTP/2 pseudo-headers
         const filteredHeaders: Record<string, string> = {};
-        for (const key of Object.keys(req.headers)) {
-          if (key.startsWith(":")) {
+        for (const key in req.headers) {
+          if (key.charCodeAt(0) === 58) {
             continue;
           }
           const value = req.headers[key];
@@ -123,7 +124,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           }
         }
 
-        const request = new Request(`${this.url}${req.url}`, {
+        const request = new Request(`${this.url}${urlString}`, {
           method: req.method,
           body: canHaveBody(req.method)
             ? await this.readRequestBody(req)
@@ -131,15 +132,15 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           headers: filteredHeaders,
         });
 
-        let forwardedFor = req.headers["x-forwarded-for"];
-        if (Array.isArray(forwardedFor)) {
-          forwardedFor = forwardedFor[0];
-        }
+        // Extracting IP
+        const forwardedFor = req.headers["x-forwarded-for"];
+        request.ip =
+          (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ??
+          req.socket.remoteAddress;
 
-        request.ip = forwardedFor ?? req.socket.remoteAddress;
-
-        const [_, search = ""] = req.url?.split("?", 2) ?? [];
-        request.query = Object.fromEntries(new URLSearchParams(search));
+        request.query = search
+          ? Object.fromEntries(new URLSearchParams(search))
+          : {};
         request.params = match?.params ?? {};
 
         const response = new Response();
@@ -161,30 +162,38 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           return;
         }
 
-        let body = responseResult.getBody();
+        const body = responseResult.getBody();
         if (body instanceof ReadableStream) {
-          pipeReadableStreamToNodeResponse(body, httpResponse);
+          httpResponse.writeHead(
+            responseResult.responseStatus,
+            responseResult.headers,
+          );
+          pipeReadableStreamToNodeResponse(
+            body as unknown as WebReadableStream,
+            httpResponse,
+          );
           return;
-        }
-
-        if (body instanceof Buffer || body instanceof Uint8Array) {
-          body = body;
-        } else if (typeof body === "string") {
-          body = body;
-        } else if (
-          responseResult.headers["Content-Type"] === "application/json" &&
-          typeof body !== "string"
-        ) {
-          body = JSON.stringify(body);
-        } else {
-          body = String(body);
         }
 
         httpResponse.writeHead(
           responseResult.responseStatus,
           responseResult.headers,
         );
-        httpResponse.end(body);
+
+        // Fast path for common body types
+        if (
+          body instanceof Buffer ||
+          body instanceof Uint8Array ||
+          typeof body === "string"
+        ) {
+          httpResponse.end(body);
+        } else if (
+          responseResult.headers["Content-Type"] === "application/json"
+        ) {
+          httpResponse.end(JSON.stringify(body));
+        } else {
+          httpResponse.end(body != null ? String(body) : undefined);
+        }
       },
     );
   }

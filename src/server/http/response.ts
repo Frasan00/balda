@@ -109,10 +109,7 @@ export class Response {
    */
   text(body: string): void {
     this.body = body;
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "text/plain",
-    };
+    this.headers["Content-Type"] = "text/plain";
   }
 
   /**
@@ -120,10 +117,7 @@ export class Response {
    */
   json<T extends Record<string, unknown> | Array<unknown>>(body: T): void {
     this.body = body;
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "application/json",
-    };
+    this.headers["Content-Type"] = "application/json";
   }
 
   /**
@@ -131,10 +125,7 @@ export class Response {
    */
   html(htmlString: string): void {
     this.body = htmlString;
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "text/html",
-    };
+    this.headers["Content-Type"] = "text/html";
   }
 
   /**
@@ -142,10 +133,7 @@ export class Response {
    */
   xml(body: string): void {
     this.body = body;
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "application/xml",
-    };
+    this.headers["Content-Type"] = "application/xml";
   }
 
   /**
@@ -153,10 +141,7 @@ export class Response {
    */
   download(body: Uint8Array | Buffer): void {
     this.body = body;
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "application/octet-stream",
-    };
+    this.headers["Content-Type"] = "application/octet-stream";
   }
 
   /**
@@ -173,10 +158,7 @@ export class Response {
     const ext = nativePath.extName(pathToFile);
     const mimeType = getContentType(ext);
     this.body = nativeFile.file(pathToFile, options);
-    this.headers = {
-      ...this.headers,
-      "Content-Type": mimeType,
-    };
+    this.headers["Content-Type"] = mimeType;
   }
 
   /**
@@ -423,13 +405,14 @@ export class Response {
     source: AsyncGenerator<any> | Generator<any> | ReadableStream,
     options?: { customHeaders?: Record<string, string> },
   ): void {
-    this.headers = {
-      ...this.headers,
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      ...options?.customHeaders,
-    };
+    this.headers["Content-Type"] = "text/event-stream";
+    this.headers["Cache-Control"] = "no-cache";
+    this.headers["Connection"] = "keep-alive";
+    if (options?.customHeaders) {
+      for (const key in options.customHeaders) {
+        this.headers[key] = options.customHeaders[key];
+      }
+    }
 
     if (source instanceof ReadableStream) {
       this.body = source;
