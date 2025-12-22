@@ -72,6 +72,7 @@ export class Router {
     swaggerOptions?: SwaggerRouteOptions,
   ): void {
     method = method.toUpperCase() as HttpMethod;
+    const clean = path.split("?")[0];
 
     // ensure root exists
     let root = this.trees.get(method);
@@ -80,21 +81,8 @@ export class Router {
       this.trees.set(method, root);
     }
 
-    // strip query string and split into segments (handling root path correctly)
-    const clean = path.split("?")[0];
     const trimmed = clean.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
-
-    // if route is static, we can cache it and get it in O(1)
-    const isStaticRoute = !path.includes(":") && !path.includes("*");
-    if (isStaticRoute) {
-      const cacheKey = `${method}:${clean}`;
-      this.staticRouteCache.set(cacheKey, {
-        middleware,
-        handler,
-        params: {},
-      });
-    }
 
     let node = root;
     for (const seg of segments) {
@@ -153,10 +141,12 @@ export class Router {
     params: Params;
   } | null {
     method = method.toUpperCase();
-    const clean = rawPath.split("?")[0];
 
     // O(1) lookup for static routes
-    const cacheKey = `${method}:${clean}`;
+    const queryIndex = rawPath.indexOf("?");
+    const pathWithoutQuery =
+      queryIndex === -1 ? rawPath : rawPath.slice(0, queryIndex);
+    const cacheKey = `${method}:${pathWithoutQuery}`;
     const cachedRoute = this.staticRouteCache.get(cacheKey);
     if (cachedRoute) {
       return cachedRoute;
@@ -168,7 +158,7 @@ export class Router {
       return null;
     }
 
-    const trimmed = clean.replace(/^\/+|\/+$/g, "");
+    const trimmed = pathWithoutQuery.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
     const params: Params = {};
 

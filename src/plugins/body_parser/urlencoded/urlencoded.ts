@@ -10,7 +10,7 @@ const DEFAULT_SIZE = 1024 * 1024;
 
 /**
  * URL-encoded form data parser middleware
- * Parses application/x-www-form-urlencoded bodies and populates req.parsedBody
+ * Parses application/x-www-form-urlencoded bodies and populates req.body
  * @param options URL-encoded parsing options
  * @param options.limit The maximum size of the URL-encoded body. Supports "5mb", "100kb" format. Defaults to "1mb".
  * @param options.extended Whether to parse extended syntax (objects and arrays). Defaults to false.
@@ -76,11 +76,12 @@ async function parseUrlEncodedBody(
     parameterLimit: number;
   },
 ): Promise<void> {
-  if (req.parsedBody || req.bodyUsed) {
+  if (req.body || req.bodyUsed) {
     return;
   }
 
-  const arrayBuffer = await req.arrayBuffer();
+  const webRequest = req.toWebApi();
+  const arrayBuffer = await webRequest.arrayBuffer();
 
   // Check body size
   if (arrayBuffer.byteLength > opts.limit) {
@@ -92,7 +93,8 @@ async function parseUrlEncodedBody(
   const decoder = new TextDecoder(opts.charset);
   const bodyString = decoder.decode(arrayBuffer);
   const parsed = parseUrlEncodedString(bodyString, opts);
-  req.parsedBody = parsed;
+  req.body = parsed;
+  req.bodyUsed = true;
 }
 
 /**

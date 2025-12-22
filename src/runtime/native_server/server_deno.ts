@@ -63,28 +63,29 @@ export class ServerDeno implements ServerInterface {
         const search =
           queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
 
-        // GraphQL handler - early return if disabled
-        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const baldaRequest = Request.fromRequest(req);
-          const graphqlHandler = await this.ensureGraphQLHandler();
-          if (graphqlHandler) {
-            return graphqlHandler.fetch(baldaRequest, { info });
-          }
-        }
-
         const match = router.find(req.method as HttpMethod, pathname);
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
         baldaRequest.setQueryString(search);
-        baldaRequest.ip =
-          req.headers.get("x-forwarded-for")?.split(",")[0] ??
-          info.remoteAddr?.hostname;
+        const forwardedFor = req.headers.get("x-forwarded-for");
+        baldaRequest.ip = forwardedFor
+          ? forwardedFor.split(",")[0].trim()
+          : info.remoteAddr?.hostname;
 
         // User input handler
-        const handlerResponse = await handler?.(baldaRequest, info);
+        const handlerResponse = await handler?.(req, info);
         if (handlerResponse) {
           return new globalThis.Response(null, { status: 426 });
+        }
+
+        // GraphQL handler
+        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
+          const graphqlHandler = await this.ensureGraphQLHandler();
+          if (graphqlHandler) {
+            const webRequest = baldaRequest.toWebApi();
+            return graphqlHandler.fetch(webRequest, { info });
+          }
         }
 
         // ws upgrade handler
@@ -92,7 +93,8 @@ export class ServerDeno implements ServerInterface {
           baldaRequest.headers.get("upgrade") === "websocket" &&
           this.tapOptions?.deno?.websocket
         ) {
-          const { socket, response } = Deno.upgradeWebSocket(baldaRequest);
+          const webRequest = baldaRequest.toWebApi();
+          const { socket, response } = Deno.upgradeWebSocket(webRequest);
 
           // Set event handlers instead of calling them immediately
           if (this.tapOptions?.deno?.websocket?.open) {
@@ -114,7 +116,7 @@ export class ServerDeno implements ServerInterface {
           return response;
         }
 
-        const baldaResponse = Response.acquire();
+        const baldaResponse = new Response();
 
         await executeMiddlewareChain(
           match?.middleware ?? [],
@@ -129,7 +131,6 @@ export class ServerDeno implements ServerInterface {
         );
 
         const webResponse = Response.toWebResponse(baldaResponse);
-        Response.release(baldaResponse);
         return webResponse;
       },
       ...rest,
@@ -140,7 +141,7 @@ export class ServerDeno implements ServerInterface {
 
   async close(): Promise<void> {
     if (!this.runtimeServer) {
-      throw new Error("Server is not listening or not initialized");
+      return;
     }
 
     await this.runtimeServer.shutdown();

@@ -67,6 +67,7 @@ todo.md
 # Benchmark files
 BENCHMARK.md
 benchmark-results/
+test-output.txt
 
 # Community and contribution files
 CODE_OF_CONDUCT.md

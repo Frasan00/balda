@@ -33,7 +33,7 @@ export const fileParser = (
         return next();
       }
 
-      if (req.parsedBody || req.bodyUsed) {
+      if (req.body || req.bodyUsed) {
         return next();
       }
 
@@ -57,7 +57,7 @@ export const fileParser = (
 
       const boundary = boundaryMatch[1].replace(/(^\s*"?|"?\s*$)/g, "");
 
-      const bodyBuf = new Uint8Array(await req.arrayBuffer());
+      const bodyBuf = new Uint8Array(await req.toWebApi().arrayBuffer());
 
       // Double-check actual body size
       if (bodyBuf.length > maxTotalSize) {
@@ -220,7 +220,8 @@ export const fileParser = (
       }
 
       req.files = files;
-      req.parsedBody = fields;
+      req.body = fields;
+      req.bodyUsed = true;
 
       await next();
 

@@ -1,3 +1,5 @@
+import { Server } from "./server/server.js";
+
 // Decorators
 export * from "./cron/decorator/cron_decorator.js";
 export * from "./decorators/command/arg.js";
@@ -63,13 +65,13 @@ export * from "./commands/command_registry.js";
 export * from "./commands/command_types.js";
 
 // Server
+export { Server };
 export type { MockServer } from "./mock/mock_server.js";
 export * from "./mock/mock_server_types.js";
 export * from "./runtime/native_server/server_types.js";
 export * from "./server/http/next.js";
 export * from "./server/http/request.js";
 export * from "./server/http/response.js";
-export * from "./server/server.js";
 export * from "./server/server_types.js";
 
 // hash
@@ -120,3 +122,5 @@ import type { ClientRouter } from "./server/router/router_type.js";
  * Singleton main router instance that handles all route registrations inside the balda server
  */
 export const router = routerInstance as ClientRouter;
+
+export default Server;

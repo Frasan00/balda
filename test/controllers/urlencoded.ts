@@ -6,6 +6,6 @@ import { Response } from "../../src/server/http/response.js";
 export class UrlencodedController {
   @post("/", { bodyType: "urlencoded" })
   async urlencoded(req: Request, res: Response) {
-    res.ok(req.parsedBody);
+    res.ok(req.body);
   }
 }

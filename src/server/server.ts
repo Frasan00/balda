@@ -79,20 +79,20 @@ export class Server<
   H extends NodeHttpClient = NodeHttpClient,
 > implements ServerInterface {
   readonly _brand = "BaldaServer" as const;
+  readonly serverOptions: ResolvedServerOptions;
+  readonly router: ClientRouter = router;
+  readonly #nativeEnv: NativeEnv = new NativeEnv();
+
   isListening: boolean;
   isProduction: boolean;
   graphql: GraphQL;
-  readonly serverOptions: ResolvedServerOptions;
 
-  readonly router: ClientRouter = router;
-
-  private wasInitialized: boolean;
-  private serverConnector: ServerConnector;
-  private globalMiddlewares: ServerRouteMiddleware[] = [];
-  private controllerImportBlacklistedPaths: string[] = ["node_modules"];
-  private notFoundHandler?: ServerRouteHandler;
-  private readonly nativeEnv: NativeEnv = new NativeEnv();
-  private httpsOptions?: HttpsServerOptions;
+  #wasInitialized: boolean;
+  #serverConnector: ServerConnector;
+  #globalMiddlewares: ServerRouteMiddleware[] = [];
+  #controllerImportBlacklistedPaths: string[] = ["node_modules"];
+  #notFoundHandler?: ServerRouteHandler;
+  #httpsOptions?: HttpsServerOptions;
 
   /**
    * The constructor for the server
@@ -104,56 +104,60 @@ export class Server<
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
    * @param options.logger - The logger to use for the server, by default a default logger is used
    * @param options.tapOptions - Options fetch to the runtime server before the server is up and running
+   * @param options.abortSignal - An optional AbortSignal to gracefully shutdown the server when aborted
    */
   constructor(options?: ServerOptions<H>) {
-    this.wasInitialized = false;
+    this.#wasInitialized = false;
     this.serverOptions = {
       nodeHttpClient: options?.nodeHttpClient ?? ("http" as H),
-      port: options?.port ?? Number(this.nativeEnv.get("PORT")) ?? 80,
-      host: options?.host ?? this.nativeEnv.get("HOST") ?? "0.0.0.0",
+      port: options?.port ?? Number(this.#nativeEnv.get("PORT")) ?? 80,
+      host: options?.host ?? this.#nativeEnv.get("HOST") ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? [],
       plugins: options?.plugins ?? {},
       tapOptions: options?.tapOptions ?? ({} as ServerTapOptions),
       swagger: options?.swagger ?? true,
       graphql: options?.graphql ?? undefined,
+      abortSignal: options?.abortSignal,
     };
 
     if (options?.ajvInstance) {
       AjvStateManager.setGlobalInstance(options.ajvInstance);
     }
 
-    this.httpsOptions =
+    this.#httpsOptions =
       options?.nodeHttpClient === "https" ||
       options?.nodeHttpClient === "http2-secure"
         ? (options as ServerOptions<"https">).httpsOptions
         : undefined;
 
     this.isListening = false;
-    this.isProduction = this.nativeEnv.get("NODE_ENV") === "production";
+    this.isProduction = this.#nativeEnv.get("NODE_ENV") === "production";
     this.graphql = new GraphQL(this.serverOptions.graphql);
 
-    this.serverConnector = new ServerConnector({
+    this.#serverConnector = new ServerConnector({
       routes: [],
       port: this.serverOptions.port,
       host: this.serverOptions.host,
       tapOptions: this.serverOptions.tapOptions,
       runtime: runtime.type,
       nodeHttpClient: this.serverOptions.nodeHttpClient,
-      httpsOptions: this.httpsOptions,
+      httpsOptions: this.#httpsOptions,
       graphql: this.graphql,
     });
+
+    this.setupAbortSignalHandler();
   }
 
   get url(): string {
-    return this.serverConnector.url;
+    return this.#serverConnector.url;
   }
 
   get port(): number {
-    return this.serverConnector.port;
+    return this.#serverConnector.port;
   }
 
   get host(): string {
-    return this.serverConnector.host;
+    return this.#serverConnector.host;
   }
 
   get routes(): Route[] {
@@ -169,7 +173,7 @@ export class Server<
   }
 
   getEnvironment(): Record<string, string> {
-    return this.nativeEnv.getEnvironment();
+    return this.#nativeEnv.getEnvironment();
   }
 
   tmpDir(...append: string[]): string {
@@ -352,7 +356,7 @@ export class Server<
       );
     }
 
-    return this.serverConnector.getServer("node") as RuntimeServerMap<
+    return this.#serverConnector.getServer("node") as RuntimeServerMap<
       "node",
       H
     >;
@@ -365,7 +369,7 @@ export class Server<
       );
     }
 
-    return this.serverConnector.getServer("bun");
+    return this.#serverConnector.getServer("bun");
   }
 
   getDenoServer(): RuntimeServerMap<"deno"> {
@@ -375,7 +379,7 @@ export class Server<
       );
     }
 
-    return this.serverConnector.getServer("deno");
+    return this.#serverConnector.getServer("deno");
   }
 
   embed(key: string, value: any): void {
@@ -448,7 +452,7 @@ export class Server<
   }
 
   use(...middlewares: ServerRouteMiddleware[]): void {
-    this.globalMiddlewares.push(...middlewares);
+    this.#globalMiddlewares.push(...middlewares);
   }
 
   useExpress(
@@ -468,7 +472,7 @@ export class Server<
   }
 
   setErrorHandler(errorHandler?: ServerErrorHandler): void {
-    this.globalMiddlewares.unshift(async (req, res, next) => {
+    this.#globalMiddlewares.unshift(async (req, res, next) => {
       try {
         await next();
       } catch (error) {
@@ -478,7 +482,7 @@ export class Server<
   }
 
   setNotFoundHandler(notFoundHandler?: ServerRouteHandler): void {
-    this.notFoundHandler = notFoundHandler?.bind(this);
+    this.#notFoundHandler = notFoundHandler?.bind(this);
   }
 
   listen(cb?: ServerListenCallback): void {
@@ -489,7 +493,7 @@ export class Server<
     }
 
     this.bootstrap().then(() => {
-      this.serverConnector.listen();
+      this.#serverConnector.listen();
       this.isListening = true;
       if (this.serverOptions.swagger) {
         swagger(this.serverOptions.swagger);
@@ -515,13 +519,37 @@ export class Server<
     });
   }
 
+  /**
+   * Closes the server and frees the port
+   * This method is idempotent and can be called multiple times safely
+   * @returns A promise that resolves when the server is closed
+   */
   async close(): Promise<void> {
     await this.disconnect();
   }
 
+  /**
+   * Disconnects the server and frees the port
+   * This method is idempotent and can be called multiple times safely
+   * Subsequent calls after the first will have no effect
+   * @returns A promise that resolves when the server is disconnected
+   */
   async disconnect(): Promise<void> {
-    await this.serverConnector.close();
-    this.isListening = false;
+    if (!this.isListening) {
+      logger.warn(
+        "Trying to disconnect the server that is not listening, ignoring",
+      );
+      return;
+    }
+
+    try {
+      await this.#serverConnector.close();
+    } catch (error) {
+      logger.error({ error }, "Error closing server connector");
+      throw error;
+    } finally {
+      this.isListening = false;
+    }
   }
 
   configureHash(options: {
@@ -565,7 +593,7 @@ export class Server<
       controllerPaths = controllerPaths.flat();
       controllerPaths = controllerPaths.filter(
         (path) =>
-          !this.controllerImportBlacklistedPaths.some((blacklistedPath) =>
+          !this.#controllerImportBlacklistedPaths.some((blacklistedPath) =>
             path.includes(blacklistedPath),
           ),
       );
@@ -683,18 +711,18 @@ export class Server<
   private async bootstrap(
     options?: Pick<ServerOptions, "controllerPatterns">,
   ): Promise<void> {
-    if (this.wasInitialized) {
+    if (this.#wasInitialized) {
       return;
     }
 
     await this.importControllers(options?.controllerPatterns);
     this.applyPlugins(this.serverOptions.plugins);
     this.registerNotFoundRoutes();
-    if (this.globalMiddlewares.length) {
-      router.applyGlobalMiddlewaresToAllRoutes(this.globalMiddlewares);
+    if (this.#globalMiddlewares.length) {
+      router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
     }
 
-    this.wasInitialized = true;
+    this.#wasInitialized = true;
   }
 
   /**
@@ -703,8 +731,8 @@ export class Server<
    * @internal
    */
   private handleNotFound: ServerRouteHandler = (req, res) => {
-    if (this.notFoundHandler) {
-      this.notFoundHandler(req, res);
+    if (this.#notFoundHandler) {
+      this.#notFoundHandler(req, res);
       return;
     }
 
@@ -770,5 +798,35 @@ export class Server<
         excludeFromSwagger: true,
       });
     }
+  }
+
+  /**
+   * Sets up the abort signal handler to gracefully shutdown the server when aborted
+   * @internal
+   */
+  private setupAbortSignalHandler(): void {
+    if (!this.serverOptions.abortSignal) {
+      return;
+    }
+
+    const signal = this.serverOptions.abortSignal;
+
+    if (signal.aborted) {
+      logger.warn("AbortSignal was already aborted, server will not start");
+      return;
+    }
+
+    signal.addEventListener("abort", async () => {
+      logger.info("AbortSignal received, shutting down server gracefully");
+      try {
+        await this.disconnect();
+        logger.info("Server shutdown completed");
+      } catch (error) {
+        logger.error(
+          { error },
+          "Error during server shutdown from abort signal",
+        );
+      }
+    });
   }
 }

@@ -63,36 +63,38 @@ export class ServerBun implements ServerInterface {
         const search =
           queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
 
-        // GraphQL handler - early return if disabled
-        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const baldaRequest = Request.fromRequest(req);
-          const handler = await this.ensureGraphQLHandler();
-          if (handler) {
-            return handler.fetch(baldaRequest, { server });
-          }
-        }
-
         const match = router.find(req.method as HttpMethod, pathname);
 
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
         baldaRequest.setQueryString(search);
-        baldaRequest.ip =
-          req.headers.get("x-forwarded-for")?.split(",")[0] ??
-          server.requestIP(req)?.address;
+        const forwardedFor = req.headers.get("x-forwarded-for");
+        baldaRequest.ip = forwardedFor
+          ? forwardedFor.split(",")[0].trim()
+          : server.requestIP(req)?.address;
 
         // User input handler
         await fetch?.call(this, baldaRequest, server);
 
+        // GraphQL handler
+        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
+          const handler = await this.ensureGraphQLHandler();
+          if (handler) {
+            const webRequest = baldaRequest.toWebApi();
+            return handler.fetch(webRequest, { server });
+          }
+        }
+
         // ws upgrade handler - only attempt if websocket config exists and request is upgrade
         if (websocket && baldaRequest.headers.get("upgrade") === "websocket") {
-          const success = server.upgrade(baldaRequest, { data: {} });
+          const webRequest = baldaRequest.toWebApi();
+          const success = server.upgrade(webRequest, { data: {} });
           if (success) {
             return;
           }
         }
 
-        const baldaResponse = Response.acquire();
+        const baldaResponse = new Response();
 
         await executeMiddlewareChain(
           match?.middleware ?? [],
@@ -107,7 +109,6 @@ export class ServerBun implements ServerInterface {
         );
 
         const webResponse = Response.toWebResponse(baldaResponse);
-        Response.release(baldaResponse);
         return webResponse;
       },
       // Pass websocket config to Bun.serve if provided
@@ -120,7 +121,7 @@ export class ServerBun implements ServerInterface {
 
   async close(): Promise<void> {
     if (!this.runtimeServer) {
-      throw new Error("Server is not listening or not initialized");
+      return;
     }
 
     await this.runtimeServer.stop();

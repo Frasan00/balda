@@ -3,6 +3,7 @@ import type { RequestHandler } from "express";
 import type { GraphQLOptions } from "../graphql/graphql_types.js";
 import type { MockServer } from "../mock/mock_server.js";
 import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
+import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
 import type { CookieMiddlewareOptions } from "../plugins/cookie/cookie_types.js";
 import type { CorsOptions } from "../plugins/cors/cors_types.js";
@@ -33,7 +34,6 @@ import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import { ClientRouter } from "./router/router_type.js";
-import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 
 export type ServerPlugin = {
   bodyParser?: BodyParserOptions;
@@ -98,7 +98,7 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    */
   graphql?: GraphQLOptions;
   /**
-   * The ajv instance to use for the server for validation, by default a global instance is used, you can pass a custom instance to use for the server
+   * Custom AJV instance to use for the server for validation, by default a global instance is used, you can pass a custom instance to use for the server validation
    * @example
    * ```ts
    * const server = new Server({
@@ -107,6 +107,22 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   ajvInstance?: Ajv;
+  /**
+   * An AbortSignal to gracefully shutdown the server when aborted
+   * @example
+   * ```ts
+   * const controller = new AbortController();
+   * const server = new Server({
+   *   abortSignal: controller.signal,
+   * });
+   *
+   * await server.waitUntilListening();
+   *
+   * // Later: abort the server
+   * controller.abort();
+   * ```
+   */
+  abortSignal?: AbortSignal;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -119,6 +135,7 @@ export type ResolvedServerOptions = {
   tapOptions: ServerTapOptions;
   swagger: Parameters<typeof swagger>[0] | boolean;
   graphql?: GraphQLOptions;
+  abortSignal?: AbortSignal;
 };
 
 export type ServerErrorHandler = (
@@ -363,11 +380,15 @@ export interface ServerInterface {
    */
   waitUntilListening: () => Promise<void>;
   /**
+   * Closes the server and frees the port
+   * This method is idempotent and can be called multiple times safely
    * @alias disconnect
    */
   close: () => Promise<void>;
   /**
-   * Closes the server and frees the port
+   * Disconnects the server and frees the port
+   * This method is idempotent and can be called multiple times safely
+   * Subsequent calls after the first will have no effect
    */
   disconnect: () => Promise<void>;
   /**

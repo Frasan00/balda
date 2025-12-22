@@ -15,8 +15,11 @@ const extractContentType = (req: Request): string | null => {
 };
 
 /**
- * Middleware to parse the body of the request. GET, DELETE and OPTIONS requests are not parsed. Used internally by the server.
- * @internal
+ * Middleware to parse the body of the request. GET, DELETE and OPTIONS requests are not parsed. Used internally by the server. If no parser is set, the body will be parsed as raw array buffer.
+ * @param options - The options for the body parser middleware.
+ * @param options.json - The options for the JSON middleware.
+ * @param options.urlencoded - The options for the URL-encoded middleware.
+ * @param options.fileParser - The options for the file parser middleware.
  */
 export const bodyParser = (
   options: BodyParserOptions,
@@ -36,22 +39,31 @@ export const bodyParser = (
     }
 
     const contentType = extractContentType(req);
-    if (contentType === "application/json") {
+    if (contentType === "application/json" && jsonOptions) {
       return json(jsonOptions)(req, _res, next);
     }
 
-    if (contentType === "multipart/form-data") {
+    if (contentType === "multipart/form-data" && fileParserOptions) {
       return fileParser(fileParserOptions)(req, _res, next);
     }
 
-    if (contentType === "application/x-www-form-urlencoded") {
+    if (
+      contentType === "application/x-www-form-urlencoded" &&
+      urlencodedOptions
+    ) {
       return urlencoded(urlencodedOptions)(req, _res, next);
     }
 
     // text
     if (contentType?.includes("text/")) {
       const decoder = new TextDecoder();
-      req.parsedBody = decoder.decode(await req.arrayBuffer());
+      const webRequest = req.toWebApi();
+      req.body = decoder.decode(await webRequest.arrayBuffer());
+      req.bodyUsed = true;
+    }
+
+    if (!req.body && !req.bodyUsed) {
+      req.body = await req.toWebApi().arrayBuffer();
     }
 
     return next();

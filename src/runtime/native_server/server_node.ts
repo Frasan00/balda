@@ -118,25 +118,29 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         // Optimized header processing
         const filteredHeaders = this.processHeaders(req.headers);
 
-        const request = new Request(`${this.url}${urlString}`, {
-          method: req.method,
-          body: canHaveBody(req.method)
-            ? await this.readRequestBody(req)
-            : undefined,
-          headers: filteredHeaders,
-        });
+        const request = new Request();
+        request.url = `${this.url}${urlString}`;
+        request.method = req.method!;
+        request.body = canHaveBody(req.method)
+          ? await this.readRequestBody(req)
+          : undefined;
+        request.headers = new Headers(filteredHeaders);
 
         // Extracting IP
         const forwardedFor = req.headers["x-forwarded-for"];
-        request.ip =
-          (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ??
-          req.socket.remoteAddress;
+        if (forwardedFor) {
+          request.ip = Array.isArray(forwardedFor)
+            ? forwardedFor[0].trim()
+            : forwardedFor.split(",")[0].trim();
+        } else {
+          request.ip = req.socket.remoteAddress;
+        }
 
         // Lazy query parsing - only parse when accessed
         request.setQueryString(search);
         request.params = match?.params ?? {};
 
-        const response = Response.acquire();
+        const response = new Response();
         response.nodeResponse = httpResponse;
 
         const responseResult = await executeMiddlewareChain(
@@ -152,7 +156,6 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         );
 
         if (httpResponse.headersSent || httpResponse.writableEnded) {
-          Response.release(responseResult);
           return;
         }
 
@@ -166,7 +169,6 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
             body as unknown as WebReadableStream,
             httpResponse,
           );
-          Response.release(responseResult);
           return;
         }
 
@@ -189,8 +191,6 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         } else {
           httpResponse.end(body != null ? String(body) : undefined);
         }
-
-        Response.release(responseResult);
       },
     );
   }

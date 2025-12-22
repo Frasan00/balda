@@ -43,12 +43,14 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
       });
     }
 
-    if (req.parsedBody) {
+    if (req.body || req.bodyUsed) {
       return next();
     }
 
     try {
-      req.parsedBody = await req.json();
+      const webRequest = req.toWebApi();
+      req.body = await webRequest.json();
+      req.bodyUsed = true;
     } catch (error) {
       if (error instanceof SyntaxError) {
         return res.badRequest({

@@ -5,6 +5,7 @@ export interface InMemoryStorageInterface {
 
 export class InMemoryStorage implements InMemoryStorageInterface {
   private storage: Map<string, number> = new Map();
+  private timers: Map<string, NodeJS.Timeout> = new Map();
   private windowMs: number;
 
   constructor(windowMs: number) {
@@ -12,10 +13,19 @@ export class InMemoryStorage implements InMemoryStorageInterface {
   }
 
   async set(key: string, value: number): Promise<void> {
+    const existingTimer = this.timers.get(key);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
     this.storage.set(key, value);
-    setTimeout(() => {
+
+    const timerId = setTimeout(() => {
       this.storage.delete(key);
+      this.timers.delete(key);
     }, this.windowMs);
+
+    this.timers.set(key, timerId);
   }
 
   async get(key: string): Promise<number> {
@@ -28,6 +38,11 @@ export class InMemoryStorage implements InMemoryStorageInterface {
   }
 
   protected async delete(key: string): Promise<void> {
+    const timer = this.timers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+    }
     this.storage.delete(key);
+    this.timers.delete(key);
   }
 }

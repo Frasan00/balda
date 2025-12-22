@@ -13,7 +13,6 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
-import { canHaveBody } from "../../runtime/native_server/server_utils.js";
 
 /**
  * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
@@ -28,31 +27,64 @@ const schemaRefCache = new WeakMap<object, symbol>();
  * It contains the request body, query parameters, files, cookies, etc.
  * It also contains the validation methods.
  */
-export class Request<Params extends Record<string, string> = any>
-  extends globalThis.Request
-{
+export class Request<Params extends Record<string, string> = any> {
   /**
    * Creates a new request object from a Web API Request object.
+   * Optimized to inline body check and avoid unnecessary property spreading.
    * @param request - The Web API Request object to create a new request object from.
    * @returns The new request object.
    */
   static fromRequest(request: globalThis.Request): Request {
-    const hasBody = canHaveBody(request.method);
-    return new Request(request.url, {
-      method: request.method,
-      ...(hasBody && request.body
-        ? { body: request.body, duplex: "half" as const }
+    const baldaRequest = new Request();
+    const method = request.method;
+
+    baldaRequest.url = request.url;
+    baldaRequest.method = method;
+    baldaRequest.headers = request.headers;
+    baldaRequest.signal = request.signal;
+    baldaRequest.referrer = request.referrer;
+    baldaRequest.referrerPolicy = request.referrerPolicy;
+    baldaRequest.mode = request.mode;
+    baldaRequest.credentials = request.credentials;
+    baldaRequest.cache = request.cache;
+    baldaRequest.redirect = request.redirect;
+    baldaRequest.integrity = request.integrity;
+    baldaRequest.keepalive = request.keepalive;
+    baldaRequest.#webApiRequest = request;
+
+    return baldaRequest;
+  }
+
+  /**
+   * Convert this request back to a Web API Request object.
+   * Useful for passing to external libraries that expect standard Request objects.
+   * @returns A Web API Request object
+   */
+  toWebApi(): globalThis.Request {
+    if (this.#webApiRequest) {
+      return this.#webApiRequest;
+    }
+
+    const hasBodyMethod =
+      this.method === "POST" ||
+      this.method === "PUT" ||
+      this.method === "PATCH";
+
+    return new globalThis.Request(this.url, {
+      method: this.method,
+      ...(hasBodyMethod && this.body
+        ? { body: this.body as any, duplex: "half" as const }
         : {}),
-      headers: request.headers,
-      signal: request.signal,
-      referrer: request.referrer,
-      referrerPolicy: request.referrerPolicy,
-      mode: request.mode,
-      credentials: request.credentials,
-      cache: request.cache,
-      redirect: request.redirect,
-      integrity: request.integrity,
-      keepalive: request.keepalive,
+      headers: this.headers,
+      signal: this.signal,
+      referrer: this.referrer,
+      referrerPolicy: this.referrerPolicy,
+      mode: this.mode,
+      credentials: this.credentials,
+      cache: this.cache,
+      redirect: this.redirect,
+      integrity: this.integrity,
+      keepalive: this.keepalive,
     });
   }
 
@@ -152,16 +184,81 @@ export class Request<Params extends Record<string, string> = any>
   }
 
   /**
-   * The raw Web API Request body.
-   * @warning if using body parser middleware, this property will be read and the parsed body will be set to the `parsedBody` property.
-   * @warning this body can be read once so be careful not to use it after the body parser middleware has been applied.
+   * The original Web API Request object (if created from one)
+   * @internal
    */
-  declare readonly body: globalThis.Request["body"];
+  #webApiRequest?: globalThis.Request;
+
+  /**
+   * The URL of the request
+   */
+  url: string = "";
+
+  /**
+   * The HTTP method of the request
+   */
+  method: string = "GET";
+
+  /**
+   * The headers of the request
+   */
+  headers: globalThis.Headers = new Headers();
+
+  /**
+   * The signal for aborting the request
+   */
+  signal?: AbortSignal;
+
+  /**
+   * The referrer of the request
+   */
+  referrer?: string;
+
+  /**
+   * The referrer policy of the request
+   */
+  referrerPolicy?: ReferrerPolicy;
+
+  /**
+   * The mode of the request
+   */
+  mode?: RequestMode;
+
+  /**
+   * The credentials mode of the request
+   */
+  credentials?: RequestCredentials;
+
+  /**
+   * The cache mode of the request
+   */
+  cache?: RequestCache;
+
+  /**
+   * The redirect mode of the request
+   */
+  redirect?: RequestRedirect;
+
+  /**
+   * The integrity of the request
+   */
+  integrity?: string;
+
+  /**
+   * The keepalive flag of the request
+   */
+  keepalive?: boolean;
 
   /**
    * The parsed body of the request from the body parser middleware.
+   * If body parser middleware is not used, this will be undefined.
    */
-  declare parsedBody: any;
+  body: any = undefined;
+
+  /**
+   * Flag indicating if the body has been read/parsed
+   */
+  bodyUsed: boolean = false;
 
   /**
    * The context of the request. Can be augmented extending AsyncLocalStorageContext interface
@@ -329,7 +426,7 @@ export class Request<Params extends Record<string, string> = any>
     inputSchema: T,
     safe: boolean = false,
   ): ValidatedData<T> {
-    return Request.compileAndValidate(inputSchema, this.parsedBody || {}, safe);
+    return Request.compileAndValidate(inputSchema, this.body || {}, safe);
   }
 
   /**
@@ -356,7 +453,7 @@ export class Request<Params extends Record<string, string> = any>
     return Request.compileAndValidate(
       inputSchema,
       {
-        ...(this.parsedBody ?? {}),
+        ...(this.body ?? {}),
         ...(this.query ?? {}),
       },
       safe,

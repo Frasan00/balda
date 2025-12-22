@@ -17,21 +17,24 @@ export const executeMiddlewareChain = async (
     return res;
   }
 
-  let currentIndex = -1;
+  let index = 0;
+  const totalMiddlewares = middlewares.length;
 
   const next = async (): Promise<void> => {
-    currentIndex++;
-
-    if (currentIndex >= middlewares.length) {
-      await handler(req, res);
+    if (index >= totalMiddlewares) {
       return;
     }
 
-    const middleware = middlewares[currentIndex];
-    await middleware(req, res, next);
+    const currentMiddleware = middlewares[index++];
+    await currentMiddleware(req, res, next);
   };
 
   await next();
+
+  if (index >= totalMiddlewares) {
+    await handler(req, res);
+  }
+
   return res;
 };
 

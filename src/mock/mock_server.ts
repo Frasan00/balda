@@ -83,7 +83,7 @@ export class MockServer {
     );
     url.search = new URLSearchParams(query).toString();
 
-    const req = new Request(url.toString(), {
+    const webRequest = new globalThis.Request(url.toString(), {
       method: method.toUpperCase(),
       body: canHaveBody(method) ? body : undefined,
       headers: {
@@ -92,6 +92,7 @@ export class MockServer {
       },
     });
 
+    const req = Request.fromRequest(webRequest);
     req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
     req.params = route.params;
     req.cookies = cookies;
