@@ -28,7 +28,7 @@ export const bodyParser = (
   const urlencodedOptions = options.urlencoded;
   const fileParserOptions = options.fileParser;
 
-  return async (req: Request, _res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!canHaveBody(req.method)) {
       return next();
     }
@@ -40,18 +40,18 @@ export const bodyParser = (
 
     const contentType = extractContentType(req);
     if (contentType === "application/json" && jsonOptions) {
-      return json(jsonOptions)(req, _res, next);
+      return json(jsonOptions)(req, res, next);
     }
 
     if (contentType === "multipart/form-data" && fileParserOptions) {
-      return fileParser(fileParserOptions)(req, _res, next);
+      return fileParser(fileParserOptions)(req, res, next);
     }
 
     if (
       contentType === "application/x-www-form-urlencoded" &&
       urlencodedOptions
     ) {
-      return urlencoded(urlencodedOptions)(req, _res, next);
+      return urlencoded(urlencodedOptions)(req, res, next);
     }
 
     // text

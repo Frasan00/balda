@@ -2,29 +2,49 @@ import { MetadataStore } from "../../metadata_store.js";
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-
-type PatchHandler = (req: Request, res: Response, ...args: any[]) => any;
+import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
- * Decorator to mark an handler for a PATCH request
- * @param path - The path of the route
+ * Decorator to mark a handler for a PATCH request with type-safe path parameters and response body
+ * Body and query must be validated with @validate decorators to be typed
+ * @param path - The path of the route (path parameters will be automatically inferred)
  * @param options - The options for the route
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
- * import { patch, controller, Request, Response } from "balda";
+ * import { patch, controller, validate, Request, Response } from "balda";
+ * import { z } from "zod";
+ *
+ * const UpdateUserSchema = z.object({ name: z.string().optional() });
+ * type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+ * type UpdatedResponse = { id: string; updated: boolean };
  *
  * @controller("/api")
  * class MyController {
- *   @patch("/")
- *   async handler(req: Request, res: Response) {
- *     // ...
+ *   @patch("/:id")
+ *   @validate.body(UpdateUserSchema)
+ *   async handler(
+ *     req: Request<{ id: string }>,
+ *     res: Response<UpdatedResponse>,
+ *     body: UpdateUserInput  // ✅ Validated and typed!
+ *   ) {
+ *     const { id } = req.params; // ✅ id is typed as string!
+ *     res.json({ id, updated: true });
  *   }
  * }
  * ```
  */
-export const patch = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends PatchHandler>(
+export const patch = <TPath extends string = string>(
+  path: TPath,
+  options?: SwaggerRouteOptions,
+) => {
+  return <
+    T extends (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+      ...args: any[]
+    ) => any,
+  >(
     target: any,
     propertyKey: string,
     descriptor: PropertyDescriptor,

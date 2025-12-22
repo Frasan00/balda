@@ -15,7 +15,10 @@ class NativeFile {
       // We do not use Bun api since we need this operation to be sync
       case "bun":
       case "node":
-        return fs.readFileSync(path, options as any);
+        return fs.readFileSync(
+          path,
+          options as { encoding?: null; flag?: string },
+        );
       case "deno":
         return Deno.readFileSync(path);
       default:

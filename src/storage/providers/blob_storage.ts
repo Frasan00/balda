@@ -155,7 +155,12 @@ export class AzureBlobStorageProvider implements StorageInterface {
         }
       }
     } catch (error) {
-      if ((error as any).statusCode === 404) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "statusCode" in error &&
+        error.statusCode === 404
+      ) {
         throw new FileNotFoundError(key);
       }
       throw error;

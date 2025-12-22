@@ -2,29 +2,49 @@ import { MetadataStore } from "../../metadata_store.js";
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-
-type PostHandler = (req: Request, res: Response, ...args: any[]) => any;
+import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
- * Decorator to mark an handler for a POST request
- * @param path - The path of the route
+ * Decorator to mark a handler for a POST request with type-safe path parameters and response body
+ * Body and query must be validated with @validate decorators to be typed
+ * @param path - The path of the route (path parameters will be automatically inferred)
  * @param options - The options for the route
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
- * import { post, controller, Request, Response } from "balda";
+ * import { post, controller, validate, Request, Response } from "balda";
+ * import { z } from "zod";
+ *
+ * const CreateUserSchema = z.object({ name: z.string(), email: z.string().email() });
+ * type CreateUserInput = z.infer<typeof CreateUserSchema>;
+ * type CreatedResponse = { id: string; created: boolean };
  *
  * @controller("/api")
  * class MyController {
  *   @post("/")
- *   async handler(req: Request, res: Response) {
- *     // ...
+ *   @validate.body(CreateUserSchema)
+ *   async handler(
+ *     req: Request<{}>,
+ *     res: Response<CreatedResponse>,
+ *     body: CreateUserInput  // ✅ Validated and typed!
+ *   ) {
+ *     const { name, email } = body; // ✅ body is validated and typed!
+ *     res.json({ id: "123", created: true });
  *   }
  * }
  * ```
  */
-export const post = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends PostHandler>(
+export const post = <TPath extends string = string>(
+  path: TPath,
+  options?: SwaggerRouteOptions,
+) => {
+  return <
+    T extends (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+      ...args: any[]
+    ) => any,
+  >(
     target: any,
     propertyKey: string,
     descriptor: PropertyDescriptor,

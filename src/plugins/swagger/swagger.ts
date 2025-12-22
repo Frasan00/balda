@@ -175,7 +175,10 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
     if (swaggerOptions && (swaggerOptions as Record<string, unknown>).params) {
       parameters = parameters.concat(
-        extractPathParams(route.path, (swaggerOptions as any).params),
+        extractPathParams(
+          route.path,
+          (swaggerOptions as { params?: ZodType }).params,
+        ),
       );
     } else {
       parameters = parameters.concat(extractPathParams(route.path));

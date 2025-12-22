@@ -10,7 +10,7 @@ import { router } from "../server/router/router.js";
 import type { Server } from "../server/server.js";
 import { NodeHttpClient } from "../server/server_types.js";
 import { MockResponse } from "./mock_response.js";
-import { MockServerOptions } from "./mock_server_types.js";
+import type { MockServerOptions } from "./mock_server_types.js";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
@@ -30,11 +30,15 @@ export class MockServer {
    * @param options - Request options including body, headers, query params, etc.
    * @throws {Error} - If more than one of body, formData, urlencoded is provided
    */
-  async request<T = any>(
+  async request<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
     method: HttpMethod,
     path: string,
-    options: MockServerOptions = {},
-  ): Promise<MockResponse<T>> {
+    options: MockServerOptions<TBody, TQuery> = {},
+  ): Promise<MockResponse<TResponse>> {
     const { headers = {}, query = {}, cookies = {}, ip } = options;
     this.validateOptions(options);
 
@@ -50,16 +54,20 @@ export class MockServer {
       return new MockResponse(res);
     }
 
-    let body = options.body;
+    // Internal body can be transformed to various types (BodyInit compatible)
+    let body: string | Uint8Array | ArrayBuffer | undefined = undefined;
     let contentType = "application/json";
 
-    if (
-      body &&
-      typeof body === "object" &&
-      !(body instanceof Uint8Array) &&
-      !(body instanceof ArrayBuffer)
-    ) {
-      body = JSON.stringify(body);
+    if (options.body !== undefined) {
+      if (
+        typeof options.body === "object" &&
+        !(options.body instanceof Uint8Array) &&
+        !(options.body instanceof ArrayBuffer)
+      ) {
+        body = JSON.stringify(options.body);
+      } else {
+        body = options.body as string | Uint8Array;
+      }
     }
 
     if (options.formData) {
@@ -85,7 +93,7 @@ export class MockServer {
 
     const webRequest = new globalThis.Request(url.toString(), {
       method: method.toUpperCase(),
-      body: canHaveBody(method) ? body : undefined,
+      body: canHaveBody(method) ? (body as BodyInit) : undefined,
       headers: {
         "content-type": contentType,
         ...headers,
@@ -120,39 +128,92 @@ export class MockServer {
     }
   }
 
-  async get<T = any>(
+  /**
+   * Type-safe GET request
+   * @template TResponse - The response body type
+   * @template TQuery - The query parameters type
+   * @example
+   * const res = await mock.get<UserResponse, { id: string }>("/users/123");
+   */
+  async get<TResponse = any, TQuery extends Record<string, string> = any>(
     path: string,
-    options?: Omit<MockServerOptions, "body" | "formData" | "urlencoded">,
-  ): Promise<MockResponse<T>> {
-    return this.request("GET", path, options);
+    options?: Omit<
+      MockServerOptions<never, TQuery>,
+      "body" | "formData" | "urlencoded"
+    >,
+  ): Promise<MockResponse<TResponse>> {
+    return this.request<TResponse, never, TQuery>("GET", path, options);
   }
 
-  async post<T = any>(
+  /**
+   * Type-safe POST request
+   * @template TResponse - The response body type
+   * @template TBody - The request body type
+   * @template TQuery - The query parameters type
+   * @example
+   * const res = await mock.post<UserResponse, CreateUserInput>("/users", { body: { name: "John" } });
+   */
+  async post<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
     path: string,
-    options?: MockServerOptions,
-  ): Promise<MockResponse<T>> {
-    return this.request("POST", path, options);
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>> {
+    return this.request<TResponse, TBody, TQuery>("POST", path, options);
   }
 
-  async put<T = any>(
+  /**
+   * Type-safe PUT request
+   * @template TResponse - The response body type
+   * @template TBody - The request body type
+   * @template TQuery - The query parameters type
+   * @example
+   * const res = await mock.put<UserResponse, UpdateUserInput>("/users/123", { body: { name: "Jane" } });
+   */
+  async put<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
     path: string,
-    options?: MockServerOptions,
-  ): Promise<MockResponse<T>> {
-    return this.request("PUT", path, options);
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>> {
+    return this.request<TResponse, TBody, TQuery>("PUT", path, options);
   }
 
-  async patch<T = any>(
+  /**
+   * Type-safe PATCH request
+   * @template TResponse - The response body type
+   * @template TBody - The request body type
+   * @template TQuery - The query parameters type
+   * @example
+   * const res = await mock.patch<UserResponse, Partial<UpdateUserInput>>("/users/123", { body: { name: "Jane" } });
+   */
+  async patch<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
     path: string,
-    options?: MockServerOptions,
-  ): Promise<MockResponse<T>> {
-    return this.request("PATCH", path, options);
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>> {
+    return this.request<TResponse, TBody, TQuery>("PATCH", path, options);
   }
 
-  async delete<T = any>(
+  /**
+   * Type-safe DELETE request (no body allowed per HTTP spec)
+   * @template TResponse - The response body type
+   * @template TQuery - The query parameters type
+   * @example
+   * const res = await mock.delete<DeleteResponse>("/users/123");
+   */
+  async delete<TResponse = any, TQuery extends Record<string, string> = any>(
     path: string,
-    options?: Omit<MockServerOptions, "body" | "formData">,
-  ): Promise<MockResponse<T>> {
-    return this.request("DELETE", path, options);
+    options?: Omit<MockServerOptions<never, TQuery>, "body" | "formData">,
+  ): Promise<MockResponse<TResponse>> {
+    return this.request<TResponse, never, TQuery>("DELETE", path, options);
   }
 
   /**
@@ -171,15 +232,15 @@ export class MockServer {
       let disposition = `Content-Disposition: form-data; name="${name}"`;
       let contentType = "";
 
-      if ((value as any) instanceof File) {
-        disposition += `; filename="${(value as any).name}"`;
-        contentType = `Content-Type: ${(value as any).type || "application/octet-stream"}\r\n`;
+      if ((value as unknown) instanceof File) {
+        disposition += `; filename="${(value as unknown as File).name}"`;
+        contentType = `Content-Type: ${(value as unknown as File).type || "application/octet-stream"}\r\n`;
       }
 
       buffers.push(encoder.encode(`${disposition}\r\n${contentType}\r\n`));
 
-      if ((value as any) instanceof File) {
-        const arrayBuffer = await (value as any).arrayBuffer();
+      if ((value as unknown) instanceof File) {
+        const arrayBuffer = await (value as unknown as File).arrayBuffer();
         buffers.push(new Uint8Array(arrayBuffer));
         buffers.push(encoder.encode("\r\n"));
       } else {

@@ -1,4 +1,4 @@
-import type { S3Client } from "@aws-sdk/client-s3";
+import type { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { BaldaError } from "../../errors/balda_error.js";
 import { FileNotFoundError } from "../../errors/file_not_found_error.js";
 import type {
@@ -71,8 +71,8 @@ export class S3StorageProvider implements StorageInterface {
     });
 
     return this.s3PresignerLib.getSignedUrl(
-      this.s3Client as any,
-      command as any,
+      this.s3Client as S3Client,
+      command as PutObjectCommand,
       {
         expiresIn: expiresInSeconds,
       },
@@ -135,7 +135,12 @@ export class S3StorageProvider implements StorageInterface {
         }
       }
     } catch (error) {
-      if ((error as any).name === "NoSuchKey") {
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "NoSuchKey"
+      ) {
         throw new FileNotFoundError(key);
       }
       throw error;
@@ -151,7 +156,7 @@ export class S3StorageProvider implements StorageInterface {
     const command = new this.s3Lib.PutObjectCommand({
       Bucket: this.options.s3ClientConfig.bucketName,
       Key: key,
-      Body: value as any,
+      Body: value as PutObjectCommand["input"]["Body"],
       ContentType: contentType,
     });
     await this.s3Client.send(command);

@@ -39,7 +39,7 @@ export const methodOverride = (
       return next();
     }
 
-    (req as any).method = normalizedOverride;
+    req.method = normalizedOverride;
 
     await next();
   };

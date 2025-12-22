@@ -1,11 +1,16 @@
 /**
- * The options for the mock server, only one of body, formData, urlencoded can be provided
+ * Type-safe options for the mock server
+ * @template TBody - The request body type
+ * @template TQuery - The query parameters type
  */
-export interface MockServerOptions {
+export interface MockServerOptions<
+  TBody = any,
+  TQuery extends Record<string, string> = any,
+> {
   /**
-   * The body of the request, if formData is provided, it will be ignored
+   * The body of the request (typed)
    */
-  body?: any;
+  body?: TBody;
 
   /**
    * The form data of the request
@@ -23,9 +28,9 @@ export interface MockServerOptions {
   headers?: Record<string, string>;
 
   /**
-   * The query parameters of the request, if provided, they will be merged with the query parameters from the path (precedence is given to the query parameters provided here)
+   * The query parameters of the request (typed)
    */
-  query?: Record<string, string>;
+  query?: TQuery;
 
   /**
    * The cookies of the request

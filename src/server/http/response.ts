@@ -5,12 +5,13 @@ import { nativeFile } from "../../runtime/native_file.js";
 import { nativePath } from "../../runtime/native_path.js";
 
 /**
- * The response object.
+ * The response object with optional type-safe response body.
  * This is the main object that is passed to the handler function.
  * It contains the response body, status, headers, etc.
  * It also contains the methods to send the response.
+ * @template TBody - The expected response body type (for type safety)
  */
-export class Response {
+export class Response<TBody = any> {
   static toWebResponse(response: Response): globalThis.Response {
     const body = response.getBody();
     const contentType = response.headers["Content-Type"]?.toLowerCase();
@@ -75,7 +76,7 @@ export class Response {
    * Send a response with the given body, tries to determine the content type based on the body type, status defaults to 200
    * @warning If cannot determine the content type, it will be sent as is
    */
-  send(body: any): void {
+  send(body: TBody): void {
     if (body === null || body === undefined) {
       return this.text("");
     }
@@ -102,7 +103,11 @@ export class Response {
 
     if (typeof body === "object" && body !== null) {
       try {
-        return this.json(body);
+        return this.json(
+          body as TBody extends Record<string, unknown> | Array<unknown>
+            ? TBody
+            : Record<string, unknown> | Array<unknown>,
+        );
       } catch (error) {
         return this.text(String(body));
       }
@@ -133,7 +138,11 @@ export class Response {
   /**
    * Send a response with the given JSON, status defaults to 200
    */
-  json<T extends Record<string, unknown> | Array<unknown>>(body: T): void {
+  json(
+    body: TBody extends Record<string, unknown> | Array<unknown>
+      ? TBody
+      : Record<string, unknown> | Array<unknown>,
+  ): void {
     this.body = body;
     this.headers["Content-Type"] = "application/json";
   }
@@ -186,36 +195,37 @@ export class Response {
   /**
    * 200 OK
    */
-  ok(body?: any): void {
-    this.status(200).send(body);
+  ok(body?: TBody): void {
+    this.status(200).send(body as TBody);
   }
 
   /**
    * 201 Created
    */
-  created(body?: any): void {
-    this.status(201).send(body);
+  created(body?: TBody): void {
+    this.status(201).send(body as TBody);
   }
 
   /**
    * 202 Accepted
    */
-  accepted(body?: any): void {
-    this.status(202).send(body);
+  accepted(body?: TBody): void {
+    this.status(202).send(body as TBody);
   }
 
   /**
    * 204 No Content
    */
   noContent(): void {
-    this.status(204).send("");
+    this.responseStatus = 204;
+    this.body = "";
   }
 
   /**
    * 206 Partial Content
    */
-  partialContent(body?: any): void {
-    this.status(206).send(body);
+  partialContent(body?: TBody): void {
+    this.status(206).send(body as TBody);
   }
 
   /**
@@ -258,7 +268,8 @@ export class Response {
    * 304 Not Modified
    */
   notModified(): void {
-    this.status(304).send("");
+    this.responseStatus = 304;
+    this.body = "";
   }
 
   /**
@@ -282,127 +293,127 @@ export class Response {
   /**
    * 400 Bad Request
    */
-  badRequest(body?: any): void {
-    this.status(400).send(body);
+  badRequest(body?: TBody): void {
+    this.status(400).send(body as TBody);
   }
 
   /**
    * 401 Unauthorized
    */
-  unauthorized(body?: any): void {
-    this.status(401).send(body);
+  unauthorized(body?: TBody): void {
+    this.status(401).send(body as TBody);
   }
 
   /**
    * 403 Forbidden
    */
-  forbidden(body?: any): void {
-    this.status(403).send(body);
+  forbidden(body?: TBody): void {
+    this.status(403).send(body as TBody);
   }
 
   /**
    * 404 Not Found
    */
-  notFound(body?: any): void {
-    this.status(404).send(body);
+  notFound(body?: TBody): void {
+    this.status(404).send(body as TBody);
   }
 
   /**
    * 405 Method Not Allowed
    */
-  methodNotAllowed(body?: any): void {
-    this.status(405).send(body);
+  methodNotAllowed(body?: TBody): void {
+    this.status(405).send(body as TBody);
   }
 
   /**
    * 406 Not Acceptable
    */
-  notAcceptable(body?: any): void {
-    this.status(406).send(body);
+  notAcceptable(body?: TBody): void {
+    this.status(406).send(body as TBody);
   }
 
   /**
    * 409 Conflict
    */
-  conflict(body?: any): void {
-    this.status(409).send(body);
+  conflict(body?: TBody): void {
+    this.status(409).send(body as TBody);
   }
 
   /**
    * 410 Gone
    */
-  gone(body?: any): void {
-    this.status(410).send(body);
+  gone(body?: TBody): void {
+    this.status(410).send(body as TBody);
   }
 
   /**
    * 413 Payload Too Large
    */
-  payloadTooLarge(body?: any): void {
-    this.status(413).send(body);
+  payloadTooLarge(body?: TBody): void {
+    this.status(413).send(body as TBody);
   }
 
   /**
    * 415 Unsupported Media Type
    */
-  unsupportedMediaType(body?: any): void {
-    this.status(415).send(body);
+  unsupportedMediaType(body?: TBody): void {
+    this.status(415).send(body as TBody);
   }
 
   /**
    * 422 Unprocessable Entity
    */
-  unprocessableEntity(body?: any): void {
-    this.status(422).send(body);
+  unprocessableEntity(body?: TBody): void {
+    this.status(422).send(body as TBody);
   }
 
   /**
    * 429 Too Many Requests
    */
-  tooManyRequests(body?: any): void {
-    this.status(429).send(body);
+  tooManyRequests(body?: TBody): void {
+    this.status(429).send(body as TBody);
   }
 
   /**
    * 5XX Server Errors
    */
-  internalServerError(body?: any): void {
-    this.status(500).send(body);
+  internalServerError(body?: TBody): void {
+    this.status(500).send(body as TBody);
   }
 
   /**
    * 501 Not Implemented
    */
-  notImplemented(body?: any): void {
-    this.status(501).send(body);
+  notImplemented(body?: TBody): void {
+    this.status(501).send(body as TBody);
   }
 
   /**
    * 502 Bad Gateway
    */
-  badGateway(body?: any): void {
-    this.status(502).send(body);
+  badGateway(body?: TBody): void {
+    this.status(502).send(body as TBody);
   }
 
   /**
    * 503 Service Unavailable
    */
-  serviceUnavailable(body?: any): void {
-    this.status(503).send(body);
+  serviceUnavailable(body?: TBody): void {
+    this.status(503).send(body as TBody);
   }
 
   /**
    * 504 Gateway Timeout
    */
-  gatewayTimeout(body?: any): void {
-    this.status(504).send(body);
+  gatewayTimeout(body?: TBody): void {
+    this.status(504).send(body as TBody);
   }
 
   /**
    * 505 HTTP Version Not Supported
    */
-  httpVersionNotSupported(body?: any): void {
-    this.status(505).send(body);
+  httpVersionNotSupported(body?: TBody): void {
+    this.status(505).send(body as TBody);
   }
 
   /**

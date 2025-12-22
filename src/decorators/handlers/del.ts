@@ -2,29 +2,45 @@ import { MetadataStore } from "../../metadata_store.js";
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-
-type DelHandler = (req: Request, res: Response, ...args: any[]) => any;
+import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
- * Decorator to mark an handler for a DELETE request
- * @param path - The path of the route
+ * Decorator to mark a handler for a DELETE request with type-safe path parameters and response body
+ * DELETE requests cannot have a request body (by HTTP spec)
+ * Query params must be validated with @validate decorators to be typed
+ * @param path - The path of the route (path parameters will be automatically inferred)
  * @param options - The options for the route
  * @warning Must receive the request and response as the first two arguments or it might not work as expected.
  * @example
  * ```ts
  * import { del, controller, Request, Response } from "balda";
  *
+ * type DeletedResponse = { id: string; deleted: boolean };
+ *
  * @controller("/api")
  * class MyController {
- *   @del("/")
- *   async handler(req: Request, res: Response) {
- *     // ...
+ *   @del("/:id")
+ *   async handler(
+ *     req: Request<{ id: string }>,
+ *     res: Response<DeletedResponse>
+ *   ) {
+ *     const { id } = req.params; // ✅ id is typed as string!
+ *     res.json({ id, deleted: true });
  *   }
  * }
  * ```
  */
-export const del = (path: string, options?: SwaggerRouteOptions) => {
-  return <T extends DelHandler>(
+export const del = <TPath extends string = string>(
+  path: TPath,
+  options?: SwaggerRouteOptions,
+) => {
+  return <
+    T extends (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+      ...args: any[]
+    ) => any,
+  >(
     target: any,
     propertyKey: string,
     descriptor: PropertyDescriptor,

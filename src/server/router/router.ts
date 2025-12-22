@@ -7,6 +7,7 @@ import {
 import type { Request } from "../http/request.js";
 import type { Response } from "../http/response.js";
 import type { Params, Route } from "./router_type.js";
+import type { ExtractParams } from "./path_types.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -194,26 +195,40 @@ export class Router {
   }
 
   /**
-   * Register a GET route under this router's base path.
+   * Register a GET route under this router's base path with type-safe path parameters.
    */
-  get(
-    path: string,
-    handler: ServerRouteHandler,
+  get<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  get(
-    path: string,
+  get<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  get(
-    path: string,
+  get<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -238,26 +253,40 @@ export class Router {
   }
 
   /**
-   * Register a POST route under this router's base path.
+   * Register a POST route under this router's base path with type-safe path parameters.
    */
-  post(
-    path: string,
-    handler: ServerRouteHandler,
+  post<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  post(
-    path: string,
+  post<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  post(
-    path: string,
+  post<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -282,26 +311,40 @@ export class Router {
   }
 
   /**
-   * Register a PATCH route under this router's base path.
+   * Register a PATCH route under this router's base path with type-safe path parameters.
    */
-  patch(
-    path: string,
-    handler: ServerRouteHandler,
+  patch<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  patch(
-    path: string,
+  patch<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  patch(
-    path: string,
+  patch<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -326,26 +369,40 @@ export class Router {
   }
 
   /**
-   * Register a PUT route under this router's base path.
+   * Register a PUT route under this router's base path with type-safe path parameters.
    */
-  put(
-    path: string,
-    handler: ServerRouteHandler,
+  put<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  put(
-    path: string,
+  put<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  put(
-    path: string,
+  put<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -370,26 +427,40 @@ export class Router {
   }
 
   /**
-   * Register a DELETE route under this router's base path.
+   * Register a DELETE route under this router's base path with type-safe path parameters.
    */
-  delete(
-    path: string,
-    handler: ServerRouteHandler,
+  delete<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  delete(
-    path: string,
+  delete<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  delete(
-    path: string,
+  delete<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -414,26 +485,40 @@ export class Router {
   }
 
   /**
-   * Register an OPTIONS route under this router's base path.
+   * Register an OPTIONS route under this router's base path with type-safe path parameters.
    */
-  options(
-    path: string,
-    handler: ServerRouteHandler,
+  options<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  options(
-    path: string,
+  options<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  options(
-    path: string,
+  options<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);
@@ -458,26 +543,40 @@ export class Router {
   }
 
   /**
-   * Register an HEAD route under this router's base path.
+   * Register an HEAD route under this router's base path with type-safe path parameters.
    */
-  head(
-    path: string,
-    handler: ServerRouteHandler,
+  head<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  head(
-    path: string,
+  head<TPath extends string = string>(
+    path: TPath,
     middleware: ServerRouteMiddleware | ServerRouteMiddleware[],
-    handler: ServerRouteHandler,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
-  head(
-    path: string,
+  head<TPath extends string = string>(
+    path: TPath,
     middlewareOrHandler:
       | ServerRouteMiddleware
       | ServerRouteMiddleware[]
-      | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?:
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>)
+      | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
     const fullPath = this.joinPath(path);

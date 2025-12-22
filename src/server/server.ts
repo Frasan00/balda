@@ -60,6 +60,7 @@ import { runtime } from "../runtime/runtime.js";
 import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
+import type { ExtractParams } from "./router/path_types.js";
 import { PROTECTED_KEYS } from "./server_constants.js";
 import type {
   NodeHttpClient,
@@ -71,6 +72,8 @@ import type {
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
+import type { Request } from "./http/request.js";
+import type { Response } from "./http/response.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -188,16 +191,33 @@ export class Server<
     await nativeFs.mkdir(path, options);
   }
 
-  get(path: string, handler: ServerRouteHandler): void;
-  get(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  get<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  get(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  get<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  get<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -208,16 +228,33 @@ export class Server<
     router.addOrUpdate("GET", path, middlewares, handler, swaggerOptions);
   }
 
-  post(path: string, handler: ServerRouteHandler): void;
-  post(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  post<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  post(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  post<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  post<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -228,16 +265,33 @@ export class Server<
     router.addOrUpdate("POST", path, middlewares, handler, swaggerOptions);
   }
 
-  patch(path: string, handler: ServerRouteHandler): void;
-  patch(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  patch<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  patch(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  patch<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  patch<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -248,16 +302,33 @@ export class Server<
     router.addOrUpdate("PATCH", path, middlewares, handler, swaggerOptions);
   }
 
-  put(path: string, handler: ServerRouteHandler): void;
-  put(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  put<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  put(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  put<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  put<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -268,16 +339,33 @@ export class Server<
     router.addOrUpdate("PUT", path, middlewares, handler, swaggerOptions);
   }
 
-  delete(path: string, handler: ServerRouteHandler): void;
-  delete(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  delete<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  delete(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  delete<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  delete<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -288,16 +376,33 @@ export class Server<
     router.addOrUpdate("DELETE", path, middlewares, handler, swaggerOptions);
   }
 
-  options(path: string, handler: ServerRouteHandler): void;
-  options(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  options<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  options(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  options<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  options<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -308,16 +413,33 @@ export class Server<
     router.addOrUpdate("OPTIONS", path, middlewares, handler, swaggerOptions);
   }
 
-  head(path: string, handler: ServerRouteHandler): void;
-  head(
-    path: string,
-    options: StandardMethodOptions,
-    handler: ServerRouteHandler,
+  head<TPath extends string = string>(
+    path: TPath,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void;
-  head(
-    path: string,
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+  head<TPath extends string = string>(
+    path: TPath,
+    options: StandardMethodOptions,
+    handler: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
+  ): void;
+  head<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | ((
+          req: Request<ExtractParams<TPath>>,
+          res: Response,
+        ) => void | Promise<void>),
+    maybeHandler?: (
+      req: Request<ExtractParams<TPath>>,
+      res: Response,
+    ) => void | Promise<void>,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(

@@ -73,10 +73,8 @@ export class ServerBun implements ServerInterface {
           ? forwardedFor.split(",")[0].trim()
           : server.requestIP(req)?.address;
 
-        // User input handler
         await fetch?.call(this, baldaRequest, server);
 
-        // GraphQL handler
         if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
           const handler = await this.ensureGraphQLHandler();
           if (handler) {
@@ -85,7 +83,6 @@ export class ServerBun implements ServerInterface {
           }
         }
 
-        // ws upgrade handler - only attempt if websocket config exists and request is upgrade
         if (websocket && baldaRequest.headers.get("upgrade") === "websocket") {
           const webRequest = baldaRequest.toWebApi();
           const success = server.upgrade(webRequest, { data: {} });
@@ -111,10 +108,9 @@ export class ServerBun implements ServerInterface {
         const webResponse = Response.toWebResponse(baldaResponse);
         return webResponse;
       },
-      // Pass websocket config to Bun.serve if provided
       ...(websocket ? { websocket } : {}),
-      ...(rest as any),
-    });
+      ...rest,
+    } as Parameters<typeof Bun.serve>[0]);
 
     this.url = this.runtimeServer.url.toString();
   }

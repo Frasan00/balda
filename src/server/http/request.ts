@@ -22,10 +22,12 @@ import { ZodLoader } from "../../validator/zod_loader.js";
 const schemaRefCache = new WeakMap<object, symbol>();
 
 /**
- * The request object.
+ * The request object with type-safe path parameters.
  * This is the main object that is passed to the handler function.
  * It contains the request body, query parameters, files, cookies, etc.
  * It also contains the validation methods.
+ *
+ * @template Params - The path parameters type (automatically extracted from route)
  */
 export class Request<Params extends Record<string, string> = any> {
   /**
@@ -73,7 +75,7 @@ export class Request<Params extends Record<string, string> = any> {
     return new globalThis.Request(this.url, {
       method: this.method,
       ...(hasBodyMethod && this.body
-        ? { body: this.body as any, duplex: "half" as const }
+        ? { body: this.body as BodyInit, duplex: "half" as const }
         : {}),
       headers: this.headers,
       signal: this.signal,
@@ -252,6 +254,8 @@ export class Request<Params extends Record<string, string> = any> {
   /**
    * The parsed body of the request from the body parser middleware.
    * If body parser middleware is not used, this will be undefined.
+   *
+   * Note: This is untyped - use validation decorators to get typed body as a handler argument.
    */
   body: any = undefined;
 
@@ -352,6 +356,8 @@ export class Request<Params extends Record<string, string> = any> {
   /**
    * The query parameters of the request.
    * Lazy parsed - only parses URLSearchParams when accessed
+   *
+   * Note: This is untyped - use validation decorators to get typed query as a handler argument.
    */
   get query(): Record<string, string> {
     if (this.#queryParsed) {
@@ -438,7 +444,11 @@ export class Request<Params extends Record<string, string> = any> {
     inputSchema: T,
     safe: boolean = false,
   ): ValidatedData<T> {
-    return Request.compileAndValidate(inputSchema, this.query || {}, safe);
+    return Request.compileAndValidate(
+      inputSchema,
+      (this.query || {}) as Record<string, string>,
+      safe,
+    );
   }
 
   /**
@@ -454,7 +464,7 @@ export class Request<Params extends Record<string, string> = any> {
       inputSchema,
       {
         ...(this.body ?? {}),
-        ...(this.query ?? {}),
+        ...((this.query as Record<string, string>) ?? {}),
       },
       safe,
     );

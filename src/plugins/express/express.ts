@@ -27,7 +27,7 @@ function toBaldaToExpressRequest(
 
   const expressReq = {
     body: baldaReq.body,
-    query: baldaReq.query as any,
+    query: baldaReq.query as Record<string, string>,
     params: baldaReq.params,
     cookies: baldaReq.cookies,
     session: baldaReq.session,
@@ -371,7 +371,9 @@ export function mountExpressRouter(
   expressRouter: ExpressRouter,
 ): void {
   const normalizedBase = normalizePath(basePath);
-  const stack = (expressRouter as any).stack as RouterLayer[] | undefined;
+  const stack = (expressRouter as ExpressRouter).stack as
+    | RouterLayer[]
+    | undefined;
 
   if (!stack) {
     console.warn("Express router has no stack - routes may not be registered");
@@ -405,7 +407,9 @@ function processExpressLayer(layer: RouterLayer, basePath: string): void {
   if (layer.handle && typeof layer.handle === "function") {
     const layerPath = layer.path || "";
     const fullPath = normalizePath(basePath + layerPath);
-    const layerStack = (layer.handle as any).stack as RouterLayer[] | undefined;
+    const layerStack = (layer.handle as ExpressRouter).stack as
+      | RouterLayer[]
+      | undefined;
 
     if (layerStack && Array.isArray(layerStack)) {
       for (const subLayer of layerStack) {
@@ -494,7 +498,7 @@ export function createExpressAdapter(server: {
       if (typeof pathOrMiddleware === "string") {
         const path = pathOrMiddleware;
         const middleware = maybeMiddleware!;
-        const middlewareStack = (middleware as any).stack;
+        const middlewareStack = (middleware as ExpressRouter).stack;
 
         if (middlewareStack && Array.isArray(middlewareStack)) {
           mountExpressRouter(path, middleware as ExpressRouter);
@@ -506,7 +510,7 @@ export function createExpressAdapter(server: {
       }
 
       const middleware = pathOrMiddleware;
-      const middlewareStack = (middleware as any).stack;
+      const middlewareStack = (middleware as ExpressRouter).stack;
 
       if (middlewareStack && Array.isArray(middlewareStack)) {
         mountExpressRouter("/", middleware as ExpressRouter);
