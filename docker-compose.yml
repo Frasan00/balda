@@ -80,6 +80,16 @@ services:
     networks:
       - local-network
 
+  mailcatcher:
+    image: schickling/mailcatcher
+    container_name: balda-mailcatcher
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "1080:1080" # Web UI
+    networks:
+      - local-network
+
 volumes:
   azurite_data:
     driver: local

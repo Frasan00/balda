@@ -95,6 +95,14 @@ export * from "./storage/storage.js";
 export * from "./storage/storage_types.js";
 export type { StorageInterface } from "./storage/storage_types.js";
 
+// Mailer
+export * from "./mailer/adapters/index.js";
+export * from "./mailer/mail_options_builder.js";
+export * from "./mailer/mail_provider.js";
+export * from "./mailer/mailer.js";
+export * from "./mailer/mailer_errors.js";
+export * from "./mailer/mailer_types.js";
+
 // Plugins
 export { asyncLocalStorage } from "./plugins/async_local_storage/async_local_storage.js";
 export * from "./plugins/base_plugin.js";
