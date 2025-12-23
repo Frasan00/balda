@@ -167,6 +167,7 @@ export default class InitCommand extends Command {
     if (this.graphql && ["npm", "yarn", "pnpm"].includes(packageManager)) {
       const uninstalledGraphql = await getUninstalledPackages([
         "@apollo/server",
+        "@graphql-tools/schema",
         "graphql",
       ]);
 

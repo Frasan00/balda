@@ -23,6 +23,7 @@ const external = [
   "esbuild-plugin-copy",
   "graphql",
   "@apollo/server",
+  "@graphql-tools/schema",
   "swagger-typescript-api",
   "zod",
   "handlebars",
