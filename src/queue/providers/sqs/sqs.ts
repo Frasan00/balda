@@ -72,6 +72,14 @@ export class SQSPubSub implements GenericPubSub {
     this.consumers.set(topic, consumer);
   }
 
+  async unsubscribe(topic: string): Promise<void> {
+    const consumer = this.consumers.get(topic);
+    if (consumer) {
+      consumer.stop();
+      this.consumers.delete(topic);
+    }
+  }
+
   private async getClient(): Promise<SQSClient> {
     if (this.client) {
       return this.client;
@@ -155,7 +163,6 @@ export class SQSPubSub implements GenericPubSub {
     const globalOptions = SQSConfiguration.options;
     const consumerModule = await this.getSqsConsumerLib();
 
-    // Use queueConfig.queueUrl if provided, otherwise fall back to global config
     const queueUrl =
       queueConfig?.queueUrl ?? (await this.resolveQueueUrl(topic));
 

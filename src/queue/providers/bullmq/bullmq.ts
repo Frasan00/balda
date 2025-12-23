@@ -1,12 +1,12 @@
 import type { Job, Queue, Worker } from "bullmq";
+import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
+import { nativeCrypto } from "../../../runtime/native_crypto.js";
 import type {
   BullMQQueueOptions,
   GenericPubSub,
   PublishOptions,
 } from "../../queue_types.js";
 import { BullMQConfiguration } from "./bullmq_configuration.js";
-import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
-import { nativeCrypto } from "../../../runtime/native_crypto.js";
 
 export class BullMQPubSub implements GenericPubSub {
   private queues: Map<string, Queue> = new Map();
@@ -54,6 +54,14 @@ export class BullMQPubSub implements GenericPubSub {
     );
 
     this.workers.set(topic, worker);
+  }
+
+  async unsubscribe(topic: string): Promise<void> {
+    const worker = this.workers.get(topic);
+    if (worker) {
+      await worker.close();
+      this.workers.delete(topic);
+    }
   }
 
   private async getQueue(topic: string): Promise<Queue> {
@@ -118,13 +126,11 @@ export class BullMQPubSub implements GenericPubSub {
     const { errorHandler } = globalConfig;
     const bullmqClient = await this.getBullMQClient();
 
-    // Merge global config with queue-specific config
     const workerOptions = {
       ...globalConfig,
       ...queueConfig,
     };
 
-    // Remove non-worker options
     delete (workerOptions as Record<string, unknown>).errorHandler;
     delete (workerOptions as Record<string, unknown>).defaultJobOptions;
 

@@ -1,4 +1,5 @@
 import type { BullMQPubSub } from "./providers/bullmq/bullmq.js";
+import type { MemoryPubSub } from "./providers/memory/memory.js";
 import type { PGBossPubSub } from "./providers/pgboss/pgboss.js";
 import type { SQSPubSub } from "./providers/sqs/sqs.js";
 import { QueueManager } from "./queue.js";
@@ -19,7 +20,9 @@ type QueueOptionsForProvider<P extends BuiltInProviderKey> = P extends "sqs"
     ? BullMQQueueOptions
     : P extends "pgboss"
       ? PGBossQueueOptions
-      : never;
+      : P extends "memory"
+        ? Record<string, unknown>
+        : never;
 
 // Provider instance mapped to key
 type ProviderInstance<P extends BuiltInProviderKey> = P extends "sqs"
@@ -28,7 +31,9 @@ type ProviderInstance<P extends BuiltInProviderKey> = P extends "sqs"
     ? BullMQPubSub
     : P extends "pgboss"
       ? PGBossPubSub
-      : never;
+      : P extends "memory"
+        ? MemoryPubSub
+        : never;
 
 // Type for PubSub with publishWithConfig method
 type PubSubWithPublishConfig<
@@ -131,12 +136,13 @@ export class TypedQueue<
   /**
    * Subscribe to the queue with the given handler
    * @param handler - The handler function to subscribe to the queue
-   * @returns A promise to subscribe to the queue
+   * @returns A promise that resolves when subscription is complete
    * @example
    * ```ts
-   * @queue.subscribe(async (payload: TPayload) => {
+   * await queue.subscribe(async (payload: TPayload) => {
    *   console.log(payload);
-   * })
+   * });
+   * // Later: await queue.unsubscribe()
    * ```
    */
   subscribe(handler: (payload: TPayload) => Promise<void>): Promise<void>;
@@ -147,6 +153,21 @@ export class TypedQueue<
       return this.subscribeWithCallback(handler);
     }
     return this.createSubscribeDecorator();
+  }
+
+  /**
+   * Unsubscribe from the queue
+   * @returns A promise that resolves when unsubscription is complete
+   * @example
+   * ```ts
+   * await queue.unsubscribe();
+   * ```
+   */
+  async unsubscribe(): Promise<void> {
+    const pubsub = QueueManager.getProvider(
+      this.provider,
+    ) as ProviderInstance<TProvider>;
+    await pubsub.unsubscribe(this.topic);
   }
 
   private createSubscribeDecorator(): MethodDecorator {
@@ -193,14 +214,13 @@ export class TypedQueue<
     ) as ProviderInstance<TProvider>;
 
     if (this.queueOptions) {
-      // Use subscribeWithConfig when queue-specific options are provided
-      return (
+      await (
         pubsub as PubSubWithSubscribeConfig<TProvider, TPayload>
       ).subscribeWithConfig(this.topic, handler, this.queueOptions);
+      return;
     }
 
-    // Default: use standard subscribe
-    return (pubsub as PubSubWithSubscribe<TProvider, TPayload>).subscribe(
+    await (pubsub as PubSubWithSubscribe<TProvider, TPayload>).subscribe(
       this.topic,
       handler,
     );
@@ -237,6 +257,18 @@ export class CustomTypedQueue<TPayload, TOptions = Record<string, unknown>> {
       return this.pubsub.subscribe(this.topic, handler);
     }
     return this.createSubscribeDecorator();
+  }
+
+  /**
+   * Unsubscribe from the queue
+   * @returns A promise that resolves when unsubscription is complete
+   * @example
+   * ```ts
+   * await queue.unsubscribe();
+   * ```
+   */
+  async unsubscribe(): Promise<void> {
+    await this.pubsub.unsubscribe(this.topic);
   }
 
   private createSubscribeDecorator(): MethodDecorator {

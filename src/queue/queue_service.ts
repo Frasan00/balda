@@ -141,11 +141,20 @@ export class QueueService {
         cwd: nativeCwd.getCwd(),
       });
 
+      logger.info(`Pattern "${pattern}" matched ${files.length} file(s)`);
       allFiles.push(...files);
     }
 
+    if (allFiles.length === 0) {
+      logger.warn("No files matched the provided patterns");
+      return;
+    }
+
+    logger.info(`Importing ${allFiles.length} queue handler file(s)`);
+
     await Promise.all(
       allFiles.map(async (file) => {
+        logger.debug(`Importing: ${file}`);
         await import(file).catch((error) => {
           logger.error(`Error importing queue handler: ${file}`);
           logger.error(error);
@@ -155,5 +164,7 @@ export class QueueService {
         });
       }),
     );
+
+    logger.info(`Successfully imported ${allFiles.length} file(s)`);
   }
 }

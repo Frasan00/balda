@@ -1,10 +1,10 @@
-import { CustomTypedQueue, TypedQueue } from "./typed_queue.js";
 import type {
   BullMQQueueOptions,
   GenericPubSub,
   PGBossQueueOptions,
   SQSQueueOptions,
 } from "./queue_types.js";
+import { CustomTypedQueue, TypedQueue } from "./typed_queue.js";
 
 /**
  * Create a typed SQS queue
@@ -94,6 +94,31 @@ export function pgbossQueue<TPayload>(
   options?: PGBossQueueOptions,
 ): TypedQueue<TPayload, "pgboss"> {
   return new TypedQueue<TPayload, "pgboss">(topic, "pgboss", options);
+}
+
+/**
+ * Create a typed in-memory queue
+ * @param topic - The queue topic name
+ * @returns A TypedQueue instance for in-memory processing
+ *
+ * @example
+ * ```typescript
+ * const emailQueue = memoryQueue<{ to: string; subject: string }>('emails');
+ *
+ * // Publishing
+ * await emailQueue.publish({ to: 'user@example.com', subject: 'Hello' });
+ *
+ * // Subscribing with decorator
+ * class EmailHandler {
+ *   @emailQueue.subscribe()
+ *   async handle(payload: { to: string; subject: string }) {}
+ * }
+ * ```
+ */
+export function memoryQueue<TPayload>(
+  topic: string,
+): TypedQueue<TPayload, "memory"> {
+  return new TypedQueue<TPayload, "memory">(topic, "memory");
 }
 
 /**

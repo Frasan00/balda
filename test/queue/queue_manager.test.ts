@@ -56,6 +56,9 @@ describe("QueueManager", () => {
         ) {
           return Promise.resolve();
         },
+        async unsubscribe(_topic: string) {
+          return Promise.resolve();
+        },
       };
     });
 
@@ -74,9 +77,8 @@ describe("QueueManager", () => {
         async publish() {
           return { id: "second" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       QueueManager.setProvider(

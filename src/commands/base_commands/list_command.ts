@@ -27,11 +27,15 @@ export default class ListCommand extends Command {
     if (builtInCommands.length > 0) {
       console.log("\x1b[1;32mBuilt-in Commands:\x1b[0m\n");
 
-      const maxNameLength = Math.max(
-        ...builtInCommands.map((cmd) => cmd.commandName.length),
+      const sortedCommands = builtInCommands.sort((a, b) =>
+        a.commandName.localeCompare(b.commandName),
       );
 
-      for (const command of builtInCommands) {
+      const maxNameLength = Math.max(
+        ...sortedCommands.map((cmd) => cmd.commandName.length),
+      );
+
+      for (const command of sortedCommands) {
         const name = command.commandName.padEnd(maxNameLength + 2);
         const desc = command.description || "No description available";
 
@@ -76,7 +80,8 @@ export default class ListCommand extends Command {
     for (const category of sortedCategories) {
       const commands = categorizedCommands
         .get(category)!
-        .filter((cmd) => cmd && cmd.commandName);
+        .filter((cmd) => cmd && cmd.commandName)
+        .sort((a, b) => a.commandName.localeCompare(b.commandName));
 
       if (commands.length === 0) {
         continue;

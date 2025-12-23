@@ -1,4 +1,7 @@
 import type { Transporter } from "nodemailer";
+import type { Email } from "./mail_options_builder.js";
+
+export type { Email };
 
 /**
  * Options for sending an email
@@ -7,19 +10,19 @@ export type MailOptions = {
   /**
    * The sender email address (optional if set in provider config)
    */
-  from?: string;
+  from?: Email;
   /**
    * Recipient email address(es)
    */
-  to: string | string[];
+  to: Email | Email[];
   /**
    * Carbon copy recipient email address(es)
    */
-  cc?: string | string[];
+  cc?: Email | Email[];
   /**
    * Blind carbon copy recipient email address(es)
    */
-  bcc?: string | string[];
+  bcc?: Email | Email[];
   /**
    * Email subject line
    */
@@ -66,13 +69,17 @@ export type Attachment = {
  */
 export type TemplateMailOptions = Omit<MailOptions, "html" | "text"> & {
   /**
-   * Template string to render
+   * Template string to render or path to template file
    */
   template: string;
   /**
    * Data to pass to the template for rendering
    */
   data: Record<string, unknown>;
+  /**
+   * Whether the template is a file path
+   */
+  isFilePath?: boolean;
 };
 
 /**
@@ -108,16 +115,14 @@ export interface TemplateAdapter {
  */
 export interface MailProviderInterface {
   /**
-   * Send an email
-   * @param options - Email options
+   * Send an email using builder callback
+   * @param builderFn - Callback function that receives and configures the mail options builder
    */
-  send(options: MailOptions): Promise<void>;
-
-  /**
-   * Send an email using a template
-   * @param options - Template email options
-   */
-  sendWithTemplate(options: TemplateMailOptions): Promise<void>;
+  send(
+    builderFn: (
+      builder: import("./mail_options_builder.js").MailOptionsBuilder,
+    ) => import("./mail_options_builder.js").MailOptionsBuilder | void,
+  ): Promise<void>;
 
   /**
    * Verify the mail provider connection
@@ -141,7 +146,7 @@ export type MailProviderOptions = {
   /**
    * Default sender email address for this provider
    */
-  from?: string;
+  from?: Email;
 };
 
 /**
@@ -171,16 +176,26 @@ export interface MailerInterface {
   use(provider: string): MailProviderInterface;
 
   /**
-   * Send an email using the default provider
-   * @param options - Email options
+   * Send an email using the default provider with builder pattern
+   * Automatically infers whether to use template or regular send based on builder configuration
+   * @param builderFn - Callback function that receives and configures the mail options builder
    */
-  send(options: MailOptions): Promise<void>;
+  send(
+    builderFn: (
+      builder: import("./mail_options_builder.js").MailOptionsBuilder,
+    ) => import("./mail_options_builder.js").MailOptionsBuilder | void,
+  ): Promise<void>;
 
   /**
-   * Send an email with a template using the default provider
-   * @param options - Template email options
+   * Defer sending an email with an internal in memory queue
+   * The email will be sent in a second moment, when the queue is processed
+   * @param builderFn - Callback function that receives and configures the mail options builder
    */
-  sendWithTemplate(options: TemplateMailOptions): Promise<void>;
+  later(
+    builderFn: (
+      builder: import("./mail_options_builder.js").MailOptionsBuilder,
+    ) => import("./mail_options_builder.js").MailOptionsBuilder | void,
+  ): Promise<void>;
 
   /**
    * Verify the default provider connection

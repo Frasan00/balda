@@ -1,13 +1,14 @@
+import { QueueOptions } from "bullmq";
 import { describe, expect, it } from "vitest";
 import {
-  sqsQueue,
   bullmqQueue,
-  pgbossQueue,
   createQueue,
+  memoryQueue,
+  pgbossQueue,
+  sqsQueue,
 } from "../../src/queue/factories.js";
-import { TypedQueue, CustomTypedQueue } from "../../src/queue/typed_queue.js";
 import type { GenericPubSub } from "../../src/queue/queue_types.js";
-import { QueueOptions } from "bullmq";
+import { CustomTypedQueue, TypedQueue } from "../../src/queue/typed_queue.js";
 
 describe("Queue Factories", () => {
   type TestPayload = { id: number; name: string };
@@ -102,15 +103,40 @@ describe("Queue Factories", () => {
     });
   });
 
+  describe("memoryQueue", () => {
+    it("should create a TypedQueue for Memory provider", () => {
+      const queue = memoryQueue<TestPayload>("test-memory-topic");
+
+      expect(queue).toBeInstanceOf(TypedQueue);
+      expect(queue.topic).toBe("test-memory-topic");
+      expect(queue.provider).toBe("memory");
+    });
+
+    it("should handle typed payloads correctly", () => {
+      const queue = memoryQueue<TestPayload>("typed-memory");
+
+      expect(queue.topic).toBe("typed-memory");
+      expect(queue.provider).toBe("memory");
+    });
+
+    it("should create memory queue for immediate processing", () => {
+      type EmailPayload = { to: string; subject: string; body: string };
+      const queue = memoryQueue<EmailPayload>("email-queue");
+
+      expect(queue).toBeInstanceOf(TypedQueue);
+      expect(queue.topic).toBe("email-queue");
+      expect(queue.provider).toBe("memory");
+    });
+  });
+
   describe("createQueue", () => {
     it("should create a CustomTypedQueue with custom pubsub", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         async publish(topic, _payload) {
           return { id: `custom-${topic}` };
         },
-        async subscribe(_topic, _handler) {
-          return Promise.resolve();
-        },
+        async subscribe(_topic, _handler) {},
+        async unsubscribe(_topic) {},
       };
 
       const queue = createQueue<TestPayload>("custom-topic", mockPubSub);
@@ -126,9 +152,8 @@ describe("Queue Factories", () => {
         async publish() {
           return { id: "custom-id" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       const queue = createQueue<TestPayload, CustomOptions>(
@@ -155,10 +180,14 @@ describe("Queue Factories", () => {
         async subscribe(
           topic: string,
           handler: (payload: TestPayload) => Promise<void>,
-        ) {
+        ): Promise<void> {
           const handlers = this.handlers.get(topic) || [];
           handlers.push(handler);
           this.handlers.set(topic, handlers);
+        }
+
+        async unsubscribe(topic: string): Promise<void> {
+          this.handlers.delete(topic);
         }
       }
 
@@ -192,15 +221,21 @@ describe("Queue Factories", () => {
       expect(queue.topic).toBe("emails");
     });
 
+    it("should enforce payload types for Memory", () => {
+      type TaskPayload = { taskId: string; action: string };
+      const queue = memoryQueue<TaskPayload>("tasks");
+
+      expect(queue.topic).toBe("tasks");
+    });
+
     it("should enforce payload types for custom queues", () => {
       type NotificationPayload = { userId: string; message: string };
       const mockPubSub: GenericPubSub<NotificationPayload> = {
         async publish() {
           return { id: "notif-id" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       const queue = createQueue<NotificationPayload>(

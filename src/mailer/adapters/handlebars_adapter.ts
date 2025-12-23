@@ -58,6 +58,7 @@ export class HandlebarsAdapter implements TemplateAdapter {
       );
     });
 
-    this.handlebars = handlebarsModule.default || handlebarsModule;
+    const mod = handlebarsModule as any;
+    this.handlebars = mod.default?.default || mod.default || mod;
   }
 }

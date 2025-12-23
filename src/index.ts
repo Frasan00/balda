@@ -32,6 +32,7 @@ export * from "./queue/base_queue.js";
 export {
   bullmqQueue,
   createQueue,
+  memoryQueue,
   pgbossQueue,
   sqsQueue,
 } from "./queue/factories.js";
@@ -41,6 +42,7 @@ export type {
   BullMQConfigurationOptions,
 } from "./queue/providers/bullmq/bullmq_configuration.js";
 export type { CustomQueueConfiguration } from "./queue/providers/custom/custom.js";
+export * from "./queue/providers/memory/memory.js";
 export * from "./queue/providers/pgboss/pgboss.js";
 export type {
   PGBossConfiguration,
@@ -82,7 +84,16 @@ export { hash } from "./runtime/native_hash.js";
 
 // GraphQL
 export * from "./graphql/graphql.js";
-export * from "./graphql/graphql_types.js";
+export type {
+  GraphQLTypeDef,
+  GraphQLResolvers,
+  GraphQLContext,
+  GraphQLResolverFunction,
+  GraphQLResolverMap,
+  GraphQLOptions,
+  GraphQLResolverType,
+  GraphQLSchemaInput,
+} from "./graphql/graphql_types.js";
 
 // async storage
 export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";

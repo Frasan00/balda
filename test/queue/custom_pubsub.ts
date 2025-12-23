@@ -7,6 +7,9 @@ type TestPayload = {
 
 // Custom PubSub implementation
 export class CustomPubSub implements GenericPubSub<TestPayload> {
+  private subscriptions: Map<string, (payload: TestPayload) => Promise<void>> =
+    new Map();
+
   async publish(topic: string, payload: TestPayload): Promise<{ id: string }> {
     console.log("[CustomPubSub] Publishing to topic", topic, payload);
     return { id: "1" };
@@ -15,9 +18,14 @@ export class CustomPubSub implements GenericPubSub<TestPayload> {
   async subscribe(
     topic: string,
     handler: (payload: TestPayload) => Promise<void>,
-  ) {
+  ): Promise<void> {
     console.log("[CustomPubSub] Subscribed to topic", topic);
-    // Simulate receiving a message
-    return Promise.resolve(handler({ name: "test" }));
+    this.subscriptions.set(topic, handler);
+    await handler({ name: "test" });
+  }
+
+  async unsubscribe(topic: string): Promise<void> {
+    console.log("[CustomPubSub] Unsubscribed from topic", topic);
+    this.subscriptions.delete(topic);
   }
 }

@@ -5,7 +5,7 @@ import { nativePath } from "../../runtime/native_path.js";
 import { Command } from "../base_command.js";
 
 export default class SetupStorageCommand extends Command {
-  static commandName = "setup-storage";
+  static commandName = "init-storage";
   static description = "Setup storage provider with required dependencies";
   static help = [
     "Install dependencies and create storage configuration for a specific provider",

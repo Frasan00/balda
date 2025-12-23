@@ -3,6 +3,7 @@ import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
 import type { Command } from "./base_command.js";
 import BuildCommand from "./base_commands/build_command.js";
+import CronStartCommand from "./base_commands/cron_start_command.js";
 import GenerateCommand from "./base_commands/generate_command.js";
 import GenerateControllerCommand from "./base_commands/generate_controller.js";
 import GenerateCronCommand from "./base_commands/generate_cron.js";
@@ -14,7 +15,9 @@ import GenerateSdkCommand from "./base_commands/generate_sdk.js";
 import InitCommand from "./base_commands/init_command.js";
 import InitMailerCommand from "./base_commands/init_mailer_command.js";
 import InitQueueCommand from "./base_commands/init_queue_command.js";
+import KeyGenerateCommand from "./base_commands/key_generate_command.js";
 import ListCommand from "./base_commands/list_command.js";
+import QueueWorkCommand from "./base_commands/queue_work_command.js";
 import ServeCommand from "./base_commands/serve_command.js";
 import SetupStorageCommand from "./base_commands/setup_storage_command.js";
 
@@ -35,6 +38,9 @@ export const baseCommands = [
   BuildCommand,
   ServeCommand,
   SetupStorageCommand,
+  KeyGenerateCommand,
+  QueueWorkCommand,
+  CronStartCommand,
 ];
 
 /**

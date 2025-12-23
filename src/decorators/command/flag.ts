@@ -151,8 +151,13 @@ flagDecorator.number = (options: Omit<FlagOptions<"number">, "type">) => {
   return flagDecorator({ ...options, type: "number" });
 };
 
-/** Shorthand decorator for list flags (can be specified multiple times) */
+/** @alias for array */
 flagDecorator.list = (options: Omit<FlagOptions<"list">, "type">) => {
+  return flagDecorator({ ...options, type: "list" });
+};
+
+/** Shorthand decorator for array flags (can be specified multiple times) */
+flagDecorator.array = (options: Omit<FlagOptions<"list">, "type">) => {
   return flagDecorator({ ...options, type: "list" });
 };
 

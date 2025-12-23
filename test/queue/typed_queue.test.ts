@@ -187,6 +187,7 @@ describe("TypedQueue", () => {
       const mockProvider = {
         publish: vi.fn(),
         subscribe: mockSubscribe,
+        unsubscribe: vi.fn(),
       };
 
       vi.spyOn(QueueManager, "getProvider").mockReturnValue(
@@ -256,6 +257,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: mockPublish,
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(
@@ -277,6 +279,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: mockPublish,
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload, { priority: number }>(
@@ -303,6 +306,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: vi.fn(),
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(
@@ -331,6 +335,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: vi.fn(),
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(
@@ -360,6 +365,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: vi.fn(),
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(
@@ -397,6 +403,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: vi.fn(),
         subscribe: mockSubscribe,
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(
@@ -418,6 +425,7 @@ describe("CustomTypedQueue", () => {
       const mockPubSub: GenericPubSub<TestPayload> = {
         publish: vi.fn(),
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       const queue = new CustomTypedQueue<TestPayload>(

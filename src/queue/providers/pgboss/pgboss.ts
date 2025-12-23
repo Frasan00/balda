@@ -1,17 +1,17 @@
-import type { PgBoss } from "pg-boss";
-import type { Job } from "pg-boss";
+import type { Job, PgBoss } from "pg-boss";
 import { ClientNotFoundError } from "../../../errors/client_not_found_error.js";
-import { PGBossConfiguration } from "./pgboss_configuration.js";
 import type {
   GenericPubSub,
   PGBossQueueOptions,
   PGBossSendOptions,
   PublishOptions,
 } from "../../queue_types.js";
+import { PGBossConfiguration } from "./pgboss_configuration.js";
 
 export class PGBossPubSub implements GenericPubSub {
   declare private boss: PgBoss;
   private createdQueues: Set<string> = new Set();
+  private workers: Map<string, string> = new Map();
 
   async publish<TPayload>(
     topic: string,
@@ -36,12 +36,26 @@ export class PGBossPubSub implements GenericPubSub {
       boss.on("error", options.errorHandler);
     }
 
-    await boss.work(topic, async (job: Job<unknown> | Job<unknown>[]) => {
-      const jobs = Array.isArray(job) ? job : [job];
-      for (const j of jobs) {
-        await handler(j.data as TPayload);
-      }
-    });
+    const workId = await boss.work(
+      topic,
+      async (job: Job<unknown> | Job<unknown>[]) => {
+        const jobs = Array.isArray(job) ? job : [job];
+        for (const j of jobs) {
+          await handler(j.data as TPayload);
+        }
+      },
+    );
+
+    this.workers.set(topic, workId);
+  }
+
+  async unsubscribe(topic: string): Promise<void> {
+    const boss = await this.getBoss();
+    const workId = this.workers.get(topic);
+    if (workId) {
+      await boss.offWork(workId);
+      this.workers.delete(topic);
+    }
   }
 
   private async getBoss(): Promise<PgBoss> {
@@ -110,12 +124,18 @@ export class PGBossPubSub implements GenericPubSub {
       boss.on("error", globalOptions.errorHandler);
     }
 
-    await boss.work(topic, async (job: Job<unknown> | Job<unknown>[]) => {
-      const jobs = Array.isArray(job) ? job : [job];
-      for (const j of jobs) {
-        await handler(j.data as TPayload);
-      }
-    });
+    const workerKey = `${topic}:${queueConfig?.connectionString ?? "default"}`;
+    const workId = await boss.work(
+      topic,
+      async (job: Job<unknown> | Job<unknown>[]) => {
+        const jobs = Array.isArray(job) ? job : [job];
+        for (const j of jobs) {
+          await handler(j.data as TPayload);
+        }
+      },
+    );
+
+    this.workers.set(workerKey, workId);
   }
 
   private bossInstances: Map<string, PgBoss> = new Map();

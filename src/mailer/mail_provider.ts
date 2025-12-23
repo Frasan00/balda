@@ -1,5 +1,7 @@
+import { MailOptionsBuilder } from "./mail_options_builder.js";
 import { TemplateAdapterNotConfiguredError } from "./mailer_errors.js";
 import type {
+  Email,
   MailOptions,
   MailProviderInterface,
   MailProviderOptions,
@@ -9,7 +11,7 @@ import type {
 export class MailProvider implements MailProviderInterface {
   private readonly transporter: MailProviderOptions["transporter"];
   private readonly templateAdapter?: MailProviderOptions["templateAdapter"];
-  private readonly defaultFrom?: string;
+  private readonly defaultFrom?: Email;
 
   constructor(options: MailProviderOptions) {
     this.transporter = options.transporter;
@@ -17,7 +19,23 @@ export class MailProvider implements MailProviderInterface {
     this.defaultFrom = options.from;
   }
 
-  async send(options: MailOptions): Promise<void> {
+  async send(
+    builderFn: (builder: MailOptionsBuilder) => MailOptionsBuilder | void,
+  ): Promise<void> {
+    const builder = new MailOptionsBuilder();
+    const result = builderFn(builder);
+    const finalBuilder = result ?? builder;
+
+    const options = finalBuilder.build();
+
+    if (finalBuilder.hasTemplate()) {
+      return this.sendWithTemplate(options as TemplateMailOptions);
+    }
+
+    return this.sendDirect(options as MailOptions);
+  }
+
+  private async sendDirect(options: MailOptions): Promise<void> {
     const mailOptions = {
       ...options,
       from: options.from || this.defaultFrom,
@@ -26,15 +44,17 @@ export class MailProvider implements MailProviderInterface {
     return this.transporter.sendMail(mailOptions);
   }
 
-  async sendWithTemplate(options: TemplateMailOptions): Promise<void> {
+  private async sendWithTemplate(options: TemplateMailOptions): Promise<void> {
     if (!this.templateAdapter) {
       throw new TemplateAdapterNotConfiguredError();
     }
 
-    const html = await this.templateAdapter.render(
-      options.template,
-      options.data,
-    );
+    const html = options.isFilePath
+      ? await this.templateAdapter.renderFromFile(
+          options.template,
+          options.data,
+        )
+      : await this.templateAdapter.render(options.template, options.data);
 
     const mailOptions: MailOptions = {
       ...options,
@@ -42,7 +62,7 @@ export class MailProvider implements MailProviderInterface {
       from: options.from || this.defaultFrom,
     };
 
-    await this.send(mailOptions);
+    await this.sendDirect(mailOptions);
   }
 
   async verify(): Promise<boolean> {

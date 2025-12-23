@@ -161,9 +161,8 @@ describe("defineQueueConfiguration", () => {
         async publish(topic, _payload) {
           return { id: `custom-${topic}` };
         },
-        async subscribe(_topic, _handler) {
-          return Promise.resolve();
-        },
+        async subscribe(_topic, _handler) {},
+        async unsubscribe(_topic) {},
       };
 
       defineQueueConfiguration({
@@ -179,18 +178,16 @@ describe("defineQueueConfiguration", () => {
         async publish() {
           return { id: "redis-id" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       const kafkaPubSub: GenericPubSub = {
         async publish() {
           return { id: "kafka-id" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       defineQueueConfiguration({
@@ -212,9 +209,8 @@ describe("defineQueueConfiguration", () => {
         async publish() {
           return { id: "custom" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       defineQueueConfiguration({
@@ -268,18 +264,16 @@ describe("defineQueueConfiguration", () => {
         async publish() {
           return { id: "first" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       const secondPubSub: GenericPubSub = {
         async publish() {
           return { id: "second" };
         },
-        async subscribe() {
-          return Promise.resolve();
-        },
+        async subscribe() {},
+        async unsubscribe() {},
       };
 
       defineQueueConfiguration({

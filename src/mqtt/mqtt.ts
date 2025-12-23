@@ -283,14 +283,50 @@ export class MqttService {
   }
 
   /**
+   * @description Unsubscribe from an MQTT topic
+   * @param topic - The topic to unsubscribe from
+   * @throws BaldaError if the MQTT client is not connected
+   * @example
+   * await mqtt.unsubscribe('home/temperature');
+   */
+  async unsubscribe<T extends MqttTopics>(topic: keyof T): Promise<void> {
+    if (!MqttService.client) {
+      throw new BaldaError(
+        "MQTT client is not connected. Call MqttService.connect() first.",
+      );
+    }
+
+    if (!MqttService.client.connected) {
+      throw new BaldaError(
+        "MQTT client is not connected. Call MqttService.connect() first.",
+      );
+    }
+
+    try {
+      await MqttService.client.unsubscribeAsync(topic as string);
+
+      MqttService.subscriptions = MqttService.subscriptions.filter(
+        (sub) => sub.topic !== topic,
+      );
+
+      logger.debug(`Unsubscribed from topic: ${String(topic)}`);
+    } catch (error) {
+      logger.error(
+        `Failed to unsubscribe from topic ${String(topic)}: ${(error as Error).message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * @description Publish a message to an MQTT topic
-   * @param topic - The topic to publish to
+   * @param topic - The topic to publish to (supports wildcard expansions)
    * @param message - The message payload (string, Buffer, or object that will be JSON stringified)
    * @param options - Publish options (qos, retain, etc.)
    * @throws BaldaError if the MQTT client is not connected or is not installed as a dependency
    */
   async publish<T extends MqttTopics>(
-    topic: keyof T,
+    topic: import("./mqtt.types.js").PublishTopic<T>,
     message: T[keyof T],
     options?: MqttPublishOptions,
   ): Promise<void> {
@@ -340,8 +376,10 @@ export class MqttService {
     }
 
     return new Promise<void>((resolve) => {
-      this.client?.end(false, {}, () => {
+      const client = this.client;
+      client?.end(false, {}, () => {
         logger.info("MQTT client disconnected gracefully");
+        client?.emit("disconnect", { cmd: "disconnect" });
         this.client = null;
         resolve();
       });

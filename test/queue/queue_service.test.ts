@@ -114,6 +114,7 @@ describe("QueueService", () => {
     const mockPubSub: GenericPubSub = {
       publish: vi.fn(),
       subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
     };
 
     it("should register a custom queue handler", () => {
@@ -142,6 +143,7 @@ describe("QueueService", () => {
       const pubsub2: GenericPubSub = {
         publish: vi.fn(),
         subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
       };
 
       QueueService.registerCustomQueue(
@@ -258,6 +260,7 @@ describe("QueueService", () => {
       const mockPubSub: GenericPubSub = {
         publish: vi.fn(),
         subscribe: mockSubscribe,
+        unsubscribe: vi.fn(),
       };
 
       const handler = vi.fn();
@@ -288,6 +291,7 @@ describe("QueueService", () => {
       const mockCustomPubSub: GenericPubSub = {
         publish: vi.fn(),
         subscribe: customSubscribe,
+        unsubscribe: vi.fn(),
       };
 
       const typedHandler = vi.fn();
