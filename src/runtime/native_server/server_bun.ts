@@ -13,6 +13,7 @@ import type {
 } from "./server_types.js";
 import {
   createGraphQLHandlerInitializer,
+  executeApolloGraphQLRequestWeb,
   executeMiddlewareChain,
 } from "./server_utils.js";
 
@@ -44,9 +45,7 @@ export class ServerBun implements ServerInterface {
     const tapOptions = this.tapOptions?.bun;
     const { fetch, websocket, ...rest } = tapOptions ?? {};
     const graphqlEnabled = this.graphql.isEnabled;
-    const graphqlEndpoint = graphqlEnabled
-      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
-      : "";
+    const graphqlEndpoint = "/graphql";
 
     this.runtimeServer = Bun.serve({
       port: this.port,
@@ -76,10 +75,16 @@ export class ServerBun implements ServerInterface {
         await fetch?.call(this, baldaRequest, server);
 
         if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const handler = await this.ensureGraphQLHandler();
-          if (handler) {
+          const apolloHandler = await this.ensureGraphQLHandler();
+          if (apolloHandler) {
             const webRequest = baldaRequest.toWebApi();
-            return handler.fetch(webRequest, { server });
+            return executeApolloGraphQLRequestWeb(
+              apolloHandler.server,
+              webRequest,
+              req.method,
+              search,
+              { req: baldaRequest, server },
+            );
           }
         }
 

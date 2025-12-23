@@ -33,6 +33,7 @@ import type {
 import {
   canHaveBody,
   createGraphQLHandlerInitializer,
+  executeApolloGraphQLRequestNode,
   executeMiddlewareChain,
 } from "./server_utils.js";
 
@@ -84,9 +85,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
       this.nodeHttpClient === "http2" || this.nodeHttpClient === "http2-secure";
 
     const graphqlEnabled = this.graphql.isEnabled;
-    const graphqlEndpoint = graphqlEnabled
-      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
-      : "";
+    const graphqlEndpoint = "/graphql";
 
     this.runtimeServer = this.createServer(
       async (
@@ -104,11 +103,37 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           queryIndex === -1 ? urlString : urlString.slice(0, queryIndex);
         const search = queryIndex === -1 ? "" : urlString.slice(queryIndex + 1);
 
-        // GraphQL handler - early return if disabled
+        // GraphQL handler
         if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const handler = await this.ensureGraphQLHandler();
-          if (handler) {
-            handler(req, httpResponse);
+          const apolloHandler = await this.ensureGraphQLHandler();
+          if (apolloHandler) {
+            const body = canHaveBody(req.method)
+              ? await this.readRequestBody(req)
+              : "";
+
+            await executeApolloGraphQLRequestNode(
+              apolloHandler.server,
+              req.headers,
+              req.method ?? "POST",
+              body,
+              search,
+              { req },
+              async (headers, status, responseBody) => {
+                for (const [key, value] of headers) {
+                  httpResponse.setHeader(key, value);
+                }
+                httpResponse.statusCode = status;
+
+                if (typeof responseBody === "string") {
+                  httpResponse.end(responseBody);
+                } else {
+                  for await (const chunk of responseBody) {
+                    httpResponse.write(chunk);
+                  }
+                  httpResponse.end();
+                }
+              },
+            );
             return;
           }
         }
@@ -126,15 +151,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           : undefined;
         request.headers = new Headers(filteredHeaders);
 
-        // Extracting IP
-        const forwardedFor = req.headers["x-forwarded-for"];
-        if (forwardedFor) {
-          request.ip = Array.isArray(forwardedFor)
-            ? forwardedFor[0].trim()
-            : forwardedFor.split(",")[0].trim();
-        } else {
-          request.ip = req.socket.remoteAddress;
-        }
+        request.ip = this.extractClientIp(req);
 
         // Lazy query parsing - only parse when accessed
         request.setQueryString(search);
@@ -244,6 +261,18 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
     }
 
     return result;
+  }
+
+  private extractClientIp(req: IncomingMessage): string | undefined {
+    const forwardedFor = req.headers["x-forwarded-for"];
+
+    if (forwardedFor) {
+      return Array.isArray(forwardedFor)
+        ? forwardedFor[0].trim()
+        : forwardedFor.split(",")[0].trim();
+    }
+
+    return req.socket.remoteAddress;
   }
 
   private async readRequestBody(req: IncomingMessage): Promise<string> {

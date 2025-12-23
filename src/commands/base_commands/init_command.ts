@@ -56,6 +56,15 @@ export default class InitCommand extends Command {
   })
   static cron: boolean;
 
+  @flag.boolean({
+    description: "Initialize GraphQL service",
+    aliases: "g",
+    name: "graphql",
+    required: false,
+    defaultValue: false,
+  })
+  static graphql: boolean;
+
   static devDependencies: string[] = [
     "esbuild",
     "esbuild-plugin-copy",
@@ -155,6 +164,36 @@ export default class InitCommand extends Command {
       }
     }
 
+    if (this.graphql && ["npm", "yarn", "pnpm"].includes(packageManager)) {
+      const uninstalledGraphql = await getUninstalledPackages([
+        "@apollo/server",
+        "graphql",
+      ]);
+
+      if (uninstalledGraphql.length > 0) {
+        const graphqlInstalled = await execWithPrompt(
+          `${packageManager} ${packageManagerCommand} ${uninstalledGraphql.join(" ")}`,
+          packageManager,
+          uninstalledGraphql,
+          {
+            stdio: "inherit",
+          },
+          false,
+        );
+
+        if (!graphqlInstalled) {
+          this.logger.info(
+            "GraphQL installation cancelled by user. Skipping GraphQL scaffolding.",
+          );
+          this.graphql = false;
+        }
+      }
+
+      if (!uninstalledGraphql.length) {
+        this.logger.info("GraphQL packages are already installed");
+      }
+    }
+
     const ext = this.typescript ? "ts" : "js";
     const serverTemplate = this.getServerTemplate();
     const indexTemplate = this.getIndexTemplate();
@@ -205,10 +244,43 @@ export default class InitCommand extends Command {
       );
     }
 
+    // Create GraphQL configuration if requested
+    if (this.graphql) {
+      const graphqlDir = nativePath.join(this.srcPath, "graphql");
+      if (!(await nativeFs.exists(graphqlDir))) {
+        await nativeFs.mkdir(graphqlDir, { recursive: true });
+      }
+
+      const graphqlConfigTemplate = this.getGraphqlConfigTemplate();
+      this.logger.info(`Creating graphql/graphql.config.${ext} file...`);
+      await nativeFs.writeFile(
+        nativePath.join(graphqlDir, `graphql.config.${ext}`),
+        new TextEncoder().encode(graphqlConfigTemplate),
+      );
+    }
+
     this.logger.info(`Project initialized successfully!`);
   }
 
   static getServerTemplate() {
+    const graphqlConfig = this.graphql
+      ? `,
+  graphql: {
+    schema: {
+      typeDefs: \`
+        type Query {
+          hello: String
+        }
+      \`,
+      resolvers: {
+        Query: {
+          hello: () => "Hello from GraphQL!"
+        }
+      }
+    }
+  }`
+      : "";
+
     return `import { Server } from "balda";
 
 const serverInstance = new Server({
@@ -220,7 +292,7 @@ const serverInstance = new Server({
         sizeLimit: "100kb",
       }
     },
-  },
+  }${graphqlConfig}
 });
 
 export { serverInstance as server };
@@ -253,6 +325,13 @@ export { serverInstance as server };
   console.log("Cron service started");`);
     }
 
+    if (this.graphql) {
+      imports.push('import "./graphql/graphql.config.js";');
+      services.push(`
+  // GraphQL endpoint available at /graphql
+  console.log("GraphQL service configured");`);
+    }
+
     const importsBlock = imports.join("\n");
     const servicesBlock = services.length > 0 ? services.join("\n") : "";
 
@@ -277,6 +356,15 @@ server.listen(({ url }) => {
 // This file is imported to set up Cron jobs
 // Add your cron jobs in separate files within this directory
 // Use: npx balda generate-cron <job-name> to create new cron jobs
+`;
+  }
+
+  static getGraphqlConfigTemplate() {
+    return `// GraphQL Configuration
+// This file is imported to set up GraphQL schema and resolvers
+// Add your GraphQL type definitions and resolvers in separate files within this directory
+// The GraphQL endpoint is automatically available at /graphql
+// You can extend the schema using server.graphql.addTypeDef() and server.graphql.addResolver()
 `;
   }
 }

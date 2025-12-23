@@ -1,34 +1,40 @@
-import type { GraphQLSchema } from "graphql";
-import type { createSchema, createYoga } from "graphql-yoga";
+import type { ApolloServerOptions } from "@apollo/server";
 import type {
   GraphQLContext,
   GraphQLOptions,
   GraphQLResolverMap,
   GraphQLResolvers,
   GraphQLResolverType,
+  GraphQLSchemaInput,
   GraphQLTypeDef,
 } from "./graphql_types.js";
 
 export type { GraphQLContext };
 
 export class GraphQL {
-  private schemaOptions: Parameters<typeof createSchema>[0];
-  private yogaOptions: Parameters<typeof createYoga>[0];
+  private schemaOptions: GraphQLSchemaInput;
+  private apolloOptions: Omit<
+    ApolloServerOptions<GraphQLContext>,
+    "typeDefs" | "resolvers"
+  >;
   isEnabled: boolean;
 
   constructor(options?: GraphQLOptions) {
     const config = this.initializeConfiguration(options);
     this.schemaOptions = config.schemaOptions;
-    this.yogaOptions = config.yogaOptions;
+    this.apolloOptions = config.apolloOptions;
     this.isEnabled = config.isEnabled;
   }
 
-  getSchema(createSchemaFn: typeof createSchema): GraphQLSchema {
-    return createSchemaFn(this.schemaOptions);
+  getSchemaOptions(): GraphQLSchemaInput {
+    return this.schemaOptions;
   }
 
-  getYogaOptions(): Parameters<typeof createYoga>[0] {
-    return this.yogaOptions;
+  getApolloOptions(): Omit<
+    ApolloServerOptions<GraphQLContext>,
+    "typeDefs" | "resolvers"
+  > {
+    return this.apolloOptions;
   }
 
   /**
@@ -86,7 +92,7 @@ export class GraphQL {
         typeDefs: ``,
         resolvers: {},
       },
-      yogaOptions: {},
+      apolloOptions: {},
       isEnabled: false,
     };
   }
@@ -94,14 +100,14 @@ export class GraphQL {
   private createEnabledConfiguration(options: GraphQLOptions) {
     return {
       schemaOptions: this.resolveSchemaOptions(options.schema),
-      yogaOptions: this.resolveYogaOptions(options.yogaOptions),
+      apolloOptions: this.resolveApolloOptions(options.apolloOptions),
       isEnabled: true,
     };
   }
 
   private resolveSchemaOptions(
     schema: GraphQLOptions["schema"],
-  ): Parameters<typeof createSchema>[0] {
+  ): GraphQLSchemaInput {
     const hasSchema = schema !== undefined;
     if (hasSchema) {
       return schema;
@@ -112,12 +118,12 @@ export class GraphQL {
     };
   }
 
-  private resolveYogaOptions(
-    yogaOptions: GraphQLOptions["yogaOptions"],
-  ): Parameters<typeof createYoga>[0] {
-    const hasYogaOptions = yogaOptions !== undefined;
-    if (hasYogaOptions) {
-      return yogaOptions;
+  private resolveApolloOptions(
+    apolloOptions: GraphQLOptions["apolloOptions"],
+  ): Omit<ApolloServerOptions<GraphQLContext>, "typeDefs" | "resolvers"> {
+    const hasApolloOptions = apolloOptions !== undefined;
+    if (hasApolloOptions) {
+      return apolloOptions;
     }
     return {};
   }

@@ -13,6 +13,7 @@ import type {
 } from "./server_types.js";
 import {
   createGraphQLHandlerInitializer,
+  executeApolloGraphQLRequestWeb,
   executeMiddlewareChain,
 } from "./server_utils.js";
 
@@ -44,9 +45,7 @@ export class ServerDeno implements ServerInterface {
     const tapOptions = this.tapOptions?.deno;
     const { handler, ...rest } = tapOptions ?? {};
     const graphqlEnabled = this.graphql.isEnabled;
-    const graphqlEndpoint = graphqlEnabled
-      ? (this.graphql.getYogaOptions().graphqlEndpoint ?? "/graphql")
-      : "";
+    const graphqlEndpoint = "/graphql";
 
     this.runtimeServer = Deno.serve({
       port: this.port,
@@ -81,10 +80,16 @@ export class ServerDeno implements ServerInterface {
 
         // GraphQL handler
         if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const graphqlHandler = await this.ensureGraphQLHandler();
-          if (graphqlHandler) {
+          const apolloHandler = await this.ensureGraphQLHandler();
+          if (apolloHandler) {
             const webRequest = baldaRequest.toWebApi();
-            return graphqlHandler.fetch(webRequest, { info });
+            return executeApolloGraphQLRequestWeb(
+              apolloHandler.server,
+              webRequest,
+              req.method,
+              search,
+              { req: baldaRequest, info },
+            );
           }
         }
 

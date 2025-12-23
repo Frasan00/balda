@@ -49,13 +49,175 @@ export const canHaveBody = (method?: string) => {
 };
 
 /**
+ * Execute Apollo Server GraphQL request for Web API compatible runtimes (Bun, Deno)
+ * @param apolloServer - The Apollo Server instance
+ * @param webRequest - Web API Request object
+ * @param method - HTTP method
+ * @param search - Query string (with leading ?)
+ * @param contextValue - Context value to pass to resolvers
+ * @returns Web API Response object
+ */
+export const executeApolloGraphQLRequestWeb = async (
+  apolloServer: import("@apollo/server").ApolloServer<
+    import("../../graphql/graphql_types.js").GraphQLContext
+  >,
+  webRequest: globalThis.Request,
+  method: string,
+  search: string,
+  contextValue: Record<string, unknown>,
+): Promise<globalThis.Response> => {
+  try {
+    const { HeaderMap } = await import("@apollo/server");
+
+    const headers = new HeaderMap();
+    webRequest.headers.forEach((value, key) => {
+      headers.set(key, value);
+    });
+
+    const contentType = webRequest.headers.get("content-type") ?? "";
+    const isJsonContent = contentType.includes("application/json");
+
+    let parsedBody: string | Record<string, unknown> = "";
+    if (method !== "GET") {
+      const bodyText = await webRequest.text();
+      parsedBody = isJsonContent && bodyText ? JSON.parse(bodyText) : bodyText;
+    }
+
+    const httpGraphQLRequest = {
+      method: method.toUpperCase(),
+      headers,
+      body: parsedBody,
+      search: search ? `?${search}` : "",
+    };
+
+    const result = await apolloServer.executeHTTPGraphQLRequest({
+      httpGraphQLRequest,
+      context: async () => contextValue,
+    });
+
+    const responseHeaders: Record<string, string> = {};
+    for (const [key, value] of result.headers) {
+      responseHeaders[key] = value;
+    }
+
+    if (result.body.kind === "complete") {
+      return new globalThis.Response(result.body.string, {
+        status: result.status ?? 200,
+        headers: responseHeaders,
+      });
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        if (result.body.kind === "chunked") {
+          for await (const chunk of result.body.asyncIterator) {
+            controller.enqueue(new TextEncoder().encode(chunk));
+          }
+        }
+        controller.close();
+      },
+    });
+
+    return new globalThis.Response(stream, {
+      status: result.status ?? 200,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    return new globalThis.Response(
+      JSON.stringify({
+        errors: [{ message: "Internal server error" }],
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+};
+
+type NodeHeaders = Record<string, string | string[] | undefined>;
+
+/**
+ * Execute Apollo Server GraphQL request for Node.js runtime
+ * @param apolloServer - The Apollo Server instance
+ * @param nodeHeaders - Node.js request headers
+ * @param method - HTTP method
+ * @param body - Request body string
+ * @param search - Query string (with leading ?)
+ * @param contextValue - Context value to pass to resolvers
+ * @param responseCallback - Callback to handle the response
+ */
+export const executeApolloGraphQLRequestNode = async (
+  apolloServer: import("@apollo/server").ApolloServer<
+    import("../../graphql/graphql_types.js").GraphQLContext
+  >,
+  nodeHeaders: NodeHeaders,
+  method: string,
+  body: string,
+  search: string,
+  contextValue: Record<string, unknown>,
+  responseCallback: (
+    headers: Map<string, string>,
+    status: number,
+    body: string | AsyncIterable<string>,
+  ) => Promise<void>,
+): Promise<void> => {
+  try {
+    const { HeaderMap } = await import("@apollo/server");
+
+    const headers = new HeaderMap();
+    for (const [key, value] of Object.entries(nodeHeaders)) {
+      if (value !== undefined) {
+        headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+      }
+    }
+
+    const contentType = headers.get("content-type") ?? "";
+    const isJsonContent = contentType.includes("application/json");
+
+    const parsedBody = isJsonContent && body ? JSON.parse(body) : body;
+
+    const httpGraphQLRequest = {
+      method: method?.toUpperCase() ?? "POST",
+      headers,
+      body: parsedBody,
+      search: search ? `?${search}` : "",
+    };
+
+    const result = await apolloServer.executeHTTPGraphQLRequest({
+      httpGraphQLRequest,
+      context: async () => contextValue,
+    });
+
+    const status = result.status ?? 200;
+
+    if (result.body.kind === "complete") {
+      await responseCallback(result.headers, status, result.body.string);
+    } else {
+      await responseCallback(result.headers, status, result.body.asyncIterator);
+    }
+  } catch (error) {
+    await responseCallback(
+      new Map([["Content-Type", "application/json"]]),
+      500,
+      JSON.stringify({
+        errors: [{ message: "Internal server error" }],
+      }),
+    );
+  }
+};
+
+/**
  * Create a GraphQL handler initializer with caching
- * Returns a function that lazily loads and initializes the GraphQL handler
+ * Returns a function that lazily loads and initializes the Apollo Server handler
  */
 export const createGraphQLHandlerInitializer = (graphql: GraphQL) => {
-  let handlerPromise: Promise<
-    ReturnType<typeof import("graphql-yoga").createYoga>
-  > | null = null;
+  let serverPromise: Promise<{
+    server: import("@apollo/server").ApolloServer<
+      import("../../graphql/graphql_types.js").GraphQLContext
+    >;
+    url: string;
+  }> | null = null;
   let isInitializing = false;
 
   const waitForInitialization = async (): Promise<void> => {
@@ -64,18 +226,37 @@ export const createGraphQLHandlerInitializer = (graphql: GraphQL) => {
     }
   };
 
-  const initializeHandler = async (): Promise<
-    ReturnType<typeof import("graphql-yoga").createYoga>
-  > => {
+  const initializeHandler = async (): Promise<{
+    server: import("@apollo/server").ApolloServer<
+      import("../../graphql/graphql_types.js").GraphQLContext
+    >;
+    url: string;
+  }> => {
     try {
-      const { createYoga, createSchema } = await import("graphql-yoga");
-      const schema = graphql.getSchema(createSchema);
-      const yogaOptions = graphql.getYogaOptions();
-      return createYoga({
-        graphqlEndpoint: "/graphql",
-        ...yogaOptions,
-        schema,
+      const { ApolloServer } = await import("@apollo/server");
+      const { makeExecutableSchema } = await import("@graphql-tools/schema");
+
+      const schemaOptions = graphql.getSchemaOptions();
+      const apolloOptions = graphql.getApolloOptions();
+
+      const schema = makeExecutableSchema({
+        typeDefs: schemaOptions.typeDefs,
+        resolvers: schemaOptions.resolvers as any,
       });
+
+      const server = new ApolloServer<
+        import("../../graphql/graphql_types.js").GraphQLContext
+      >({
+        schema,
+        ...(apolloOptions as any),
+      });
+
+      await server.start();
+
+      return {
+        server,
+        url: "/graphql",
+      };
     } catch (error) {
       const isModuleNotFound =
         error instanceof Error &&
@@ -83,41 +264,44 @@ export const createGraphQLHandlerInitializer = (graphql: GraphQL) => {
           error.message.includes("Cannot find package"));
       if (isModuleNotFound) {
         throw new Error(
-          "GraphQL is enabled but 'graphql-yoga' is not installed. " +
-            "Install it with: npm install graphql graphql-yoga",
+          "GraphQL is enabled but '@apollo/server' is not installed. " +
+            "Install it with: npm install @apollo/server @graphql-tools/schema graphql",
         );
       }
       throw error;
     }
   };
 
-  return async (): Promise<ReturnType<
-    typeof import("graphql-yoga").createYoga
-  > | null> => {
+  return async (): Promise<{
+    server: import("@apollo/server").ApolloServer<
+      import("../../graphql/graphql_types.js").GraphQLContext
+    >;
+    url: string;
+  } | null> => {
     const isDisabled = !graphql.isEnabled;
     if (isDisabled) {
       return null;
     }
 
-    const alreadyInitialized = handlerPromise !== null;
+    const alreadyInitialized = serverPromise !== null;
     if (alreadyInitialized) {
-      return handlerPromise;
+      return serverPromise;
     }
 
     const currentlyInitializing = isInitializing;
     if (currentlyInitializing) {
       await waitForInitialization();
-      return handlerPromise;
+      return serverPromise;
     }
 
     isInitializing = true;
 
     try {
-      handlerPromise = initializeHandler();
-      const handler = await handlerPromise;
-      return handler;
+      serverPromise = initializeHandler();
+      const result = await serverPromise;
+      return result;
     } catch (error) {
-      handlerPromise = null;
+      serverPromise = null;
       throw error;
     } finally {
       isInitializing = false;

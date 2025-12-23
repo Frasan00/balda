@@ -1,12 +1,12 @@
 import { runtime } from "./runtime.js";
 
 export class NativeEnv {
-  get(key: string): string {
+  get(key: string): string | undefined {
     switch (runtime.type) {
       case "node":
       case "bun":
       case "deno":
-        return process.env[key] ?? "";
+        return process.env[key];
       default:
         throw new Error(`Unsupported runtime: ${runtime.type}`);
     }

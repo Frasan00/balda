@@ -2,6 +2,7 @@ import { logger } from "../logger/logger.js";
 import { HttpMethod } from "../runtime/native_server/server_types.js";
 import {
   canHaveBody,
+  createGraphQLHandlerInitializer,
   executeMiddlewareChain,
 } from "../runtime/native_server/server_utils.js";
 import { Request } from "../server/http/request.js";
@@ -17,9 +18,15 @@ import type { MockServerOptions } from "./mock_server_types.js";
  */
 export class MockServer {
   readonly server: Server<NodeHttpClient>;
+  private ensureGraphQLHandler: ReturnType<
+    typeof createGraphQLHandlerInitializer
+  >;
 
   constructor(server: Server<NodeHttpClient>) {
     this.server = server;
+    this.ensureGraphQLHandler = createGraphQLHandlerInitializer(
+      this.server.graphql,
+    );
   }
 
   /**
@@ -41,6 +48,13 @@ export class MockServer {
   ): Promise<MockResponse<TResponse>> {
     const { headers = {}, query = {}, cookies = {}, ip } = options;
     this.validateOptions(options);
+
+    const graphqlEnabled = this.server.graphql.isEnabled;
+    const isGraphQLPath = path.startsWith("/graphql");
+
+    if (graphqlEnabled && isGraphQLPath) {
+      return this.handleGraphQLRequest<TResponse>(method, path, options);
+    }
 
     const route = router.find(method.toUpperCase(), path);
     if (!route) {
@@ -259,6 +273,139 @@ export class MockServer {
     }
 
     return multipartBody;
+  }
+
+  private async handleGraphQLRequest<TResponse = any>(
+    method: HttpMethod,
+    path: string,
+    options: MockServerOptions = {},
+  ): Promise<MockResponse<TResponse>> {
+    const apolloHandler = await this.ensureGraphQLHandler();
+    if (!apolloHandler) {
+      const res = new Response(500);
+      res.json({
+        errors: [{ message: "GraphQL handler not initialized" }],
+      });
+      return new MockResponse(res);
+    }
+
+    const { headers = {}, query = {} } = options;
+    const url = new URL(
+      `http://${this.server.host}:${this.server.port}${path}`,
+    );
+    url.search = new URLSearchParams(query).toString();
+
+    let body: string | Uint8Array | ArrayBuffer | undefined = undefined;
+
+    if (options.body !== undefined && canHaveBody(method)) {
+      if (
+        typeof options.body === "object" &&
+        !(options.body instanceof Uint8Array) &&
+        !(options.body instanceof ArrayBuffer)
+      ) {
+        body = JSON.stringify(options.body);
+      } else {
+        body = options.body as string | Uint8Array;
+      }
+    }
+
+    const webRequest = new globalThis.Request(url.toString(), {
+      method: method.toUpperCase(),
+      body: body as BodyInit,
+      headers: {
+        "content-type": "application/json",
+        ...headers,
+      },
+    });
+
+    const req = Request.fromRequest(webRequest);
+    req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
+
+    try {
+      const { HeaderMap } = await import("@apollo/server");
+
+      const apolloHeaders = new HeaderMap();
+      for (const [key, value] of Object.entries(headers)) {
+        if (value !== undefined) {
+          apolloHeaders.set(
+            key,
+            Array.isArray(value) ? value.join(", ") : String(value),
+          );
+        }
+      }
+
+      const contentType = apolloHeaders.get("content-type") ?? "";
+      const isJsonContent = contentType.includes("application/json");
+      let bodyString = "";
+      if (typeof body === "string") {
+        bodyString = body;
+      } else if (body instanceof Uint8Array) {
+        bodyString = new TextDecoder().decode(body);
+      } else if (body && typeof body === "object") {
+        bodyString = new TextDecoder().decode(
+          new Uint8Array(body as ArrayBuffer),
+        );
+      }
+
+      const parsedBody =
+        isJsonContent && bodyString ? JSON.parse(bodyString) : bodyString;
+
+      const httpGraphQLRequest = {
+        method: method.toUpperCase(),
+        headers: apolloHeaders,
+        body: parsedBody,
+        search: url.search,
+      };
+
+      const apolloOptions = this.server.graphql.getApolloOptions() as any;
+      const contextValue =
+        apolloOptions.context && typeof apolloOptions.context === "function"
+          ? await apolloOptions.context({ req })
+          : { req };
+
+      const result = await apolloHandler.server.executeHTTPGraphQLRequest({
+        httpGraphQLRequest,
+        context: async () => contextValue,
+      });
+
+      const status = result.status ?? 200;
+      const res = new Response(status);
+
+      for (const [key, value] of result.headers) {
+        res.setHeader(key, value);
+      }
+
+      if (result.body.kind === "complete") {
+        const bodyContent = result.body.string;
+        try {
+          res.json(JSON.parse(bodyContent));
+        } catch {
+          res.text(bodyContent);
+        }
+      } else {
+        let bodyContent = "";
+        for await (const chunk of result.body.asyncIterator) {
+          bodyContent += chunk;
+        }
+        try {
+          res.json(JSON.parse(bodyContent));
+        } catch {
+          res.text(bodyContent);
+        }
+      }
+
+      return new MockResponse(res);
+    } catch (error) {
+      logger.error(
+        { error },
+        `Error processing GraphQL request ${method} ${path}:`,
+      );
+      const errorRes = new Response(500);
+      errorRes.json({
+        errors: [{ message: "Internal server error" }],
+      });
+      return new MockResponse(errorRes);
+    }
   }
 
   private validateOptions(options: MockServerOptions) {
