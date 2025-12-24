@@ -21,6 +21,7 @@ export default class KeyGenerateCommand extends Command {
     aliases: ["t"],
     name: "type",
     required: false,
+    defaultValue: "sync",
     description: "Key type: sync or async (default: sync)",
   })
   static type?: string;

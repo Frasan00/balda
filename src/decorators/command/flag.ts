@@ -3,13 +3,13 @@ import {
   parseCliArgsAndFlags,
 } from "../../commands/arg_parser.js";
 import type { Command } from "../../commands/base_command.js";
+import { MetadataStore } from "../../metadata_store.js";
 import { VALIDATION_ERROR_SYMBOL } from "./arg.js";
 import type {
   FlagOptions,
   FlagType,
   InferFlagType,
 } from "./command_decorator_types.js";
-import { MetadataStore } from "../../metadata_store.js";
 
 /**
  * Decorator for defining command-line flags with type safety.
@@ -49,7 +49,11 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
 
     const primaryFlagName = options.name || propertyKey;
     const parsedFlags = parseCliArgsAndFlags().flags;
-    const flagAliases = options.aliases || [];
+    const flagAliases = options.aliases
+      ? Array.isArray(options.aliases)
+        ? options.aliases
+        : [options.aliases]
+      : [];
     const allFlagVariants = [primaryFlagName, ...flagAliases];
 
     // Find the actual flag value by checking all possible flag names
@@ -83,6 +87,8 @@ const flagDecorator = <T extends FlagType>(options: FlagOptions<T>) => {
               ) as InferFlagType<T>;
             } else if (options.type === "number") {
               resolvedFlagValue = Number(resolvedFlagValue) as InferFlagType<T>;
+            } else if (options.type === "string") {
+              resolvedFlagValue = String(resolvedFlagValue) as InferFlagType<T>;
             }
 
             if (options.parse) {

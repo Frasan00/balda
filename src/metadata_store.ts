@@ -7,7 +7,7 @@ export class MetadataStore {
   /**
    * Set the metadata for the given target and property key
    */
-  static set(target: any, propertyKey: string, value: any): void {
+  static set(target: any, propertyKey: string | symbol, value: any): void {
     if (!this.metadata.has(target)) {
       this.metadata.set(target, new Map());
     }
@@ -17,7 +17,7 @@ export class MetadataStore {
   /**
    * Get the metadata for the given target and property key
    */
-  static get(target: any, propertyKey: string): any {
+  static get(target: any, propertyKey: string | symbol): any {
     return this.metadata.get(target)?.get(propertyKey);
   }
 
@@ -32,7 +32,7 @@ export class MetadataStore {
    * Delete the metadata for the given target and property key
    */
   static delete(target: any, propertyKey: string | symbol): void {
-    this.metadata.get(target)?.delete(propertyKey.toString());
+    this.metadata.get(target)?.delete(propertyKey);
   }
 
   /**
