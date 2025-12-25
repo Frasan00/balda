@@ -85,3 +85,6 @@ SECURITY.md
 
 # Docker
 .localstack/
+
+.idea/
+TODO.md
