@@ -214,8 +214,8 @@ describe("Mailer with MailCatcher", () => {
         {
           mailcatcher: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             from: "noreply@example.com",
@@ -297,16 +297,16 @@ describe("Mailer with MailCatcher", () => {
         {
           primary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             from: "primary@example.com",
           },
           secondary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             from: "secondary@example.com",
@@ -347,8 +347,8 @@ describe("Mailer with MailCatcher", () => {
         {
           mailcatcher: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             templateAdapter: new CustomAdapter(),
@@ -381,8 +381,8 @@ describe("Mailer with MailCatcher", () => {
         {
           mailcatcher: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             templateAdapter: adapter,
@@ -407,8 +407,8 @@ describe("Mailer with MailCatcher", () => {
         {
           mailcatcher: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             templateAdapter: new HandlebarsAdapter(),
@@ -882,16 +882,16 @@ describe("Mailer with MailCatcher", () => {
         {
           primary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             from: "primary@example.com",
           },
           secondary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
             from: "secondary@example.com",
@@ -924,15 +924,15 @@ describe("Mailer with MailCatcher", () => {
         {
           primary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
           },
           secondary: {
             transporter: nodemailer.createTransport({
-              host: "localhost",
-              port: 1025,
+              host: process.env.MAILCATCHER_HOST || "localhost",
+              port: Number.parseInt(process.env.MAILCATCHER_PORT || "1025"),
               ignoreTLS: true,
             }),
           },

@@ -88,8 +88,8 @@ export class MqttService {
     }
 
     const {
-      host = "localhost",
-      port = 1883,
+      host = process.env.MQTT_HOST || "localhost",
+      port = Number(process.env.MQTT_PORT) || 1883,
       protocol = "mqtt",
       ...otherOptions
     } = connectionOptions;

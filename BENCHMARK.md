@@ -14,6 +14,23 @@ All benchmarks use consistent settings to ensure reproducible, machine-independe
 
 ## Quick Start
 
+### Docker Compose (Recommended)
+
+For consistent, isolated testing across all runtimes:
+
+```bash
+# Build and start all runtime containers
+docker compose up --build
+
+# Run benchmarks inside containers
+docker compose exec node npm run benchmark
+docker compose exec bun npm run benchmark
+docker compose exec deno npm run benchmark
+
+# Stop containers
+docker compose down
+```
+
 ### NPM Scripts
 
 ```bash

@@ -19,17 +19,27 @@ npm install balda
 ```
 
 ```typescript
-import { Server, controller, get } from 'balda';
+import { Server, controller, get } from "balda";
 
-@controller('/api')
+@controller("/api")
 class ApiController {
-  @get('/health')
+  @get("/health")
   async health(req: Request, res: Response) {
-    return res.json({ status: 'ok' });
+    return res.json({ status: "ok" });
   }
 }
 
-const server = new Server();
+const server = new Server({
+  port: 3000,
+  host: "0.0.0.0",
+  plugins: {
+    bodyParser: {
+      json: {
+        sizeLimit: "10mb",
+      },
+    },
+  },
+});
 server.listen();
 ```
 

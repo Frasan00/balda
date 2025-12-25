@@ -38,19 +38,78 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 * **Fork the repository** and create your branch from `main`
 * **Follow the existing code style** (see Code Style Guide below)
 * **Write tests** for your changes
-* **Ensure all tests pass** across all supported runtimes
+* **Ensure all tests pass** across all supported runtimes using Docker Compose
 * **Update documentation** if needed
 * **Write a clear commit message** describing your changes
+
+**Before committing**, always run tests using Docker Compose to ensure cross-runtime compatibility:
+
+```bash
+docker compose up --build
+docker compose exec node yarn test
+docker compose exec bun yarn test:bun
+docker compose exec deno yarn test:deno
+docker compose down
+```
 
 ## Development Setup
 
 ### Prerequisites
 
+**Option 1: Docker Compose (Recommended)**
+* Docker and Docker Compose
+* Ensures consistent environment across all runtimes
+
+**Option 2: Local Development**
 * Node.js 22.x (check `.nvmrc`)
 * Yarn package manager
 * Optionally: Bun and Deno for cross-runtime testing
 
 ### Setup Steps
+
+#### Using Docker Compose (Recommended)
+
+1. Fork and clone the repository:
+```bash
+git clone https://github.com/YOUR_USERNAME/balda.git
+cd balda
+```
+
+2. Build and start containers:
+```bash
+docker compose up --build
+```
+
+3. Run tests in containers:
+```bash
+# Node.js tests
+docker compose exec node yarn test
+
+# Bun tests
+docker compose exec bun yarn test:bun
+
+# Deno tests
+docker compose exec deno yarn test:deno
+```
+
+4. Start development servers:
+```bash
+# Node.js
+docker compose exec node yarn dev
+
+# Bun
+docker compose exec bun yarn dev:bun
+
+# Deno
+docker compose exec deno yarn dev:deno
+```
+
+5. Stop containers:
+```bash
+docker compose down
+```
+
+#### Using Local Setup
 
 1. Fork and clone the repository:
 ```bash
@@ -139,8 +198,25 @@ Balda follows strict TypeScript coding standards defined in the user rules:
 
 * Write unit tests for new features
 * Ensure all existing tests pass
-* Test against all supported runtimes (Node.js, Bun, Deno) when applicable
+* **Test against all supported runtimes** (Node.js, Bun, Deno) using Docker Compose before committing
 * Use meaningful test descriptions
+
+### Testing with Docker Compose (Required Before Commit)
+
+```bash
+# Start containers
+docker compose up --build
+
+# Run all tests across all runtimes
+docker compose exec node yarn test
+docker compose exec bun yarn test:bun
+docker compose exec deno yarn test:deno
+
+# Stop containers
+docker compose down
+```
+
+### Testing Locally
 
 Run specific test suites:
 ```bash
@@ -197,7 +273,16 @@ When contributing, ensure your changes work across all supported runtimes:
 * **Bun**: Uses `Bun.serve` for performance
 * **Deno**: Uses `Deno.serve` with appropriate imports
 
-Test your changes on all runtimes before submitting:
+**Always test on all runtimes using Docker Compose before submitting:**
+```bash
+docker compose up --build
+docker compose exec node yarn test
+docker compose exec bun yarn test:bun
+docker compose exec deno yarn test:deno
+docker compose down
+```
+
+Alternatively, test locally:
 ```bash
 yarn test:all
 ```

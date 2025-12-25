@@ -1,10 +1,10 @@
-FROM oven/bun:1.1.35-slim
+FROM oven/bun:1.3.5-slim
 
 WORKDIR /app
 
-COPY package.json yarn.lock .
+COPY package.json yarn.lock ./
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 

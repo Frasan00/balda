@@ -19,7 +19,7 @@ type TestPayload = {
 export const queues = {
   bullmq: bullmqQueue<TestPayload>("test"),
   sqs: sqsQueue<TestPayload>("test", {
-    queueUrl: "http://localhost:9324/queue/balda-development-test",
+    queueUrl: `${process.env.SQS_ENDPOINT || "http://localhost:9324"}/queue/balda-development-test`,
   }),
   pgboss: pgbossQueue<TestPayload>("test"),
   memory: memoryQueue<TestPayload>("test-memory"),

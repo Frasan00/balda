@@ -1,12 +1,59 @@
 services:
+  node:
+    build:
+      context: .
+      dockerfile: docker/node.Dockerfile
+    tty: true
+    container_name: balda-node
+    volumes:
+      - .:/app
+    working_dir: /app
+    env_file:
+      - .env.test
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - local-network
+
+  bun:
+    build:
+      context: .
+      dockerfile: docker/bun.Dockerfile
+    tty: true
+    container_name: balda-bun
+    volumes:
+      - .:/app
+    working_dir: /app
+    env_file:
+      - .env.test
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - local-network
+
+  deno:
+    build:
+      context: .
+      dockerfile: docker/deno.Dockerfile
+    tty: true
+    container_name: balda-deno
+    env_file:
+      - .env.test
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - local-network
+
   redis:
-      image: redis:7.0
-      container_name: balda-redis
-      restart: unless-stopped
-      tty: true
-      ports:
-        - "6379:6379"
-      command: redis-server --requirepass root
+    image: redis:7.0
+    container_name: balda-redis
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass root
+    networks:
+      - local-network
 
   sqs:
     image: softwaremill/elasticmq
@@ -18,6 +65,8 @@ services:
       - JAVA_OPTS=-Dconfig.file=/opt/elasticmq.conf
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf
+    networks:
+      - local-network
 
   postgres:
     image: postgres:17.4
@@ -30,6 +79,8 @@ services:
       POSTGRES_DB: database
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
+    networks:
+      - local-network
 
   localstack:
     image: localstack/localstack:latest

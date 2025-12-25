@@ -12,25 +12,27 @@ import "./schedules/sqs.js";
 defineQueueConfiguration({
   bullmq: {
     connection: {
-      host: "localhost",
-      port: 6379,
-      password: "root",
+      host: process.env.REDIS_HOST || "localhost",
+      port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || "root",
       db: 0,
     },
   },
   sqs: {
     client: {
-      region: "us-east-1",
-      endpoint: "http://localhost:9324",
+      region: process.env.SQS_REGION || "us-east-1",
+      endpoint: process.env.SQS_ENDPOINT || "http://localhost:9324",
     },
     consumer: {
       queueUrlMap: {
-        test: "http://localhost:9324/000000000000/balda-development-test",
+        test: `${process.env.SQS_ENDPOINT || "http://localhost:9324"}/000000000000/balda-development-test`,
       },
     },
   },
   pgboss: {
-    connectionString: "postgres://root:root@localhost:5432/database",
+    connectionString:
+      process.env.POSTGRES_CONNECTION_STRING ||
+      `postgres://${process.env.POSTGRES_USER || "root"}:${process.env.POSTGRES_PASSWORD || "root"}@${process.env.POSTGRES_HOST || "localhost"}:${process.env.POSTGRES_PORT || "5432"}/${process.env.POSTGRES_DB || "database"}`,
   },
 });
 
