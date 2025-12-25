@@ -122,7 +122,7 @@ export class Server<
       swagger: options?.swagger ?? true,
       graphql: options?.graphql ?? undefined,
       abortSignal: options?.abortSignal,
-      cronUI: options?.cronUI ?? undefined,
+      cronUI: options?.cronUI,
     };
 
     if (options?.ajvInstance) {
