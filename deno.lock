@@ -26,6 +26,7 @@
     "npm:ajv@^8.17.1": "8.17.1",
     "npm:autocannon@8": "8.0.0",
     "npm:bullmq@^5.66.2": "5.66.2",
+    "npm:cronstrue@^3.9.0": "3.9.0",
     "npm:edge.js@^6.4.0": "6.4.0",
     "npm:ejs@^3.1.10": "3.1.10",
     "npm:esbuild-plugin-copy@^2.1.1": "2.1.1_esbuild@0.27.2",
@@ -4955,6 +4956,10 @@
         "luxon"
       ]
     },
+    "cronstrue@3.9.0": {
+      "integrity": "sha512-T3S35zmD0Ai2B4ko6+mEM+k9C6tipe2nB9RLiGT6QL2Wn0Vsn2cCZAC8Oeuf4CaE00GZWVdpYitbpWCNlIWqdA==",
+      "bin": true
+    },
     "cross-argv@2.0.0": {
       "integrity": "sha512-YIaY9TR5Nxeb8SMdtrU8asWVM4jqJDNDYlKV21LxtYcfNJhp1kEsgSa6qXwXgzN0WQWGODps0+TlGp2xQSHwOg=="
     },
@@ -6783,9 +6788,6 @@
     "process-nextick-args@2.0.1": {
       "integrity": "sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag=="
     },
-    "process-nextick-args@2.0.1": {
-      "integrity": "sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag=="
-    },
     "process-warning@5.0.0": {
       "integrity": "sha512-a39t9ApHNx2L4+HBnQKqxxHNs1r7KF+Intd8Q/g1bUh6q0WIp9voPXJ/x0j+ZL45KF1pJd9+q2jLIRMfvEshkA=="
     },
@@ -8265,6 +8267,7 @@
         "npm:ajv@^8.17.1",
         "npm:autocannon@8",
         "npm:bullmq@^5.66.2",
+        "npm:cronstrue@^3.9.0",
         "npm:edge.js@^6.4.0",
         "npm:ejs@^3.1.10",
         "npm:esbuild-plugin-copy@^2.1.1",
