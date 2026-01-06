@@ -7,6 +7,7 @@ services:
     container_name: balda-node
     volumes:
       - .:/app
+      - /app/node_modules
     working_dir: /app
     env_file:
       - .env.test
@@ -22,6 +23,7 @@ services:
     container_name: balda-bun
     volumes:
       - .:/app
+      - /app/node_modules
     working_dir: /app
     env_file:
       - .env.test
