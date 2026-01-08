@@ -30,6 +30,7 @@ const external = [
   "edge.js",
   "ejs",
   "mustache",
+  "fast-json-stringify",
 ];
 
 export default defineConfig([
