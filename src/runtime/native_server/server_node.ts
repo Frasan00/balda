@@ -204,7 +204,10 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         } else if (
           responseResult.headers["Content-Type"] === "application/json"
         ) {
-          httpResponse.end(JSON.stringify(body));
+          // Check if body is already a serialized string (from fast-json-stringify)
+          httpResponse.end(
+            typeof body === "string" ? body : JSON.stringify(body),
+          );
         } else {
           httpResponse.end(body != null ? String(body) : undefined);
         }

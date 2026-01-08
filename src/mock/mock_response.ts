@@ -5,7 +5,19 @@ export class MockResponse<T = any> {
 
   // base getters
   body(): T {
-    return this.response.getBody();
+    const body = this.response.getBody();
+    if (
+      typeof body === "string" &&
+      this.response.headers["Content-Type"]?.includes("json")
+    ) {
+      try {
+        return JSON.parse(body) as T;
+      } catch {
+        // If parsing fails, return the raw body
+        return body as T;
+      }
+    }
+    return body as T;
   }
 
   statusCode(): number {

@@ -7,7 +7,7 @@
   "tasks": {
     "dev": "deno run --watch --unstable-sloppy-imports --allow-all --import-map import_map.json test/server/index.ts",
     "cli": "deno run --unstable-sloppy-imports --allow-all --import-map import_map.json src/cli.ts",
-    "test": "deno run -A --unstable --import-map import_map.json npm:vitest run",
+    "test": "DENO=1 deno run -A --unstable-sloppy-imports --import-map import_map.json npm:vitest run",
     "benchmark": "deno run --unstable-sloppy-imports --allow-all --import-map import_map.json test/benchmark/index.ts",
     "test:cron": "deno run --unstable-sloppy-imports --allow-all --import-map import_map.json test/cron/index.ts",
     "test:cli": "deno run --unstable-sloppy-imports --allow-all --import-map import_map.json src/cli.ts serve -e src/test.ts"

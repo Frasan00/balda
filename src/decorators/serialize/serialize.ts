@@ -1,23 +1,67 @@
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
+import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
-import type { SerializeOptions } from "./serialize_types.js";
 import type { RequestSchema } from "../validation/validate_types.js";
+import type { SerializeOptions } from "./serialize_types.js";
 
 const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
 
 /**
- * WeakMap to cache schema objects by reference in serialize decorator.
- * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
- * This cache is used for Zod, TypeBox, and plain JSON schemas.
+ * Compiles and caches an AJV validator for a schema.
+ * Returns the compiled validator for validation purposes.
  */
-const serializeSchemaRefCache = new WeakMap<object, symbol>();
+const getCompiledValidator = (
+  schema: RequestSchema,
+): ReturnType<typeof AjvStateManager.ajv.compile> | null => {
+  if (ZodLoader.isZodSchema(schema)) {
+    const refKey = getSchemaRefKey(schema, "serialize_zod");
+    let compiledSchema = openapiSchemaMap.get(refKey);
+    if (!compiledSchema) {
+      const jsonSchema = schema.toJSONSchema();
+      compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
+      openapiSchemaMap.set(refKey, compiledSchema);
+    }
+    return compiledSchema;
+  }
+
+  if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+    const refKey = getSchemaRefKey(schema, "serialize_typebox");
+    let compiledSchema = openapiSchemaMap.get(refKey);
+    if (!compiledSchema) {
+      compiledSchema = AjvStateManager.ajv.compile(schema);
+      openapiSchemaMap.set(refKey, compiledSchema);
+    }
+    return compiledSchema;
+  }
+
+  if (typeof schema === "object" && schema !== null) {
+    const refKey = getSchemaRefKey(schema, "serialize_json");
+    let compiledSchema = openapiSchemaMap.get(refKey);
+    if (!compiledSchema) {
+      compiledSchema = AjvStateManager.ajv.compile(
+        schema as AjvCompileParams[0],
+      );
+      openapiSchemaMap.set(refKey, compiledSchema);
+    }
+    return compiledSchema;
+  }
+
+  // Fallback for primitives or edge cases
+  const cacheKey = JSON.stringify(schema);
+  let compiledSchema = openapiSchemaMap.get(cacheKey);
+  if (!compiledSchema) {
+    compiledSchema = AjvStateManager.ajv.compile(schema as AjvCompileParams[0]);
+    openapiSchemaMap.set(cacheKey, compiledSchema);
+  }
+  return compiledSchema;
+};
 
 export const serialize = <T extends RequestSchema>(
   schema: T,
@@ -64,75 +108,18 @@ export const serialize = <T extends RequestSchema>(
         const schema = serializeMetadata?.[actualStatus]?.schema;
         const safe = serializeMetadata?.[actualStatus]?.safe ?? true;
 
-        if (schema && !safe) {
-          const body = res.getBody();
+        if (!schema) {
+          return;
+        }
+
+        const body = res.getBody();
+
+        // When safe mode is disabled, validate the response body against the schema
+        if (!safe) {
           try {
-            let cacheKey: string;
-
-            // Use WeakMap cache for schema object references
-            if (ZodLoader.isZodSchema(schema)) {
-              let refKey = serializeSchemaRefCache.get(schema);
-              if (!refKey) {
-                refKey = Symbol("serialize_zod_schema");
-                serializeSchemaRefCache.set(schema, refKey);
-              }
-
-              let compiledSchema = openapiSchemaMap.get(refKey);
-              if (!compiledSchema) {
-                const jsonSchema = schema.toJSONSchema();
-                compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
-                openapiSchemaMap.set(refKey, compiledSchema);
-              }
-
+            const compiledSchema = getCompiledValidator(schema);
+            if (compiledSchema) {
               await validateSchema(compiledSchema, body, safe);
-              res.send(body);
-            } else if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-              // TypeBox schema - already JSON Schema compliant
-              let refKey = serializeSchemaRefCache.get(schema);
-              if (!refKey) {
-                refKey = Symbol("serialize_typebox_schema");
-                serializeSchemaRefCache.set(schema, refKey);
-              }
-
-              let compiledSchema = openapiSchemaMap.get(refKey);
-              if (!compiledSchema) {
-                compiledSchema = AjvStateManager.ajv.compile(schema);
-                openapiSchemaMap.set(refKey, compiledSchema);
-              }
-
-              await validateSchema(compiledSchema, body, safe);
-              res.send(body);
-            } else if (typeof schema === "object" && schema !== null) {
-              // Plain JSON schema object
-              let refKey = serializeSchemaRefCache.get(schema);
-              if (!refKey) {
-                refKey = Symbol("serialize_json_schema");
-                serializeSchemaRefCache.set(schema, refKey);
-              }
-
-              let compiledSchema = openapiSchemaMap.get(refKey);
-              if (!compiledSchema) {
-                compiledSchema = AjvStateManager.ajv.compile(
-                  schema as AjvCompileParams[0],
-                );
-                openapiSchemaMap.set(refKey, compiledSchema);
-              }
-
-              await validateSchema(compiledSchema, body, safe);
-              res.send(body);
-            } else {
-              // Fallback to JSON.stringify for primitives or edge cases
-              cacheKey = JSON.stringify(schema);
-              let compiledSchema = openapiSchemaMap.get(cacheKey);
-              if (!compiledSchema) {
-                compiledSchema = AjvStateManager.ajv.compile(
-                  schema as AjvCompileParams[0],
-                );
-                openapiSchemaMap.set(cacheKey, compiledSchema);
-              }
-
-              await validateSchema(compiledSchema, body, safe);
-              res.send(body);
             }
           } catch (error) {
             const zod = await ZodLoader.load();
@@ -148,6 +135,10 @@ export const serialize = <T extends RequestSchema>(
             throw error;
           }
         }
+
+        // Always use fast-json-stringify when a schema is provided
+        // This applies to both safe and unsafe modes
+        res.json(body, schema);
       };
 
       wrappedFunction[SERIALIZE_WRAPPED] = true;

@@ -6,6 +6,9 @@
     "glob": "npm:glob",
     "node:path": "node:path",
     "node:fs": "node:fs",
-    "node-cron": "npm:node-cron"
+    "node-cron": "npm:node-cron",
+    "@apollo/server": "npm:@apollo/server",
+    "@graphql-tools/schema": "npm:@graphql-tools/schema",
+    "graphql": "npm:graphql"
   }
 }

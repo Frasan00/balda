@@ -3,6 +3,8 @@ import type { ServerRouteMiddleware } from "../../runtime/native_server/server_t
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
 import type { CompressionOptions } from "./compression_types.js";
 
 const DEFAULT_THRESHOLD = 1024; // 1KB
@@ -38,7 +40,6 @@ export const compression = (
     }
 
     const originalSend = res.send.bind(res);
-    const originalJson = res.json.bind(res);
     const originalText = res.text.bind(res);
 
     const compressResponse = (body: any, contentType?: string): any => {
@@ -64,14 +65,20 @@ export const compression = (
       return originalSend(compressedBody);
     };
 
-    res.json = function (body: any): void {
-      const jsonString = JSON.stringify(body);
+    res.json = function (body: any, schema?: RequestSchema): void {
+      const serializer = schema ? getOrCreateSerializer(schema) : null;
+      const jsonString =
+        serializer && typeof body === "object" && body !== null
+          ? serializer(body)
+          : typeof body === "string"
+            ? body
+            : JSON.stringify(body);
       const compressedBody = compressResponse(jsonString, "application/json");
       if (compressedBody !== jsonString) {
         res.setHeader("Content-Type", "application/json");
         return originalSend(compressedBody);
       }
-      return originalJson(body);
+      return originalSend(jsonString);
     };
 
     res.text = function (body: string): void {

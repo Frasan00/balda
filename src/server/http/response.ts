@@ -1,6 +1,9 @@
 import { type ServerResponse } from "node:http";
 import { type CookieOptions } from "../../plugins/cookie/cookie_types.js";
 import { getContentType } from "../../plugins/static/static.js";
+import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
+import type { FastJsonStringifyFunction } from "../../ajv/fast_json_stringify_types.js";
+import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import { nativeFile } from "../../runtime/native_file.js";
 import { nativePath } from "../../runtime/native_path.js";
 
@@ -16,8 +19,16 @@ export class Response<TBody = any> {
     const body = response.getBody();
     const contentType = response.headers["Content-Type"]?.toLowerCase();
 
-    // If body is already serialized JSON string, use it directly
-    if (contentType === "application/json" && typeof body === "object") {
+    // If body is already serialized JSON string (from fast-json-stringify), use it directly
+    if (contentType === "application/json") {
+      if (typeof body === "string") {
+        // Already serialized by fast-json-stringify
+        return new globalThis.Response(body, {
+          status: response.responseStatus,
+          headers: response.headers,
+        });
+      }
+
       return globalThis.Response.json(body, {
         status: response.responseStatus,
         headers: response.headers,
@@ -50,6 +61,18 @@ export class Response<TBody = any> {
    * The body of the response
    */
   private body: any | Promise<any>;
+
+  /**
+   * Optional schema for fast JSON serialization.
+   * When provided, the response body will be serialized using fast-json-stringify.
+   */
+  #schema?: RequestSchema;
+
+  /**
+   * Cached fast-json-stringify serializer function.
+   * Created when a schema is provided and reused for subsequent responses.
+   */
+  #serializer?: FastJsonStringifyFunction;
 
   constructor(status: number = 200) {
     this.responseStatus = status;
@@ -137,14 +160,23 @@ export class Response<TBody = any> {
 
   /**
    * Send a response with the given JSON, status defaults to 200
+   * @param body - The response body to serialize
+   * @param schema - Optional schema for fast-json-stringify. When provided, enables fast serialization
    */
   json(
     body: TBody extends Record<string, unknown> | Array<unknown>
       ? TBody
       : Record<string, unknown> | Array<unknown>,
+    schema?: RequestSchema,
   ): void {
     this.body = body;
     this.headers["Content-Type"] = "application/json";
+
+    // If schema is provided, cache it for fast serialization
+    if (schema) {
+      this.#schema = schema;
+      this.#serializer = getOrCreateSerializer(schema) ?? undefined;
+    }
   }
 
   /**
@@ -461,8 +493,24 @@ export class Response<TBody = any> {
 
   /**
    * Get the body of the response
+   * If a fast serializer is available and the body is an object, it will be serialized lazily.
    */
   getBody(): any {
+    // If we have a serializer and the body is an object, serialize it now
+    if (
+      this.#serializer &&
+      typeof this.body === "object" &&
+      this.body !== null
+    ) {
+      try {
+        this.body = this.#serializer(this.body);
+        // Clear the serializer after use to prevent re-serialization
+        this.#serializer = undefined;
+      } catch {
+        // If serialization fails, fall back to returning the original body
+        // The caller will handle JSON.stringify as a fallback
+      }
+    }
     return this.body;
   }
 }
