@@ -28,6 +28,8 @@ export class QueueService {
   static customQueueSubscribers: Map<string, CustomQueueRegistration> =
     new Map();
 
+  private static readonly logger = logger.child({ scope: "QueueService" });
+
   /**
    * Factory function for creating handler instances.
    * Can be overridden to provide custom dependency injection.
@@ -45,7 +47,7 @@ export class QueueService {
   ): void {
     const key = `${provider}:${topic}:${name}`;
     if (this.typedQueueSubscribers.has(key)) {
-      logger.warn(
+      this.logger.warn(
         `Queue handler for ${key} already registered, overwriting previous handler`,
       );
     }
@@ -67,7 +69,7 @@ export class QueueService {
   ): void {
     const key = `${pubsub.constructor.name}:${topic}:${name}`;
     if (this.customQueueSubscribers.has(key)) {
-      logger.warn(
+      this.logger.warn(
         `Custom queue handler for ${key} already registered, overwriting previous handler`,
       );
     }
@@ -81,19 +83,19 @@ export class QueueService {
   }
 
   static async run() {
-    logger.info("Subscribing queue handlers");
+    this.logger.info("Subscribing queue handlers");
     const hasTyped = this.typedQueueSubscribers.size > 0;
     const hasCustom = this.customQueueSubscribers.size > 0;
 
     if (!hasTyped && !hasCustom) {
-      logger.info("No queue handlers to subscribe");
+      this.logger.info("No queue handlers to subscribe");
       return;
     }
 
     // Subscribe typed queue handlers (built-in providers)
     for (const registration of this.typedQueueSubscribers.values()) {
       const { topic, handler, provider, queueOptions } = registration;
-      logger.info(`Subscribing to queue: ${topic}`);
+      this.logger.info(`Subscribing to queue: ${topic}`);
 
       const pubsub = QueueManager.getProvider(provider);
 
@@ -122,11 +124,11 @@ export class QueueService {
       handler,
       pubsub,
     } of this.customQueueSubscribers.values()) {
-      logger.info(`Subscribing to custom queue: ${topic}`);
+      this.logger.info(`Subscribing to custom queue: ${topic}`);
       await pubsub.subscribe(topic, handler);
     }
 
-    logger.info("Queue handlers subscribed");
+    this.logger.info("Queue handlers subscribed");
   }
 
   static async massiveImportQueues(
@@ -141,23 +143,23 @@ export class QueueService {
         cwd: nativeCwd.getCwd(),
       });
 
-      logger.info(`Pattern "${pattern}" matched ${files.length} file(s)`);
+      this.logger.info(`Pattern "${pattern}" matched ${files.length} file(s)`);
       allFiles.push(...files);
     }
 
     if (allFiles.length === 0) {
-      logger.warn("No files matched the provided patterns");
+      this.logger.warn("No files matched the provided patterns");
       return;
     }
 
-    logger.info(`Importing ${allFiles.length} queue handler file(s)`);
+    this.logger.info(`Importing ${allFiles.length} queue handler file(s)`);
 
     await Promise.all(
       allFiles.map(async (file) => {
-        logger.debug(`Importing: ${file}`);
+        this.logger.debug(`Importing: ${file}`);
         await import(file).catch((error) => {
-          logger.error(`Error importing queue handler: ${file}`);
-          logger.error(error);
+          this.logger.error(`Error importing queue handler: ${file}`);
+          this.logger.error(error);
           if (options.throwOnError) {
             throw error;
           }
@@ -165,6 +167,6 @@ export class QueueService {
       }),
     );
 
-    logger.info(`Successfully imported ${allFiles.length} file(s)`);
+    this.logger.info(`Successfully imported ${allFiles.length} file(s)`);
   }
 }

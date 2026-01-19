@@ -10,11 +10,12 @@ import type { Response } from "../../server/http/response.js";
  * @warning Only json objects and strings are logged from the request and response.
  */
 export const log = (options?: LogOptions): ServerRouteMiddleware => {
+  const logMiddleware = logger.child({ scope: "LogMiddleware" });
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = req.body;
       if (options?.logRequest ?? true) {
-        logger.info({
+        logMiddleware.info({
           type: "request",
           requestId: req.id,
           method:
@@ -38,7 +39,7 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
       const duration = endTime - startTime;
 
       if (options?.logResponse ?? true) {
-        logger.info({
+        logMiddleware.info({
           type: "response",
           requestId: req.id,
           status: options?.responsePayload?.status ?? res.responseStatus,
@@ -54,7 +55,7 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
         });
       }
     } catch (error) {
-      logger.error(error);
+      logMiddleware.error(error);
       throw error;
     }
   };

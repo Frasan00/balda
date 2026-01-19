@@ -61,7 +61,7 @@ export class CommandRegistry {
   private commands: Map<string, typeof Command>;
   private builtInCommands: Set<string>;
   static commandsPattern = "src/commands/**/*.{ts,js}";
-  static logger = logger;
+  static logger = logger.child({ scope: "CommandRegistry" });
 
   /**
    * Private constructor to prevent direct instantiation

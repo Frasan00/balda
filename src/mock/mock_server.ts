@@ -18,6 +18,7 @@ import type { MockServerOptions } from "./mock_server_types.js";
  */
 export class MockServer {
   readonly server: Server<NodeHttpClient>;
+  private readonly logger = logger.child({ scope: "MockServer" });
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
   >;
@@ -129,7 +130,7 @@ export class MockServer {
       );
       return new MockResponse(res);
     } catch (error) {
-      logger.error(
+      this.logger.error(
         { error },
         `Error processing mock request ${method} ${path}:`,
       );
@@ -396,7 +397,7 @@ export class MockServer {
 
       return new MockResponse(res);
     } catch (error) {
-      logger.error(
+      this.logger.error(
         { error },
         `Error processing GraphQL request ${method} ${path}:`,
       );

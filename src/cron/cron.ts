@@ -13,6 +13,7 @@ import { router } from "../server/router/router.js";
 
 export class CronService {
   static scheduledJobs: CronSchedule[] = [];
+  private static readonly logger = logger.child({ scope: "CronService" });
 
   /**
    * @description Schedule a cron job.
@@ -45,28 +46,28 @@ export class CronService {
       })
     ).default;
 
-    logger.info("Scheduling cron jobs");
+    this.logger.info("Scheduling cron jobs");
     if (!this.scheduledJobs.length) {
-      logger.info("No cron jobs to schedule");
+      this.logger.info("No cron jobs to schedule");
       return;
     }
 
     for (const { name, args } of this.scheduledJobs) {
-      logger.info(`Scheduling cron job: ${name}`);
+      this.logger.info(`Scheduling cron job: ${name}`);
       const scheduledJob = nodeCronModule.schedule(...args);
       scheduledJob.on("execution:failed", (context) =>
         this.globalErrorHandler(context),
       );
     }
 
-    logger.info("Cron jobs scheduled");
+    this.logger.info("Cron jobs scheduled");
   }
 
   /**
    * @description Main error handler for cron jobs. You can write your own error handler by overriding this static method for example with sentry.
    */
   static globalErrorHandler(context: TaskContext) {
-    logger.error(context.execution?.error);
+    this.logger.error(context.execution?.error);
   }
 
   /**
@@ -87,7 +88,7 @@ export class CronService {
     await Promise.all(
       allFiles.map(async (file) => {
         await import(file).catch((error) => {
-          logger.error(`Error importing cron job: ${file}`);
+          this.logger.error(`Error importing cron job: ${file}`);
           logger.error(error);
         });
       }),

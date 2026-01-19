@@ -1,6 +1,6 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { AjvStateManager } from "../ajv/ajv.js";
-import { CronService, cronUi } from "../cron/cron.js";
+import { cronUi } from "../cron/cron.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
@@ -86,6 +86,7 @@ export class Server<
   readonly serverOptions: ResolvedServerOptions;
   readonly router: ClientRouter = router;
   readonly #nativeEnv: NativeEnv = new NativeEnv();
+  private readonly logger = logger.child({ scope: "Server" });
 
   isListening: boolean;
   isProduction: boolean;
@@ -660,7 +661,7 @@ export class Server<
    */
   async disconnect(): Promise<void> {
     if (!this.isListening) {
-      logger.warn(
+      this.logger.warn(
         "Trying to disconnect the server that is not listening, ignoring",
       );
       return;
@@ -669,7 +670,7 @@ export class Server<
     try {
       await this.#serverConnector.close();
     } catch (error) {
-      logger.error({ error }, "Error closing server connector");
+      this.logger.error({ error }, "Error closing server connector");
       throw error;
     } finally {
       this.isListening = false;
@@ -722,19 +723,21 @@ export class Server<
           ),
       );
 
-      logger.debug(`Found ${controllerPaths.length} controllers to import`);
+      this.logger.debug(
+        `Found ${controllerPaths.length} controllers to import`,
+      );
       await Promise.all(
         controllerPaths.map(async (controllerPath) => {
-          logger.debug(`Importing controller ${controllerPath}`);
+          this.logger.debug(`Importing controller ${controllerPath}`);
           await import(controllerPath).catch((err) => {
-            logger.error(
+            this.logger.error(
               `Error importing controller ${controllerPath}: ${err}`,
             );
           });
         }),
       );
     } catch (error) {
-      logger.warn(
+      this.logger.warn(
         `Could not auto-import controllers: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
@@ -822,7 +825,7 @@ export class Server<
           );
           break;
         default:
-          logger.warn(`Unknown plugin ${pluginName}`);
+          this.logger.warn(`Unknown plugin ${pluginName}`);
           break;
       }
     });
@@ -941,17 +944,19 @@ export class Server<
     const signal = this.serverOptions.abortSignal;
 
     if (signal.aborted) {
-      logger.warn("AbortSignal was already aborted, server will not start");
+      this.logger.warn(
+        "AbortSignal was already aborted, server will not start",
+      );
       return;
     }
 
     signal.addEventListener("abort", async () => {
-      logger.info("AbortSignal received, shutting down server gracefully");
+      this.logger.info("AbortSignal received, shutting down server gracefully");
       try {
         await this.disconnect();
-        logger.info("Server shutdown completed");
+        this.logger.info("Server shutdown completed");
       } catch (error) {
-        logger.error(
+        this.logger.error(
           { error },
           "Error during server shutdown from abort signal",
         );

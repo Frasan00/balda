@@ -45,6 +45,7 @@ export class MqttService {
   static subscriptions: MqttSubscription<MqttTopics>[] = [];
   static client: MqttClient | null = null;
   static connectionOptions: MqttConnectionOptions = {};
+  private static readonly logger = logger.child({ scope: "MqttService" });
 
   /**
    * @description Register an MQTT subscription handler.
@@ -82,9 +83,9 @@ export class MqttService {
 
     this.connectionOptions = connectionOptions;
 
-    logger.info("Starting MQTT client");
+    this.logger.info("Starting MQTT client");
     if (!this.subscriptions.length) {
-      logger.info("No MQTT subscriptions to register");
+      this.logger.info("No MQTT subscriptions to register");
     }
 
     const {
@@ -97,7 +98,7 @@ export class MqttService {
     const brokerUrl = `${protocol}://${host}:${port}`;
     this.client = await mqttModule.connectAsync(brokerUrl, otherOptions);
 
-    logger.info("MQTT client connected");
+    this.logger.info("MQTT client connected");
 
     // Set up event handlers
     this.client.on("error", async (error) => {
@@ -109,7 +110,7 @@ export class MqttService {
     });
 
     this.client.on("disconnect", () => {
-      logger.info("MQTT client disconnected");
+      this.logger.info("MQTT client disconnected");
     });
 
     this.client.on("reconnect", async () => {
@@ -130,15 +131,15 @@ export class MqttService {
     }
 
     for (const { name, topic, options } of this.subscriptions) {
-      logger.info(`Subscribing to MQTT topic: ${topic} (${name})`);
+      this.logger.info(`Subscribing to MQTT topic: ${topic} (${name})`);
       this.client.subscribe(topic, options || {}, (error) => {
         if (error) {
-          logger.error(
+          this.logger.error(
             `Failed to subscribe to topic ${topic}: ${error.message}`,
           );
           return;
         }
-        logger.info(`Successfully subscribed to topic: ${topic}`);
+        this.logger.info(`Successfully subscribed to topic: ${topic}`);
       });
     }
   }
@@ -171,7 +172,7 @@ export class MqttService {
           message as unknown as MqttTopics[keyof MqttTopics],
         );
       } catch (error) {
-        logger.error(
+        this.logger.error(
           `Error handling MQTT message for topic ${topic} in ${subscription.name}`,
         );
         this.globalErrorHandler(error as Error);
@@ -183,7 +184,7 @@ export class MqttService {
    * @description Main error handler for MQTT operations. You can write your own error handler by overriding this static method for example with sentry.
    */
   static globalErrorHandler(error: Error): SyncOrAsync<void> {
-    logger.error(error);
+    this.logger.error(error);
   }
 
   static setOnDisconnectHandler(handler: () => void) {
@@ -212,8 +213,8 @@ export class MqttService {
     await Promise.all(
       allFiles.map(async (file) => {
         await import(file).catch((error) => {
-          logger.error(`Error importing MQTT handler: ${file}`);
-          logger.error(error);
+          this.logger.error(`Error importing MQTT handler: ${file}`);
+          this.logger.error(error);
         });
       }),
     );
@@ -309,9 +310,9 @@ export class MqttService {
         (sub) => sub.topic !== topic,
       );
 
-      logger.debug(`Unsubscribed from topic: ${String(topic)}`);
+      MqttService.logger.debug(`Unsubscribed from topic: ${String(topic)}`);
     } catch (error) {
-      logger.error(
+      MqttService.logger.error(
         `Failed to unsubscribe from topic ${String(topic)}: ${(error as Error).message}`,
       );
       throw error;
