@@ -25,4 +25,5 @@ export let logger = createBaseLogger();
  */
 export const defineLoggerConfig = (options?: LoggerOptions) => {
   logger = pino(options);
+  return logger;
 };

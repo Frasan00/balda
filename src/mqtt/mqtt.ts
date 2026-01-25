@@ -45,7 +45,7 @@ export class MqttService {
   static subscriptions: MqttSubscription<MqttTopics>[] = [];
   static client: MqttClient | null = null;
   static connectionOptions: MqttConnectionOptions = {};
-  private static readonly logger = logger.child({ scope: "MqttService" });
+  static logger = logger.child({ scope: "MqttService" });
 
   /**
    * @description Register an MQTT subscription handler.

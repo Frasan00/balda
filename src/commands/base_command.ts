@@ -47,7 +47,7 @@ export abstract class Command {
    */
   static flags: FlagSchema = parseCliArgsAndFlags().flags;
 
-  static readonly logger = logger.child({ scope: this.constructor.name });
+  static logger = logger.child({ scope: this.constructor.name });
 
   /**
    * Main entry point for the command.

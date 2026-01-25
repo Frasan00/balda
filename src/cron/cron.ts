@@ -1,19 +1,19 @@
 import { glob } from "glob";
 import type { TaskContext } from "node-cron";
-import {
-  CronUIOptions,
-  CronSchedule,
-  CronScheduleParams,
-} from "./cron.types.js";
 import { BaldaError } from "../errors/balda_error.js";
 import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
-import { cronUIInstance } from "./cron-ui.js";
 import { router } from "../server/router/router.js";
+import { cronUIInstance } from "./cron-ui.js";
+import {
+  CronSchedule,
+  CronScheduleParams,
+  CronUIOptions,
+} from "./cron.types.js";
 
 export class CronService {
   static scheduledJobs: CronSchedule[] = [];
-  private static readonly logger = logger.child({ scope: "CronService" });
+  static logger = logger.child({ scope: "CronService" });
 
   /**
    * @description Schedule a cron job.

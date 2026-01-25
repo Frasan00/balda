@@ -28,7 +28,7 @@ export class QueueService {
   static customQueueSubscribers: Map<string, CustomQueueRegistration> =
     new Map();
 
-  private static readonly logger = logger.child({ scope: "QueueService" });
+  static logger = logger.child({ scope: "QueueService" });
 
   /**
    * Factory function for creating handler instances.
