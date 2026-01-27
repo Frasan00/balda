@@ -1,7 +1,6 @@
 import { MetadataStore } from "../../metadata_store.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-import { ZodLoader } from "../../validator/zod_loader.js";
 import type {
   CustomValidationError,
   RequestSchema,
@@ -122,13 +121,6 @@ const validateDecorator = (
 
         return originalMethod.apply(this, newArgs);
       } catch (error) {
-        const zod = await ZodLoader.load();
-        const isZodError = error instanceof zod.ZodError;
-
-        if (!isZodError) {
-          throw error;
-        }
-
         if (options.customError) {
           return res.status(options.customError.status || 400).json({
             received: req.body,

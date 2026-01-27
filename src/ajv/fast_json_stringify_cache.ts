@@ -93,7 +93,7 @@ const getJsonSchemaAndCacheKey = (
 } => {
   if (ZodLoader.isZodSchema(schema)) {
     const refKey = getSchemaRefKey(schema, "fast_stringify_zod");
-    const jsonSchema = schema.toJSONSchema();
+    const jsonSchema = ZodLoader.toJSONSchema(schema);
     return { jsonSchema, cacheKey: refKey };
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { z } from "zod";
+import { z, type ZodAny } from "zod";
 import { Type } from "@sinclair/typebox";
 import {
   getJsonSchemaFromCache,
@@ -8,6 +8,8 @@ import {
   getJsonSchemaCacheSize,
 } from "../../src/ajv/json_schema_cache.js";
 import { compileAndCacheValidator } from "../../src/ajv/schema_compiler.js";
+import type { JSONSchema } from "../../src/plugins/swagger/swagger_types.js";
+import { ZodLoader } from "../../src/validator/zod_loader.js";
 
 describe("JSON Schema Cache", () => {
   beforeEach(() => {
@@ -21,8 +23,8 @@ describe("JSON Schema Cache", () => {
         age: z.number(),
       });
 
-      const jsonSchema = zodSchema.toJSONSchema();
-      cacheJsonSchema(zodSchema, jsonSchema as any);
+      const jsonSchema = ZodLoader.toJSONSchema(zodSchema as unknown as ZodAny);
+      cacheJsonSchema(zodSchema, jsonSchema);
 
       const retrieved = getJsonSchemaFromCache(zodSchema);
       expect(retrieved).toBeDefined();
@@ -66,7 +68,7 @@ describe("JSON Schema Cache", () => {
 
     it("should return same schema object for repeated lookups", () => {
       const zodSchema = z.object({ name: z.string() });
-      const jsonSchema = zodSchema.toJSONSchema();
+      const jsonSchema = ZodLoader.toJSONSchema(zodSchema as unknown as ZodAny);
       cacheJsonSchema(zodSchema, jsonSchema as any);
 
       const first = getJsonSchemaFromCache(zodSchema);
@@ -79,7 +81,7 @@ describe("JSON Schema Cache", () => {
   describe("clearJsonSchemaCache", () => {
     it("should clear all cached schemas", () => {
       const zodSchema = z.object({ name: z.string() });
-      const jsonSchema = zodSchema.toJSONSchema();
+      const jsonSchema = ZodLoader.toJSONSchema(zodSchema as unknown as ZodAny);
       cacheJsonSchema(zodSchema, jsonSchema as any);
 
       expect(getJsonSchemaCacheSize()).toBe(1);
@@ -101,10 +103,16 @@ describe("JSON Schema Cache", () => {
       const zodSchema2 = z.object({ age: z.number() });
       const typeboxSchema = Type.Object({ email: Type.String() });
 
-      cacheJsonSchema(zodSchema1, zodSchema1.toJSONSchema() as any);
+      cacheJsonSchema(
+        zodSchema1,
+        ZodLoader.toJSONSchema(zodSchema1 as unknown as ZodAny),
+      );
       expect(getJsonSchemaCacheSize()).toBe(1);
 
-      cacheJsonSchema(zodSchema2, zodSchema2.toJSONSchema() as any);
+      cacheJsonSchema(
+        zodSchema2,
+        ZodLoader.toJSONSchema(zodSchema2 as unknown as ZodAny),
+      );
       expect(getJsonSchemaCacheSize()).toBe(2);
 
       cacheJsonSchema(typeboxSchema, typeboxSchema as any);
@@ -113,13 +121,13 @@ describe("JSON Schema Cache", () => {
 
     it("should not increment on duplicate caching", () => {
       const zodSchema = z.object({ name: z.string() });
-      const jsonSchema = zodSchema.toJSONSchema();
+      const jsonSchema = ZodLoader.toJSONSchema(zodSchema as unknown as ZodAny);
 
-      cacheJsonSchema(zodSchema, jsonSchema as any);
+      cacheJsonSchema(zodSchema, jsonSchema);
       expect(getJsonSchemaCacheSize()).toBe(1);
 
       // Cache same schema again
-      cacheJsonSchema(zodSchema, jsonSchema as any);
+      cacheJsonSchema(zodSchema, jsonSchema);
       expect(getJsonSchemaCacheSize()).toBe(1);
     });
   });
@@ -179,7 +187,7 @@ describe("JSON Schema Cache", () => {
   describe("Cache key consistency", () => {
     it("should use consistent keys for same Zod schema object", () => {
       const zodSchema = z.object({ name: z.string() });
-      const jsonSchema = zodSchema.toJSONSchema();
+      const jsonSchema = ZodLoader.toJSONSchema(zodSchema as unknown as ZodAny);
 
       cacheJsonSchema(zodSchema, jsonSchema as any);
 
@@ -196,8 +204,14 @@ describe("JSON Schema Cache", () => {
       const zodSchema1 = z.object({ name: z.string() });
       const zodSchema2 = z.object({ name: z.string() });
 
-      cacheJsonSchema(zodSchema1, zodSchema1.toJSONSchema() as any);
-      cacheJsonSchema(zodSchema2, zodSchema2.toJSONSchema() as any);
+      cacheJsonSchema(
+        zodSchema1,
+        ZodLoader.toJSONSchema(zodSchema1 as unknown as ZodAny),
+      );
+      cacheJsonSchema(
+        zodSchema2,
+        ZodLoader.toJSONSchema(zodSchema2 as unknown as ZodAny),
+      );
 
       expect(getJsonSchemaCacheSize()).toBe(2);
     });

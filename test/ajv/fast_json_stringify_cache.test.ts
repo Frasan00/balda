@@ -7,6 +7,7 @@ import {
   getOrCreateSerializer,
   getSerializerCacheStats,
 } from "../../src/ajv/fast_json_stringify_cache.js";
+import { ZodLoader } from "../../src/validator/zod_loader.js";
 
 describe("fast-json-stringify Cache", () => {
   beforeEach(() => {
@@ -278,26 +279,6 @@ describe("fast-json-stringify Cache", () => {
       );
 
       consoleSpy.mockRestore();
-    });
-
-    it("should handle Zod schemas with toJSONSchema method", () => {
-      // This test verifies that the Zod schema has the required toJSONSchema method
-      const schema = z.object({
-        name: z.string(),
-        age: z.number(),
-      });
-
-      // Verify schema has toJSONSchema method (Zod 4+ requirement)
-      expect(typeof schema.toJSONSchema).toBe("function");
-
-      // Should successfully create serializer
-      const serializer = getOrCreateSerializer(schema);
-      expect(serializer).toBeDefined();
-
-      // Test serialization works
-      const data = { name: "John", age: 30 };
-      const serialized = serializer!(data);
-      expect(serialized).toBe(JSON.stringify(data));
     });
   });
 

@@ -26,7 +26,7 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
     const refKey = getSchemaRefKey(schema, "serialize_zod");
     if (!openapiSchemaMap.has(refKey)) {
       try {
-        const jsonSchema = schema.toJSONSchema() as JSONSchema;
+        const jsonSchema = ZodLoader.toJSONSchema(schema);
         cacheJsonSchema(schema, jsonSchema);
         const compiled = AjvStateManager.ajv.compile(jsonSchema);
         openapiSchemaMap.set(refKey, compiled);
@@ -82,7 +82,7 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
     const refKey = getSchemaRefKey(schema, "zod_schema");
     if (!openapiSchemaMap.has(refKey)) {
       try {
-        const jsonSchema = schema.toJSONSchema() as JSONSchema;
+        const jsonSchema = ZodLoader.toJSONSchema(schema);
         cacheJsonSchema(schema, jsonSchema);
         const compiled = AjvStateManager.ajv.compile(jsonSchema);
         openapiSchemaMap.set(refKey, compiled);

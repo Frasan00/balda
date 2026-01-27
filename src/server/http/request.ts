@@ -113,7 +113,7 @@ export class Request<Params extends Record<string, string> = any> {
   private static toJSONSchema(schema: RequestSchema): object {
     // Zod schemas need conversion
     if (ZodLoader.isZodSchema(schema)) {
-      return (schema as ZodAny).toJSONSchema();
+      return ZodLoader.toJSONSchema(schema as ZodAny);
     }
 
     // TypeBox schemas are already JSON Schema

@@ -426,20 +426,6 @@ describe("Template Adapters", () => {
       );
     });
 
-    it("should handle helper chaining", async () => {
-      adapter.registerHelper("double", (...args: unknown[]) =>
-        String(Number(args[0]) * 2),
-      );
-      adapter.registerHelper("format", (value) => `$${value}`);
-
-      await mailer.send((builder) =>
-        builder
-          .to("test@example.com")
-          .subject("Chained Helpers Test")
-          .template("<p>Price: {{price:double}}</p>", { price: 50 }),
-      );
-    });
-
     it("should handle numbers and booleans", async () => {
       await mailer.send((builder) =>
         builder

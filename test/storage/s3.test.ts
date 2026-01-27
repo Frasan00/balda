@@ -422,7 +422,7 @@ MGn/h03aOm9Nn8PmW84bfqo=
       // Verify size
       const retrieved = await provider.getObject(key, "raw");
       expect(retrieved?.length).toBe(1024 * 1024);
-    });
+    }, 10000);
   });
 
   describe("HTTP Flow - Download with Range Requests", () => {

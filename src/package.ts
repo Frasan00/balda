@@ -2,6 +2,14 @@ import { execSync } from "node:child_process";
 import * as readline from "node:readline";
 import { nativeFs } from "./runtime/native_fs.js";
 import { nativePath } from "./runtime/native_path.js";
+import { createRequire } from "node:module";
+
+// Create a require function that works in both ES and CommonJS modules
+export const requireFn =
+  typeof import.meta !== "undefined"
+    ? createRequire(import.meta.url)
+    : (require("node:module").createRequire?.(import.meta?.url ?? __filename) ??
+      require);
 
 /**
  * Check if packages are already installed in node_modules

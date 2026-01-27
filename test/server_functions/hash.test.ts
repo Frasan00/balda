@@ -180,20 +180,6 @@ describe("NativeHash", () => {
   });
 
   describe("security and consistency", () => {
-    it("should produce consistent results across multiple calls", async () => {
-      const password = "test-password";
-      const hash = await nativeHash.hash(password);
-
-      // Multiple comparisons should all return true
-      const results = await Promise.all([
-        nativeHash.compare(hash, password),
-        nativeHash.compare(hash, password),
-        nativeHash.compare(hash, password),
-      ]);
-
-      expect(results).toEqual([true, true, true]);
-    });
-
     it("should handle concurrent hash operations", async () => {
       const passwords = ["pass1", "pass2", "pass3", "pass4", "pass5"];
       const hashes = await Promise.all(

@@ -10,9 +10,6 @@ import { ZodLoader } from "../../validator/zod_loader.js";
 import type { RequestSchema } from "../validation/validate_types.js";
 import type { SerializeOptions } from "./serialize_types.js";
 
-const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
-const SERIALIZE_METADATA = Symbol("serializeMetadata");
-
 /**
  * Metadata entry for serialize decorator
  */
@@ -120,28 +117,12 @@ export const serialize = <T extends RequestSchema>(
 
         // When safe mode is disabled, validate the response body against the schema
         if (!safe) {
-          try {
-            const compiledSchema = getCompiledValidator(schema);
-            if (compiledSchema) {
-              await validateSchema(compiledSchema, body, safe);
-            }
-          } catch (error) {
-            const zod = await ZodLoader.load();
-            if (error instanceof zod.ZodError) {
-              res.internalServerError({
-                received: body,
-                schema,
-                error,
-              });
-              return;
-            }
-
-            throw error;
+          const compiledSchema = getCompiledValidator(schema);
+          if (compiledSchema) {
+            await validateSchema(compiledSchema, body, safe);
           }
         }
 
-        // Always use fast-json-stringify when a schema is provided
-        // This applies to both safe and unsafe modes
         res.json(body, schema);
       };
 

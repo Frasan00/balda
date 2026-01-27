@@ -1,5 +1,5 @@
-import type { ZodObject, ZodType } from "zod";
-import { AjvCompileReturnType } from "../../ajv/ajv_types.js";
+import type { ZodAny, ZodObject, ZodType } from "zod";
+import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
@@ -111,7 +111,7 @@ function getOrConvertToJSONSchema(
   // This handles edge cases like global swagger models that weren't pre-compiled
   if (ZodLoader.isZodSchema(schema)) {
     try {
-      const jsonSchema = (schema as any).toJSONSchema() as JSONSchema;
+      const jsonSchema = ZodLoader.toJSONSchema(schema as ZodAny);
       cacheJsonSchema(schema as RequestSchema, jsonSchema);
       return jsonSchema;
     } catch (error) {

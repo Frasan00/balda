@@ -127,7 +127,7 @@ describe("UsersController", () => {
   it("POST /users/ajv validates body schema", async () => {
     const invalidUser = { id: "not-a-number", email: "invalid-email" };
     const res = await mockServer.post("/users/ajv", { body: invalidUser });
-    expect(res.statusCode()).toBe(500);
+    expect(res.statusCode()).toBe(400);
   });
 
   it("PATCH /users/ajv/:id updates a user with AJV validation", async () => {
@@ -149,7 +149,7 @@ describe("UsersController", () => {
   it("PATCH /users/ajv/:id validates body schema", async () => {
     const invalidUpdate = { age: "not-a-number" };
     const res = await mockServer.patch("/users/ajv/2", { body: invalidUpdate });
-    expect(res.statusCode()).toBe(500);
+    expect(res.statusCode()).toBe(400);
   });
 
   it("DELETE /users/ajv/:id deletes a user", async () => {
@@ -216,7 +216,7 @@ describe("UsersController", () => {
   it("POST /users/typebox validates body schema", async () => {
     const invalidUser = { id: "not-a-number", email: "invalid-email" };
     const res = await mockServer.post("/users/typebox", { body: invalidUser });
-    expect(res.statusCode()).toBe(500);
+    expect(res.statusCode()).toBe(400);
   });
 
   it("PATCH /users/typebox/:id updates a user with TypeBox validation", async () => {
@@ -240,7 +240,7 @@ describe("UsersController", () => {
     const res = await mockServer.patch("/users/typebox/6", {
       body: invalidUpdate,
     });
-    expect(res.statusCode()).toBe(500);
+    expect(res.statusCode()).toBe(400);
   });
 
   it("DELETE /users/typebox/:id deletes a user", async () => {
