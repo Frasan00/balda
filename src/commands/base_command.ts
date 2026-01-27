@@ -143,12 +143,12 @@ export abstract class Command {
 
     // Always show available arguments and flags from decorators
     const allMeta = MetadataStore.getAll(commandClass);
-    const argsMeta = Array.from(allMeta.values()).filter(
-      (meta) => meta.type === "arg",
-    );
-    const flagsMeta = Array.from(allMeta.values()).filter(
-      (meta) => meta.type === "flag",
-    );
+    const argsMeta = allMeta
+      ? Array.from(allMeta.values()).filter((meta) => meta.type === "arg")
+      : [];
+    const flagsMeta = allMeta
+      ? Array.from(allMeta.values()).filter((meta) => meta.type === "flag")
+      : [];
 
     if (argsMeta.length) {
       lines.push(`${colors.subtitle}Available Arguments:${colors.reset}`);

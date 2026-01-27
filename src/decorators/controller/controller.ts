@@ -49,6 +49,10 @@ export const controller = (
     const metaMap = MetadataStore.getAll(target.prototype);
     const instance = new target();
 
+    if (!metaMap) {
+      return;
+    }
+
     for (const [propertyKey, meta] of metaMap.entries()) {
       if (!meta.route) {
         continue;

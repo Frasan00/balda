@@ -280,16 +280,16 @@ describe("@serialize decorator with fast-json-stringify", () => {
         }
       }
 
-      // Before any requests, cache should be empty
+      // After controller registration, cache should have 1 entry (eager compilation)
       const statsBefore = getSerializerCacheStats();
-      expect(statsBefore.size).toBe(0);
+      expect(statsBefore.size).toBe(1);
 
-      // First request with safe: false triggers validation and schema passing
+      // First request with safe: false uses the pre-compiled serializer
       const res1 = await mockServer.get("/test-fast-json-cache-unsafe/");
       expect(res1.statusCode()).toBe(200);
 
       const statsAfterFirst = getSerializerCacheStats();
-      // Cache should be populated because validation runs and calls res.json(body, schema)
+      // Cache size should remain 1 (no new compilation)
       expect(statsAfterFirst.size).toBe(1);
 
       // Second request should reuse the same cache entry
@@ -316,17 +316,17 @@ describe("@serialize decorator with fast-json-stringify", () => {
         }
       }
 
-      // Before any requests, cache should be empty
+      // After controller registration, cache should have 1 entry (eager compilation)
       const statsBefore = getSerializerCacheStats();
-      expect(statsBefore.size).toBe(0);
+      expect(statsBefore.size).toBe(1);
 
-      // First request with safe mode should still use fast-json-stringify
+      // First request with safe mode uses the pre-compiled serializer
       const res1 = await mockServer.get("/test-fast-json-cache-safe-mode/");
       expect(res1.statusCode()).toBe(200);
       expect(res1.body()).toEqual({ id: 1, name: "John" });
 
       const statsAfterFirst = getSerializerCacheStats();
-      // Cache should be populated even in safe mode
+      // Cache size should remain 1 (no new compilation)
       expect(statsAfterFirst.size).toBe(1);
 
       // Second request should reuse the cached serializer

@@ -6,8 +6,12 @@ import {
 } from "../../runtime/native_server/server_types.js";
 import type { Request } from "../http/request.js";
 import type { Response } from "../http/response.js";
-import type { Params, Route } from "./router_type.js";
+import type { Params, Route, RouteResponseSchemas } from "./router_type.js";
 import type { ExtractParams } from "./path_types.js";
+import {
+  compileResponseSchemas,
+  compileRequestSchemas,
+} from "../../ajv/schema_compiler.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -15,6 +19,7 @@ class Node {
   wildcardChild: Node | null;
   middleware: ServerRouteMiddleware[] | null;
   handler: ((req: Request, res: Response) => void) | null;
+  paramName: string | null;
 
   constructor() {
     this.staticChildren = new Map();
@@ -22,6 +27,7 @@ class Node {
     this.wildcardChild = null;
     this.middleware = null;
     this.handler = null;
+    this.paramName = null;
   }
 }
 
@@ -29,6 +35,7 @@ type CachedRoute = {
   middleware: ServerRouteMiddleware[];
   handler: ServerRouteHandler;
   params: Params;
+  responseSchemas?: RouteResponseSchemas;
 };
 
 /**
@@ -44,6 +51,9 @@ export class Router {
   /**
    * Create a new router with an optional base path and default middlewares.
    * Base path is normalized so it never produces duplicate slashes and never ends with a trailing slash (except root).
+   * @param basePath - The base path for all routes in this router
+   * @param middlewares - Default middlewares to apply to all routes
+   * @param options - Router configuration options
    */
   constructor(
     basePath: string = "",
@@ -75,6 +85,12 @@ export class Router {
     method = method.toUpperCase() as HttpMethod;
     const clean = path.split("?")[0];
 
+    // Pre-compile request schemas (body and query) for faster validation
+    compileRequestSchemas(swaggerOptions?.requestBody, swaggerOptions?.query);
+
+    // Compile and cache response schemas from swagger options
+    const responseSchemas = compileResponseSchemas(swaggerOptions?.responses);
+
     // ensure root exists
     let root = this.trees.get(method);
     if (!root) {
@@ -85,9 +101,13 @@ export class Router {
     const trimmed = clean.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
 
+    let isStaticRoute = true;
+    const paramNames: string[] = [];
+
     let node = root;
     for (const seg of segments) {
       if (seg === "*") {
+        isStaticRoute = false;
         if (!node.wildcardChild) {
           node.wildcardChild = new Node();
         }
@@ -96,7 +116,9 @@ export class Router {
       }
 
       if (seg.startsWith(":")) {
+        isStaticRoute = false;
         const name = seg.slice(1);
+        paramNames.push(name);
         if (!node.paramChild) {
           node.paramChild = { node: new Node(), name };
         }
@@ -115,6 +137,27 @@ export class Router {
     node.middleware = middleware;
     node.handler = handler;
 
+    if (paramNames.length > 0) {
+      node.paramName = paramNames.join(",");
+    }
+
+    if (isStaticRoute) {
+      const normalizedPath = "/" + trimmed;
+      const cacheKey = `${method}:${normalizedPath}`;
+      this.staticRouteCache.set(cacheKey, {
+        middleware,
+        handler,
+        params: {},
+        responseSchemas,
+      });
+    } else {
+      // If updating a route that was previously static, clear old cache entry
+      const normalizedPath =
+        "/" + trimmed.replace(/:[^/]+/g, "").replace(/\/+/g, "/");
+      const cacheKey = `${method}:${normalizedPath}`;
+      this.staticRouteCache.delete(cacheKey);
+    }
+
     // upsert in registry
     const idx = this.routes.findIndex(
       (r) => r.method === method && r.path === path,
@@ -122,15 +165,24 @@ export class Router {
     if (idx !== -1) {
       this.routes[idx].middleware = middleware;
       this.routes[idx].handler = handler;
+      this.routes[idx].swaggerOptions = swaggerOptions;
+      this.routes[idx].responseSchemas = responseSchemas;
       return;
     }
 
-    this.routes.push({ method, path, middleware, handler, swaggerOptions });
+    this.routes.push({
+      method,
+      path,
+      middleware,
+      handler,
+      swaggerOptions,
+      responseSchemas,
+    });
   }
 
   /**
    * Find the matching route for the given HTTP method and path.
-   * Returns the resolved middleware chain, handler, and extracted params; or null if not found.
+   * Returns the resolved middleware chain, handler, extracted params, and response schemas; or null if not found.
    * Uses O(1) cache lookup for static routes, falls back to O(k) tree traversal for dynamic routes.
    */
   find(
@@ -140,13 +192,16 @@ export class Router {
     middleware: ServerRouteMiddleware[];
     handler: ServerRouteHandler;
     params: Params;
+    responseSchemas?: RouteResponseSchemas;
   } | null {
     method = method.toUpperCase();
 
     // O(1) lookup for static routes
+    let pathWithoutQuery = rawPath;
     const queryIndex = rawPath.indexOf("?");
-    const pathWithoutQuery =
-      queryIndex === -1 ? rawPath : rawPath.slice(0, queryIndex);
+    if (queryIndex !== -1) {
+      pathWithoutQuery = rawPath.substring(0, queryIndex);
+    }
     const cacheKey = `${method}:${pathWithoutQuery}`;
     const cachedRoute = this.staticRouteCache.get(cacheKey);
     if (cachedRoute) {
@@ -191,7 +246,60 @@ export class Router {
       return null;
     }
 
-    return { middleware: node.middleware, handler: node.handler, params };
+    // Look up response schemas from routes array for dynamic routes
+    const route = this.routes.find(
+      (r) => r.method === method && r.handler === node.handler,
+    );
+
+    return {
+      middleware: node.middleware,
+      handler: node.handler,
+      params,
+      responseSchemas: route?.responseSchemas,
+    };
+  }
+
+  /**
+   * Private helper method to register a route with the given HTTP method.
+   * Handles middleware detection, path joining, and swagger options merging.
+   * @internal
+   */
+  private registerRoute<TPath extends string>(
+    method: HttpMethod,
+    path: TPath,
+    middlewareOrHandler:
+      | ServerRouteMiddleware
+      | ServerRouteMiddleware[]
+      | ServerRouteHandler,
+    maybeHandler?: ServerRouteHandler | SwaggerRouteOptions,
+    maybeSwagger?: SwaggerRouteOptions,
+  ): void {
+    const fullPath = this.joinPath(path);
+
+    // Use arity check: middleware has 3 params (req, res, next), handler has 2 (req, res)
+    const isHandlerOnly =
+      typeof middlewareOrHandler === "function" &&
+      (middlewareOrHandler as Function).length !== 3;
+
+    const handler = (
+      isHandlerOnly
+        ? (middlewareOrHandler as ServerRouteHandler)
+        : (maybeHandler as ServerRouteHandler)
+    ) as ServerRouteHandler;
+
+    const provided = isHandlerOnly
+      ? []
+      : Array.isArray(middlewareOrHandler)
+        ? middlewareOrHandler
+        : [middlewareOrHandler as ServerRouteMiddleware];
+
+    const middlewares = [...this.middlewares, ...provided];
+
+    const swaggerOptions = (
+      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
+    ) as SwaggerRouteOptions | undefined;
+
+    this.addOrUpdate(method, fullPath, middlewares, handler, swaggerOptions);
   }
 
   /**
@@ -231,25 +339,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("GET", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "GET",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -289,25 +385,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("POST", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "POST",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -347,25 +431,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("PATCH", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "PATCH",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -405,25 +477,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("PUT", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "PUT",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -463,25 +523,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("DELETE", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "DELETE",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -521,25 +569,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("OPTIONS", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "OPTIONS",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -579,25 +615,13 @@ export class Router {
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
-    const fullPath = this.joinPath(path);
-    const isHandlerOnly =
-      typeof middlewareOrHandler === "function" &&
-      (middlewareOrHandler as Function).length !== 3;
-    const handler = (
-      isHandlerOnly
-        ? (middlewareOrHandler as ServerRouteHandler)
-        : (maybeHandler as ServerRouteHandler)
-    ) as ServerRouteHandler;
-    const provided = isHandlerOnly
-      ? []
-      : Array.isArray(middlewareOrHandler)
-        ? middlewareOrHandler
-        : [middlewareOrHandler as ServerRouteMiddleware];
-    const middlewares = [...this.middlewares, ...provided];
-    const swaggerOptions = (
-      isHandlerOnly ? (maybeHandler as SwaggerRouteOptions) : maybeSwagger
-    ) as SwaggerRouteOptions | undefined;
-    this.addOrUpdate("HEAD", fullPath, middlewares, handler, swaggerOptions);
+    this.registerRoute(
+      "HEAD",
+      path,
+      middlewareOrHandler,
+      maybeHandler,
+      maybeSwagger,
+    );
   }
 
   /**
@@ -701,6 +725,16 @@ export class Router {
       joined = joined.replace(/\/+$/g, "");
     }
     return joined;
+  }
+
+  /**
+   * Clears all registered routes (useful for testing or hot reload scenarios)
+   * @internal
+   */
+  clearRoutes(): void {
+    this.routes = [];
+    this.staticRouteCache.clear();
+    this.trees.clear();
   }
 }
 

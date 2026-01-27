@@ -1,4 +1,4 @@
-import type { ZodType } from "zod";
+import { RequestSchema } from "../../decorators/validation/validate_types.js";
 
 /**
  * Type of Swagger UI to use
@@ -125,13 +125,13 @@ export type SwaggerRouteOptions = {
   /** Name of the route */
   name?: string;
   /** Query parameters schema */
-  query?: ZodType;
+  query?: RequestSchema;
   /** Request body schema */
-  requestBody?: ZodType;
+  requestBody?: RequestSchema;
   /** Responses for this route */
-  responses?: Record<number, ZodType>;
+  responses?: Record<number, RequestSchema>;
   /** Errors for this route */
-  errors?: Record<number, ZodType>;
+  errors?: Record<number, RequestSchema>;
   /** Security requirements for this route */
   security?: Security[] | Security;
   /** Description of the route */

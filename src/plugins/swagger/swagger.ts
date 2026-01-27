@@ -3,8 +3,16 @@ import { AjvCompileReturnType } from "../../ajv/ajv_types.js";
 import type {
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
+  JSONSchema,
 } from "../../plugins/swagger/swagger_types.js";
 import { router } from "../../server/router/router.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
+import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import {
+  getJsonSchemaFromCache,
+  cacheJsonSchema,
+} from "../../ajv/json_schema_cache.js";
+import { logger } from "../../logger/logger.js";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json
@@ -77,14 +85,51 @@ const escapeHtml = (str?: string): string => {
     .replace(/'/g, "&#039;");
 };
 
-function safeToJSONSchema(
-  schema: ZodType | AjvCompileReturnType | Record<string, unknown>,
-): Record<string, any> {
+/**
+ * Retrieves JSON Schema from cache, with fallback to direct conversion.
+ * At route registration time, all schemas are pre-converted and cached.
+ * This function should always hit the cache for route schemas.
+ */
+function getOrConvertToJSONSchema(
+  schema:
+    | RequestSchema
+    | ZodType
+    | AjvCompileReturnType
+    | Record<string, unknown>,
+): JSONSchema {
   if (!schema || typeof schema !== "object") {
     return { type: "string" };
   }
 
-  return schema as Record<string, unknown>;
+  // Try to get from cache first
+  const cached = getJsonSchemaFromCache(schema as RequestSchema);
+  if (cached) {
+    return cached;
+  }
+
+  // Fallback: Convert and cache for future use
+  // This handles edge cases like global swagger models that weren't pre-compiled
+  if (ZodLoader.isZodSchema(schema)) {
+    try {
+      const jsonSchema = (schema as any).toJSONSchema() as JSONSchema;
+      cacheJsonSchema(schema as RequestSchema, jsonSchema);
+      return jsonSchema;
+    } catch (error) {
+      logger.debug(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          schemaType: schema?.constructor?.name || typeof schema,
+        },
+        "Failed to convert Zod schema to JSON Schema for Swagger documentation",
+      );
+      return { type: "object" };
+    }
+  }
+
+  // TypeBox schemas and plain JSON schemas are already in JSON Schema format
+  const jsonSchema = schema as JSONSchema;
+  cacheJsonSchema(schema as RequestSchema, jsonSchema);
+  return jsonSchema;
 }
 
 function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
@@ -92,27 +137,25 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
   const paths: Record<string, any> = {};
 
   // Process models - normalize to Record
-  let processedModels: Record<string, Record<string, unknown>> | undefined;
+  let processedModels: Record<string, JSONSchema> | undefined;
   if (globalOptions.models) {
     if (Array.isArray(globalOptions.models)) {
       // Array of models: extract name from $id/title or use index
       processedModels = globalOptions.models.reduce(
         (acc, model, index) => {
-          const jsonSchema = safeToJSONSchema(model);
+          const jsonSchema = getOrConvertToJSONSchema(model);
           const schemaName =
-            (jsonSchema as Record<string, string>).$id ||
-            (jsonSchema as Record<string, string>).title ||
-            `Model${index}`;
+            jsonSchema.$id || jsonSchema.title || `Model${index}`;
           acc[schemaName] = jsonSchema;
           return acc;
         },
-        {} as Record<string, Record<string, unknown>>,
+        {} as Record<string, JSONSchema>,
       );
     } else {
       // Record of models: use the key as name
       processedModels = {};
       for (const [name, model] of Object.entries(globalOptions.models)) {
-        processedModels[name] = safeToJSONSchema(model);
+        processedModels[name] = getOrConvertToJSONSchema(model);
       }
     }
   }
@@ -146,12 +189,10 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
 
     let parameters: any[] = [];
     if (swaggerOptions?.query) {
-      if (
-        swaggerOptions.query.type === "object" &&
-        (swaggerOptions.query as ZodObject).shape
-      ) {
+      const querySchema = swaggerOptions.query as any;
+      if (querySchema.type === "object" && (querySchema as ZodObject).shape) {
         for (const [name, schema] of Object.entries(
-          (swaggerOptions.query as ZodObject).shape,
+          (querySchema as ZodObject).shape,
         )) {
           // Skip if schema is invalid
           if (!schema || typeof schema !== "object") {
@@ -162,13 +203,11 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
             name,
             in: "query",
             required: Array.isArray(
-              (swaggerOptions.query as ZodObject).shape[name].required,
+              (querySchema as ZodObject).shape[name].required,
             )
-              ? (swaggerOptions.query as ZodObject).shape[
-                  name
-                ].required.includes(name)
+              ? (querySchema as ZodObject).shape[name].required.includes(name)
               : false,
-            schema: safeToJSONSchema(schema as ZodType),
+            schema: getOrConvertToJSONSchema(schema as ZodType),
           });
         }
       }
@@ -198,7 +237,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       operation.requestBody = {
         content: {
           [routeBodyContentType]: {
-            schema: safeToJSONSchema(swaggerOptions.requestBody as ZodType),
+            schema: getOrConvertToJSONSchema(
+              swaggerOptions.requestBody as ZodType,
+            ),
           },
         },
         required: true,
@@ -227,7 +268,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
           description: `Response for ${statusCode}`,
           content: {
             "application/json": {
-              schema: safeToJSONSchema(schema),
+              schema: getOrConvertToJSONSchema(schema),
             },
           },
         };
@@ -241,7 +282,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
           description: `Error response for ${statusCode}`,
           content: {
             "application/json": {
-              schema: safeToJSONSchema(schema),
+              schema: getOrConvertToJSONSchema(schema),
             },
           },
         };
@@ -507,13 +548,13 @@ function extractPathParams(path: string, paramSchema?: ZodType): any[] {
   let match;
   while ((match = regex.exec(path)) !== null) {
     const name = match[1];
-    let schema: Record<string, unknown> = { type: "string" };
+    let schema: JSONSchema = { type: "string" };
     if (
       paramSchema &&
       (paramSchema as ZodObject).shape &&
       (paramSchema as ZodObject).shape[name]
     ) {
-      schema = safeToJSONSchema(
+      schema = getOrConvertToJSONSchema(
         (paramSchema as ZodObject).shape[name] as ZodType,
       ) || {
         type: "string",

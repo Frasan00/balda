@@ -1,8 +1,9 @@
 import type { TSchema } from "@sinclair/typebox";
 import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
-import { AjvCompileParams } from "../../ajv/ajv_types.js";
+import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
+import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
 import type {
   RequestSchema,
   ValidatedData,
@@ -15,13 +16,6 @@ import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 
 /**
- * WeakMap to cache schema objects by reference, avoiding expensive JSON.stringify calls.
- * Uses Symbol for unique cache keys to prevent any potential counter overflow in long-running servers.
- * This cache is used for Zod, TypeBox, and plain JSON schemas.
- */
-const schemaRefCache = new WeakMap<object, symbol>();
-
-/**
  * The request object with type-safe path parameters.
  * This is the main object that is passed to the handler function.
  * It contains the request body, query parameters, files, cookies, etc.
@@ -32,28 +26,26 @@ const schemaRefCache = new WeakMap<object, symbol>();
 export class Request<Params extends Record<string, string> = any> {
   /**
    * Creates a new request object from a Web API Request object.
-   * Optimized to inline body check and avoid unnecessary property spreading.
+   * Optimized with bulk property assignment to reduce per-request overhead.
    * @param request - The Web API Request object to create a new request object from.
    * @returns The new request object.
    */
   static fromRequest(request: globalThis.Request): Request {
-    const baldaRequest = new Request();
-    const method = request.method;
-
-    baldaRequest.url = request.url;
-    baldaRequest.method = method;
-    baldaRequest.headers = request.headers;
-    baldaRequest.signal = request.signal;
-    baldaRequest.referrer = request.referrer;
-    baldaRequest.referrerPolicy = request.referrerPolicy;
-    baldaRequest.mode = request.mode;
-    baldaRequest.credentials = request.credentials;
-    baldaRequest.cache = request.cache;
-    baldaRequest.redirect = request.redirect;
-    baldaRequest.integrity = request.integrity;
-    baldaRequest.keepalive = request.keepalive;
+    const baldaRequest = Object.assign(new Request(), {
+      url: request.url,
+      method: request.method,
+      headers: request.headers,
+      signal: request.signal,
+      referrer: request.referrer,
+      referrerPolicy: request.referrerPolicy,
+      mode: request.mode,
+      credentials: request.credentials,
+      cache: request.cache,
+      redirect: request.redirect,
+      integrity: request.integrity,
+      keepalive: request.keepalive,
+    });
     baldaRequest.#webApiRequest = request;
-
     return baldaRequest;
   }
 
@@ -91,6 +83,76 @@ export class Request<Params extends Record<string, string> = any> {
   }
 
   /**
+   * Determines the cache key for a schema based on its type.
+   * @param schema - The schema to get a cache key for
+   * @returns A Symbol or string cache key
+   * @internal
+   */
+  private static getSchemaRefKey(schema: RequestSchema): symbol | string {
+    if (ZodLoader.isZodSchema(schema)) {
+      return getSchemaRefKey(schema as ZodAny, "zod_schema");
+    }
+
+    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+      return getSchemaRefKey(schema as TSchema, "typebox_schema");
+    }
+
+    if (typeof schema === "object" && schema !== null) {
+      return getSchemaRefKey(schema as object, "json_schema");
+    }
+
+    return JSON.stringify(schema);
+  }
+
+  /**
+   * Converts any schema type to JSON Schema format.
+   * @param schema - The schema to convert
+   * @returns JSON Schema object
+   * @internal
+   */
+  private static toJSONSchema(schema: RequestSchema): object {
+    // Zod schemas need conversion
+    if (ZodLoader.isZodSchema(schema)) {
+      return (schema as ZodAny).toJSONSchema();
+    }
+
+    // TypeBox schemas are already JSON Schema
+    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+      return schema as TSchema;
+    }
+
+    // Plain JSON schemas or primitives
+    return schema as object;
+  }
+
+  /**
+   * Gets or compiles a schema, using cache when available.
+   * @param schema - The schema to compile
+   * @returns Compiled Ajv validation function
+   * @internal
+   */
+  private static getOrCompileSchema(
+    schema: RequestSchema,
+  ): AjvCompileReturnType {
+    const cacheKey = this.getSchemaRefKey(schema);
+
+    // Check cache first
+    const cached = openapiSchemaMap.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Convert to JSON Schema and compile
+    const jsonSchema = this.toJSONSchema(schema);
+    const compiled = AjvStateManager.ajv.compile(jsonSchema);
+
+    // Store in cache
+    openapiSchemaMap.set(cacheKey, compiled);
+
+    return compiled;
+  }
+
+  /**
    * Compiles and validates the request data against the input schema.
    * @param inputSchema - The schema to validate the request data against (Zod, TypeBox, or plain JSON schema).
    * @param data - The request data to validate.
@@ -102,87 +164,8 @@ export class Request<Params extends Record<string, string> = any> {
     data: T,
     safe: boolean,
   ): ValidatedData<T> {
-    let jsonSchema: any;
-    let cacheKey: string;
-
-    // Handle Zod schemas (need conversion to JSON Schema)
-    if (ZodLoader.isZodSchema(inputSchema)) {
-      const zodSchema = inputSchema as ZodAny;
-
-      // Try to get cache key from WeakMap first
-      let refKey = schemaRefCache.get(zodSchema);
-      if (!refKey) {
-        refKey = Symbol("zod_schema");
-        schemaRefCache.set(zodSchema, refKey);
-      }
-
-      // Check if we already have a compiled schema
-      let cached = openapiSchemaMap.get(refKey);
-      if (cached) {
-        return validateSchema(cached, data, safe);
-      }
-
-      // Convert to JSON schema and compile
-      jsonSchema = zodSchema.toJSONSchema();
-      const compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
-      openapiSchemaMap.set(refKey, compiledSchema);
-      return validateSchema(compiledSchema, data, safe);
-    }
-
-    // Handle TypeBox schemas (already JSON Schema compliant)
-    if (TypeBoxLoader.isTypeBoxSchema(inputSchema)) {
-      const typeboxSchema = inputSchema as TSchema;
-
-      // Try to get cache key from WeakMap first
-      let refKey = schemaRefCache.get(typeboxSchema);
-      if (!refKey) {
-        refKey = Symbol("typebox_schema");
-        schemaRefCache.set(typeboxSchema, refKey);
-      }
-
-      // Check if we already have a compiled schema
-      let cached = openapiSchemaMap.get(refKey);
-      if (cached) {
-        return validateSchema(cached, data, safe);
-      }
-
-      // TypeBox schemas are already JSON Schema, compile directly
-      const compiledSchema = AjvStateManager.ajv.compile(typeboxSchema);
-      openapiSchemaMap.set(refKey, compiledSchema);
-      return validateSchema(compiledSchema, data, safe);
-    }
-
-    // Handle plain JSON schemas
-    const plainSchema = inputSchema as AjvCompileParams[0];
-
-    // Try to use WeakMap cache for object references
-    if (typeof plainSchema === "object" && plainSchema !== null) {
-      let refKey = schemaRefCache.get(plainSchema);
-      if (!refKey) {
-        refKey = Symbol("json_schema");
-        schemaRefCache.set(plainSchema, refKey);
-      }
-
-      const cached = openapiSchemaMap.get(refKey);
-      if (cached) {
-        return validateSchema(cached, data, safe);
-      }
-
-      const compiledSchema = AjvStateManager.ajv.compile(plainSchema);
-      openapiSchemaMap.set(refKey, compiledSchema);
-      return validateSchema(compiledSchema, data, safe);
-    }
-
-    // Fallback to JSON.stringify for primitives or edge cases
-    cacheKey = JSON.stringify(plainSchema);
-    const cached = openapiSchemaMap.get(cacheKey);
-    if (cached) {
-      return validateSchema(cached, data, safe);
-    }
-
-    const compiledSchema = AjvStateManager.ajv.compile(plainSchema);
-    openapiSchemaMap.set(cacheKey, compiledSchema);
-    return validateSchema(compiledSchema, data, safe);
+    const compiled = this.getOrCompileSchema(inputSchema);
+    return validateSchema(compiled, data, safe);
   }
 
   /**

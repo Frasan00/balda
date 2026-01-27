@@ -419,7 +419,7 @@ describe("AzureBlobStorageProvider with Azurite", () => {
       // Verify size
       const retrieved = await provider.getObject(key, "raw");
       expect(retrieved?.length).toBe(1024 * 1024 * 2);
-    });
+    }, 10000); // 10 second timeout for large upload
 
     it("should set custom metadata via SAS upload", async () => {
       const key = `${testKeyPrefix}/http-upload-metadata.txt`;

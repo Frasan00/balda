@@ -74,9 +74,25 @@ export class Response<TBody = any> {
    */
   #serializer?: FastJsonStringifyFunction;
 
+  /**
+   * Response schemas from route registration (swagger.responses).
+   * Used for automatic fast JSON serialization without explicit schema passing.
+   * @internal
+   */
+  #routeResponseSchemas?: Record<number, RequestSchema>;
+
   constructor(status: number = 200) {
     this.responseStatus = status;
     this.headers = {};
+  }
+
+  /**
+   * Set the route response schemas for automatic serialization.
+   * Called internally by the server when handling requests.
+   * @internal
+   */
+  setRouteResponseSchemas(schemas?: Record<number, RequestSchema>): void {
+    this.#routeResponseSchemas = schemas;
   }
 
   /**
@@ -172,10 +188,14 @@ export class Response<TBody = any> {
     this.body = body;
     this.headers["Content-Type"] = "application/json";
 
-    // If schema is provided, cache it for fast serialization
-    if (schema) {
-      this.#schema = schema;
-      this.#serializer = getOrCreateSerializer(schema) ?? undefined;
+    // Priority: explicit schema > route schema > no schema
+    const effectiveSchema =
+      schema ?? this.#routeResponseSchemas?.[this.responseStatus];
+
+    // If schema is provided (explicitly or from route), cache it for fast serialization
+    if (effectiveSchema) {
+      this.#schema = effectiveSchema;
+      this.#serializer = getOrCreateSerializer(effectiveSchema) ?? undefined;
     }
   }
 

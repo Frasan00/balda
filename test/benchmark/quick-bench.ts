@@ -1,3 +1,4 @@
+import { Type } from "@sinclair/typebox";
 import { Server } from "../../src/server/server.js";
 import { formatResult, runBenchmark, STANDARD_CONFIG } from "./runner.js";
 
@@ -16,9 +17,21 @@ const quickBench = async (): Promise<void> => {
     host: "0.0.0.0",
   });
 
-  server.get("/", (_req, res) => {
-    res.json({ message: "Hello, world!" });
-  });
+  server.get(
+    "/",
+    {
+      swagger: {
+        responses: {
+          200: Type.Object({
+            message: Type.String(),
+          }),
+        },
+      },
+    },
+    async (_req, res) => {
+      res.json({ message: "Hello, world!" });
+    },
+  );
 
   try {
     await new Promise<void>((resolve) => {

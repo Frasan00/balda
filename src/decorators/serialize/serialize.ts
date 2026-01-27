@@ -1,5 +1,5 @@
-import { AjvStateManager } from "../../ajv/ajv.js";
-import type { AjvCompileParams } from "../../ajv/ajv_types.js";
+import { compileAndCacheValidator } from "../../ajv/schema_compiler.js";
+import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
 import { MetadataStore } from "../../metadata_store.js";
@@ -14,53 +14,55 @@ const SERIALIZE_WRAPPED = Symbol("serializeWrapped");
 const SERIALIZE_METADATA = Symbol("serializeMetadata");
 
 /**
- * Compiles and caches an AJV validator for a schema.
- * Returns the compiled validator for validation purposes.
+ * Metadata entry for serialize decorator
+ */
+interface SerializeMetadataEntry {
+  name: string;
+  schema: RequestSchema;
+  safe: boolean;
+}
+
+/**
+ * WeakMap to store serialize metadata without mutating function objects.
+ * This prevents issues with strict mode and frozen objects.
+ */
+const SERIALIZE_METADATA_MAP = new WeakMap<
+  Function,
+  Record<number, SerializeMetadataEntry>
+>();
+
+/**
+ * WeakSet to track which functions have been wrapped.
+ */
+const SERIALIZE_WRAPPED_SET = new WeakSet<Function>();
+
+/**
+ * Gets the compiled validator for a schema from the cache.
+ * The schema must already be compiled via compileAndCacheValidator.
+ * @param schema - The schema to get the validator for
+ * @returns The compiled validator, or null if not found
  */
 const getCompiledValidator = (
   schema: RequestSchema,
-): ReturnType<typeof AjvStateManager.ajv.compile> | null => {
+): ReturnType<typeof openapiSchemaMap.get> => {
   if (ZodLoader.isZodSchema(schema)) {
     const refKey = getSchemaRefKey(schema, "serialize_zod");
-    let compiledSchema = openapiSchemaMap.get(refKey);
-    if (!compiledSchema) {
-      const jsonSchema = schema.toJSONSchema();
-      compiledSchema = AjvStateManager.ajv.compile(jsonSchema);
-      openapiSchemaMap.set(refKey, compiledSchema);
-    }
-    return compiledSchema;
+    return openapiSchemaMap.get(refKey);
   }
 
   if (TypeBoxLoader.isTypeBoxSchema(schema)) {
     const refKey = getSchemaRefKey(schema, "serialize_typebox");
-    let compiledSchema = openapiSchemaMap.get(refKey);
-    if (!compiledSchema) {
-      compiledSchema = AjvStateManager.ajv.compile(schema);
-      openapiSchemaMap.set(refKey, compiledSchema);
-    }
-    return compiledSchema;
+    return openapiSchemaMap.get(refKey);
   }
 
   if (typeof schema === "object" && schema !== null) {
     const refKey = getSchemaRefKey(schema, "serialize_json");
-    let compiledSchema = openapiSchemaMap.get(refKey);
-    if (!compiledSchema) {
-      compiledSchema = AjvStateManager.ajv.compile(
-        schema as AjvCompileParams[0],
-      );
-      openapiSchemaMap.set(refKey, compiledSchema);
-    }
-    return compiledSchema;
+    return openapiSchemaMap.get(refKey);
   }
 
   // Fallback for primitives or edge cases
   const cacheKey = JSON.stringify(schema);
-  let compiledSchema = openapiSchemaMap.get(cacheKey);
-  if (!compiledSchema) {
-    compiledSchema = AjvStateManager.ajv.compile(schema as AjvCompileParams[0]);
-    openapiSchemaMap.set(cacheKey, compiledSchema);
-  }
-  return compiledSchema;
+  return openapiSchemaMap.get(cacheKey);
 };
 
 export const serialize = <T extends RequestSchema>(
@@ -87,24 +89,26 @@ export const serialize = <T extends RequestSchema>(
     meta.serializeOptions[status] = options?.safe ?? true;
     MetadataStore.set(target, propertyKey, meta);
 
-    if (!descriptor.value[SERIALIZE_METADATA]) {
-      descriptor.value[SERIALIZE_METADATA] = {};
-    }
+    compileAndCacheValidator(schema);
+    getOrCreateSerializer(schema);
 
-    descriptor.value[SERIALIZE_METADATA][status] = {
+    // Store metadata in WeakMap instead of mutating function
+    const existingMetadata = SERIALIZE_METADATA_MAP.get(descriptor.value) || {};
+    existingMetadata[status] = {
       name: propertyKey,
       schema,
       safe: options?.safe ?? true,
     };
+    SERIALIZE_METADATA_MAP.set(descriptor.value, existingMetadata);
 
-    if (!descriptor.value[SERIALIZE_WRAPPED]) {
+    if (!SERIALIZE_WRAPPED_SET.has(descriptor.value)) {
       const originalMethod = descriptor.value;
       const wrappedFunction = async function (this: any, ...args: any[]) {
         const res = args[1] as Response;
         await originalMethod.apply(this, args);
         const actualStatus = res.responseStatus;
 
-        const serializeMetadata = wrappedFunction[SERIALIZE_METADATA];
+        const serializeMetadata = SERIALIZE_METADATA_MAP.get(wrappedFunction);
         const schema = serializeMetadata?.[actualStatus]?.schema;
         const safe = serializeMetadata?.[actualStatus]?.safe ?? true;
 
@@ -141,8 +145,12 @@ export const serialize = <T extends RequestSchema>(
         res.json(body, schema);
       };
 
-      wrappedFunction[SERIALIZE_WRAPPED] = true;
-      wrappedFunction[SERIALIZE_METADATA] = originalMethod[SERIALIZE_METADATA];
+      // Mark as wrapped and copy metadata to wrapped function
+      SERIALIZE_WRAPPED_SET.add(wrappedFunction);
+      const originalMetadata = SERIALIZE_METADATA_MAP.get(originalMethod);
+      if (originalMetadata) {
+        SERIALIZE_METADATA_MAP.set(wrappedFunction, originalMetadata);
+      }
       descriptor.value = wrappedFunction;
     }
   };

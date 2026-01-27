@@ -97,6 +97,7 @@ export class ServerBun implements ServerInterface {
         }
 
         const baldaResponse = new Response();
+        baldaResponse.setRouteResponseSchemas(match?.responseSchemas);
 
         await executeMiddlewareChain(
           match?.middleware ?? [],

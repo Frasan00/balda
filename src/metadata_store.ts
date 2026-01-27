@@ -22,10 +22,23 @@ export class MetadataStore {
   }
 
   /**
-   * Get all the metadata for the given target
+   * Get all the metadata for the given target.
+   * Returns undefined if no metadata exists for the target.
+   * Use getOrCreateAll() if you want to ensure a Map is returned.
    */
-  static getAll(target: any): Map<string | symbol, any> {
-    return this.metadata.get(target) || new Map();
+  static getAll(target: any): Map<string | symbol, any> | undefined {
+    return this.metadata.get(target);
+  }
+
+  /**
+   * Get all the metadata for the given target, creating an empty Map if none exists.
+   * This is useful when you want to iterate over metadata or add new entries.
+   */
+  static getOrCreateAll(target: any): Map<string | symbol, any> {
+    if (!this.metadata.has(target)) {
+      this.metadata.set(target, new Map());
+    }
+    return this.metadata.get(target)!;
   }
 
   /**

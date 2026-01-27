@@ -620,9 +620,6 @@ export class Server<
     this.bootstrap().then(() => {
       this.#serverConnector.listen();
       this.isListening = true;
-      if (this.serverOptions.swagger) {
-        swagger(this.serverOptions.swagger);
-      }
 
       cb?.({
         port: this.port,
@@ -849,6 +846,10 @@ export class Server<
       await cronUi(this.serverOptions.cronUI);
     }
 
+    if (this.serverOptions.swagger) {
+      swagger(this.serverOptions.swagger);
+    }
+
     this.registerNotFoundRoutes();
     if (this.#globalMiddlewares.length) {
       router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
@@ -869,15 +870,7 @@ export class Server<
     }
 
     const pathname = new URL(req.url).pathname;
-    const allMethods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-      "HEAD",
-    ] as const;
+    const allMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const allowedMethods: string[] = [];
 
     for (const method of allMethods) {

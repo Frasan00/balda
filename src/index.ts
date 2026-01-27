@@ -98,6 +98,14 @@ export type {
 // async storage
 export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";
 
+// Cache Monitoring
+export {
+  getCacheMetrics,
+  logCacheMetrics,
+  clearAllCaches,
+} from "./ajv/cache_monitor.js";
+export type { CacheMetrics } from "./ajv/cache_monitor.js";
+
 // Storage
 export * from "./storage/providers/blob_storage.js";
 export * from "./storage/providers/local.js";

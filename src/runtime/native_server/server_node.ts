@@ -159,6 +159,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
         const response = new Response();
         response.nodeResponse = httpResponse;
+        response.setRouteResponseSchemas(match?.responseSchemas);
 
         const responseResult = await executeMiddlewareChain(
           match?.middleware ?? [],
