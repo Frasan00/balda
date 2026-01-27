@@ -19,7 +19,7 @@ export class ZodLoader {
     }
 
     try {
-      this.zodModule = requireFn("zod") as typeof import("zod");
+      this.zodModule = requireFn("zod/v4") as typeof import("zod");
       return this.zodModule;
     } catch (error) {
       throw new Error(
