@@ -63,12 +63,6 @@ export class Response<TBody = any> {
   private body: any | Promise<any>;
 
   /**
-   * Optional schema for fast JSON serialization.
-   * When provided, the response body will be serialized using fast-json-stringify.
-   */
-  #schema?: RequestSchema;
-
-  /**
    * Cached fast-json-stringify serializer function.
    * Created when a schema is provided and reused for subsequent responses.
    */
@@ -194,7 +188,6 @@ export class Response<TBody = any> {
 
     // If schema is provided (explicitly or from route), cache it for fast serialization
     if (effectiveSchema) {
-      this.#schema = effectiveSchema;
       this.#serializer = getOrCreateSerializer(effectiveSchema) ?? undefined;
     }
   }

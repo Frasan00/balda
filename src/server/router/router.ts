@@ -1,5 +1,5 @@
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
-import {
+import type {
   HttpMethod,
   ServerRouteHandler,
   ServerRouteMiddleware,
@@ -12,6 +12,7 @@ import {
   compileResponseSchemas,
   compileRequestSchemas,
 } from "../../ajv/schema_compiler.js";
+import type { ServerHandlerReturnType } from "../server_types.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -310,7 +311,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   get<TPath extends string = string>(
@@ -319,7 +320,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   get<TPath extends string = string>(
@@ -330,12 +331,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -356,7 +357,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   post<TPath extends string = string>(
@@ -365,7 +366,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   post<TPath extends string = string>(
@@ -376,12 +377,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -402,7 +403,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   patch<TPath extends string = string>(
@@ -411,7 +412,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   patch<TPath extends string = string>(
@@ -422,12 +423,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -448,7 +449,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   put<TPath extends string = string>(
@@ -457,7 +458,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   put<TPath extends string = string>(
@@ -468,12 +469,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -494,7 +495,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   delete<TPath extends string = string>(
@@ -503,7 +504,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   delete<TPath extends string = string>(
@@ -514,12 +515,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -540,7 +541,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   options<TPath extends string = string>(
@@ -549,7 +550,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   options<TPath extends string = string>(
@@ -560,12 +561,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {
@@ -586,7 +587,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   head<TPath extends string = string>(
@@ -595,7 +596,7 @@ export class Router {
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
     swaggerOptions?: SwaggerRouteOptions,
   ): void;
   head<TPath extends string = string>(
@@ -606,12 +607,12 @@ export class Router {
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?:
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>)
+        ) => ServerHandlerReturnType)
       | SwaggerRouteOptions,
     maybeSwagger?: SwaggerRouteOptions,
   ): void {

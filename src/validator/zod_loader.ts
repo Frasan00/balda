@@ -3,8 +3,10 @@
  * Zod is a peer dependency and only loaded if Zod schemas are used.
  */
 import type { ZodAny } from "zod";
+import { Zod4NotInstalledError } from "../errors/zod4_not_installed_error.js";
 import { requireFn } from "../package.js";
 import type { JSONSchema } from "../plugins/swagger/swagger_types.js";
+import { Zod3SchemaUsedError } from "../errors/zod3_schema_used.js";
 
 export class ZodLoader {
   private static zodModule: typeof import("zod") | null = null;
@@ -19,7 +21,8 @@ export class ZodLoader {
     }
 
     try {
-      this.zodModule = requireFn("zod/v4") as typeof import("zod");
+      this.zodModule = requireFn("zod") as typeof import("zod");
+      this.ensureZodV4();
       return this.zodModule;
     } catch (error) {
       throw new Error(
@@ -41,7 +44,12 @@ export class ZodLoader {
    * Checks if a value is a Zod schema
    */
   static isZodSchema(value: any): value is ZodAny {
-    this.load();
+    try {
+      this.load();
+    } catch {
+      return false;
+    }
+
     const isZod =
       typeof value === "object" &&
       value !== null &&
@@ -49,18 +57,57 @@ export class ZodLoader {
       typeof value.parse === "function" &&
       typeof value.safeParse === "function";
 
-    const zodModule = this.zodModule?.z;
-    if (isZod && zodModule && !("toJSONSchema" in zodModule)) {
-      throw new Error(
-        "Zod4 is required with the toJSONSchema() method in order to work. Install it with: npm install zod with minimum version 4.0.0",
-      );
-    }
-
     return isZod;
   }
 
+  /**
+   * Ensures that Zod v4 is installed with toJSONSchema support
+   * @throws Zod4NotInstalledError if Zod v4 is not installed
+   */
+  static ensureZodV4(): void {
+    const zodModule = this.zodModule?.z;
+    if (!zodModule) {
+      throw new Zod4NotInstalledError();
+    }
+
+    if (!("toJSONSchema" in zodModule)) {
+      throw new Zod4NotInstalledError();
+    }
+  }
+
+  /**
+   * Converts a Zod schema to JSON Schema using Zod v4's toJSONSchema method
+   * @param schema - The Zod schema to convert
+   * @returns The JSON Schema representation
+   * @throws Zod4NotInstalledError if Zod v4 is not installed or toJSONSchema is not available
+   * @throws Error if the schema is invalid or incompatible (Example using zod/v3)
+   */
   static toJSONSchema(schema: ZodAny): JSONSchema {
     this.load();
-    return this.zodModule?.z?.toJSONSchema?.(schema) as JSONSchema;
+    this.ensureZodV4();
+
+    const zodModule = this.zodModule?.z;
+    if (!zodModule?.toJSONSchema) {
+      throw new Zod4NotInstalledError();
+    }
+
+    if (!schema || typeof schema !== "object" || !("_def" in schema)) {
+      throw new Error(
+        "Invalid Zod schema provided. Make sure you're using Zod v4 schemas. " +
+          "If you're importing from 'zod/v3', change to 'zod' or '{ z } from \"zod\"'.",
+      );
+    }
+
+    try {
+      return zodModule.toJSONSchema(schema) as JSONSchema;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Cannot read properties of undefined")
+      ) {
+        throw new Zod3SchemaUsedError(error);
+      }
+      throw error;
+    }
   }
 }

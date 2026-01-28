@@ -54,14 +54,14 @@ export const getOrCreateSerializer = (
     return null;
   }
 
+  const { jsonSchema, cacheKey } = getJsonSchemaAndCacheKey(schema);
+
+  const cached = fastJsonStringifyMap.get(cacheKey);
+  if (cached) {
+    return cached.serializer;
+  }
+
   try {
-    const { jsonSchema, cacheKey } = getJsonSchemaAndCacheKey(schema);
-
-    const cached = fastJsonStringifyMap.get(cacheKey);
-    if (cached) {
-      return cached.serializer;
-    }
-
     const serializer = fastJson(jsonSchema as AnySchema);
 
     const cacheEntry: SerializerCacheEntry = {
@@ -73,7 +73,10 @@ export const getOrCreateSerializer = (
 
     return serializer;
   } catch (error) {
-    console.error("Failed to compile fast-json-stringify serializer:", error);
+    console.error(
+      "Failed to compile fast-json-stringify serializer:",
+      error instanceof Error ? error.message : String(error),
+    );
     return null;
   }
 };

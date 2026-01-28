@@ -14,16 +14,28 @@ export const executeMiddlewareChain = async (
 ): Promise<Response> => {
   const len = middlewares.length;
   if (len === 0) {
-    await handler(req, res);
+    // we handle cases where a direct `return` statement is used in the controller
+    const optionalResult = await handler(req, res);
+    if (optionalResult) {
+      res.send(optionalResult);
+      return res;
+    }
+
     return res;
   }
 
   let index = 0;
 
-  const dispatch = async (): Promise<void> => {
+  const dispatch = async (): Promise<any> => {
     if (index >= len) {
-      await handler(req, res);
-      return;
+      // we handle cases where a direct `return` statement is used in the controller
+      const optionalResult = await handler(req, res);
+      if (optionalResult) {
+        res.send(optionalResult);
+        return res;
+      }
+
+      return res;
     }
 
     const i = index++;

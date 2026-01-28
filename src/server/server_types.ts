@@ -33,8 +33,10 @@ import { SyncOrAsync } from "../type_util.js";
 import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
-import { ClientRouter } from "./router/router_type.js";
-import { CronUIOptions } from "../cron/cron.types.js";
+import type { ClientRouter } from "./router/router_type.js";
+import type { CronUIOptions } from "../cron/cron.types.js";
+
+export type ServerHandlerReturnType = any | Promise<any>;
 
 export type ServerPlugin = {
   bodyParser?: BodyParserOptions;

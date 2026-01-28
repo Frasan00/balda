@@ -80,7 +80,7 @@ export type ServerRouteMiddleware = (
 export type ServerRouteHandler = (
   req: BaldaRequest,
   res: BaldaResponse,
-) => SyncOrAsync;
+) => SyncOrAsync<any>;
 
 export interface ServerRoute {
   /** The path for the route */

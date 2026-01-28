@@ -1,6 +1,6 @@
 {
   "name": "balda",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",

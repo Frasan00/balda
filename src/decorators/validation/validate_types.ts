@@ -1,10 +1,10 @@
-import type { z, ZodType } from "zod";
+import type { z, ZodAny } from "zod";
 import type { Static, TSchema } from "@sinclair/typebox";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
-export type RequestSchema = ZodType | TSchema | AjvCompileParams[0];
+export type RequestSchema = ZodAny | TSchema | AjvCompileParams[0];
 
-export type ValidatedData<T extends RequestSchema> = T extends ZodType
+export type ValidatedData<T extends RequestSchema> = T extends ZodAny
   ? z.infer<T>
   : T extends TSchema
     ? Static<T>

@@ -67,6 +67,7 @@ import type {
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
+  ServerHandlerReturnType,
   ServerInterface,
   ServerOptions,
   ServerPlugin,
@@ -199,7 +200,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
@@ -207,7 +208,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
@@ -216,11 +217,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -236,7 +237,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
@@ -244,7 +245,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
@@ -253,11 +254,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -273,7 +274,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
@@ -281,7 +282,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
@@ -290,11 +291,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -310,7 +311,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
@@ -318,7 +319,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
@@ -327,11 +328,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -347,7 +348,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
@@ -355,7 +356,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
@@ -364,11 +365,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -384,7 +385,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
@@ -392,7 +393,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
@@ -401,11 +402,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
@@ -421,7 +422,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
@@ -429,7 +430,7 @@ export class Server<
     handler: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
@@ -438,11 +439,11 @@ export class Server<
       | ((
           req: Request<ExtractParams<TPath>>,
           res: Response,
-        ) => void | Promise<void>),
+        ) => ServerHandlerReturnType),
     maybeHandler?: (
       req: Request<ExtractParams<TPath>>,
       res: Response,
-    ) => void | Promise<void>,
+    ) => ServerHandlerReturnType,
   ): void {
     const { middlewares, handler, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
