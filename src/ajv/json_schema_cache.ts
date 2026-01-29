@@ -2,6 +2,8 @@ import type { RequestSchema } from "../decorators/validation/validate_types.js";
 import type { JSONSchema } from "../plugins/swagger/swagger_types.js";
 import { TypeBoxLoader } from "../validator/typebox_loader.js";
 import { ZodLoader } from "../validator/zod_loader.js";
+import { getSchemaCacheConfig } from "./cache_config.js";
+import { LRUCache } from "./lru_cache.js";
 import { getSchemaRefKey } from "./schema_ref_cache.js";
 
 /**
@@ -14,8 +16,11 @@ import { getSchemaRefKey } from "./schema_ref_cache.js";
  * this map stores the JSON Schema format before compilation.
  *
  * Uses Symbol (for object schema references) or string (for primitive schemas) as cache keys.
+ * Uses LRU eviction policy to prevent unbounded memory growth.
  */
-export const jsonSchemaCache = new Map<symbol | string, JSONSchema>();
+export const jsonSchemaCache = new LRUCache<symbol | string, JSONSchema>(
+  getSchemaCacheConfig().maxJsonSchemaCacheSize,
+);
 
 /**
  * Retrieves a cached JSON Schema for the given schema object.

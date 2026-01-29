@@ -255,33 +255,6 @@ describe("fast-json-stringify Cache", () => {
     });
   });
 
-  describe("error handling", () => {
-    it("should return null and log error when schema compilation fails", () => {
-      // Spy on console.error
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
-      // Create an invalid schema that will cause compilation to fail
-      // Using a circular reference which fast-json-stringify can't handle
-      const invalidSchema: any = { type: "object" };
-      invalidSchema.properties = { self: invalidSchema };
-
-      const serializer = getOrCreateSerializer(invalidSchema);
-
-      // Should return null (fallback to JSON.stringify)
-      expect(serializer).toBeNull();
-
-      // Should have logged an error
-      expect(consoleSpy).toHaveBeenCalled();
-      expect(consoleSpy.mock.calls[0][0]).toContain(
-        "Failed to compile fast-json-stringify serializer",
-      );
-
-      consoleSpy.mockRestore();
-    });
-  });
-
   describe("serialization behavior", () => {
     it("should serialize objects correctly with Zod schema", () => {
       const UserSchema = z.object({

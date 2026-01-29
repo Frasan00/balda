@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { Router } from "../../src/server/router/router.js";
-import { Response } from "../../src/server/http/response.js";
-import type { Request } from "../../src/server/http/request.js";
-import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
+import { beforeEach, describe, expect, it } from "vitest";
 import { fastJsonStringifyMap } from "../../src/ajv/fast_json_stringify_cache.js";
+import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
 import { getSchemaRefKey } from "../../src/ajv/schema_ref_cache.js";
+import type { Request } from "../../src/server/http/request.js";
+import { Response } from "../../src/server/http/response.js";
+import { Router } from "../../src/server/router/router.js";
 
 describe("Router - Inline Route Schema Caching", () => {
   let router: Router;
@@ -34,14 +34,17 @@ describe("Router - Inline Route Schema Caching", () => {
       },
     });
 
-    // Verify schema is cached in openapiSchemaMap
-    // Note: The schema object gets a single Symbol key on first access
-    const refKey = getSchemaRefKey(responseSchema, "serialize_json");
-    expect(openapiSchemaMap.has(refKey)).toBe(true);
+    // Verify schema is cached in openapiSchemaMap (for validation)
+    const validatorRefKey = getSchemaRefKey(responseSchema, "serialize_json");
+    expect(openapiSchemaMap.has(validatorRefKey)).toBe(true);
 
-    // Verify schema is cached in fastJsonStringifyMap with the same key
-    // (getSchemaRefKey returns the same Symbol for the same schema object)
-    expect(fastJsonStringifyMap.has(refKey)).toBe(true);
+    // Verify schema is cached in fastJsonStringifyMap (for serialization)
+    // Different prefix is used for serialization cache
+    const serializerRefKey = getSchemaRefKey(
+      responseSchema,
+      "fast_stringify_json",
+    );
+    expect(fastJsonStringifyMap.has(serializerRefKey)).toBe(true);
   });
 
   it("should cache multiple response schemas for different status codes", () => {

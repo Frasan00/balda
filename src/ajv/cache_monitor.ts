@@ -1,9 +1,5 @@
 import { openapiSchemaMap } from "./openapi_schema_map.js";
-import {
-  jsonSchemaCache,
-  getJsonSchemaCacheSize,
-  clearJsonSchemaCache,
-} from "./json_schema_cache.js";
+import { jsonSchemaCache, clearJsonSchemaCache } from "./json_schema_cache.js";
 import {
   fastJsonStringifyMap,
   getSerializerCacheStats,
@@ -18,10 +14,12 @@ import { logger } from "../logger/logger.js";
 export interface CacheMetrics {
   validators: {
     size: number;
+    maxSize: number;
     description: string;
   };
   serializers: {
     size: number;
+    maxSize: number;
     schemaRefsCreated: number;
     entries: Array<{
       key: string;
@@ -31,6 +29,7 @@ export interface CacheMetrics {
   };
   jsonSchemas: {
     size: number;
+    maxSize: number;
     description: string;
   };
   totalSchemaReferences: number;
@@ -62,7 +61,7 @@ export const getCacheMetrics = (): CacheMetrics => {
   // Each validator: ~1-5KB, serializer: ~2-10KB, JSON schema: ~0.5-2KB
   const validatorMemoryKB = openapiSchemaMap.size * 3;
   const serializerMemoryKB = serializerStats.size * 6;
-  const jsonSchemaMemoryKB = getJsonSchemaCacheSize() * 1;
+  const jsonSchemaMemoryKB = jsonSchemaCache.size * 1;
   const totalMemoryKB =
     validatorMemoryKB + serializerMemoryKB + jsonSchemaMemoryKB;
 
@@ -77,15 +76,18 @@ export const getCacheMetrics = (): CacheMetrics => {
   return {
     validators: {
       size: openapiSchemaMap.size,
+      maxSize: openapiSchemaMap.getMaxSize(),
       description: "Compiled AJV validators for request/response validation",
     },
     serializers: {
       size: serializerStats.size,
+      maxSize: serializerStats.maxSize,
       schemaRefsCreated: serializerStats.schemaRefsCreated,
       entries: serializerStats.entries,
     },
     jsonSchemas: {
-      size: getJsonSchemaCacheSize(),
+      size: jsonSchemaCache.size,
+      maxSize: jsonSchemaCache.getMaxSize(),
       description: "Converted JSON schemas for Swagger/OpenAPI documentation",
     },
     totalSchemaReferences: getSchemaRefCount(),

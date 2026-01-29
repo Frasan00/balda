@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { z } from "zod";
 import { Type } from "@sinclair/typebox";
-import { Request } from "../../src/server/http/request.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
+import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
 import {
   getSchemaRefCount,
   resetSchemaRefCache,
 } from "../../src/ajv/schema_ref_cache.js";
-import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
+import { Request } from "../../src/server/http/request.js";
 
 describe("Schema Cache Deduplication", () => {
   beforeEach(() => {
@@ -32,12 +32,13 @@ describe("Schema Cache Deduplication", () => {
     req2.body = { name: "Bob", age: 25 };
 
     // First validation should compile the schema
+    // Creates 2 refs: one for validator (zod_schema), one for JSON schema cache (json_schema_zod)
     const initialRefCount = getSchemaRefCount();
     const result1 = req1.validate(schema);
     const afterFirstCount = getSchemaRefCount();
 
     expect(result1).toEqual({ name: "Alice", age: 30 });
-    expect(afterFirstCount).toBe(initialRefCount + 1);
+    expect(afterFirstCount).toBe(initialRefCount + 2);
 
     // Second validation should reuse the compiled schema
     const result2 = req2.validate(schema);
@@ -59,12 +60,13 @@ describe("Schema Cache Deduplication", () => {
     const req2 = new Request();
     req2.body = { title: "Another", count: 10 };
 
+    // First validation creates 2 refs: validator (typebox_schema) + JSON schema cache (json_schema_typebox)
     const initialRefCount = getSchemaRefCount();
     const result1 = req1.validate(schema);
     const afterFirstCount = getSchemaRefCount();
 
     expect(result1).toEqual({ title: "Test", count: 5 });
-    expect(afterFirstCount).toBe(initialRefCount + 1);
+    expect(afterFirstCount).toBe(initialRefCount + 2);
 
     const result2 = req2.validate(schema);
     const afterSecondCount = getSchemaRefCount();
@@ -89,12 +91,13 @@ describe("Schema Cache Deduplication", () => {
     const req2 = new Request();
     req2.body = { email: "another@example.com", verified: false };
 
+    // First validation creates 2 refs: validator (json_schema) + JSON schema cache (json_schema_json)
     const initialRefCount = getSchemaRefCount();
     const result1 = req1.validate(schema);
     const afterFirstCount = getSchemaRefCount();
 
     expect(result1).toEqual({ email: "test@example.com", verified: true });
-    expect(afterFirstCount).toBe(initialRefCount + 1);
+    expect(afterFirstCount).toBe(initialRefCount + 2);
 
     const result2 = req2.validate(schema);
     const afterSecondCount = getSchemaRefCount();
@@ -113,16 +116,17 @@ describe("Schema Cache Deduplication", () => {
     const req2 = new Request();
     req2.body = { title: "Test" };
 
+    // Each schema creates 2 refs: validator + JSON schema cache
     const initialRefCount = getSchemaRefCount();
     req1.validate(schema1);
     const afterFirstCount = getSchemaRefCount();
 
-    expect(afterFirstCount).toBe(initialRefCount + 1);
+    expect(afterFirstCount).toBe(initialRefCount + 2);
 
     req2.validate(schema2);
     const afterSecondCount = getSchemaRefCount();
 
-    expect(afterSecondCount).toBe(afterFirstCount + 1); // New schema ref created
+    expect(afterSecondCount).toBe(afterFirstCount + 2); // New schema creates 2 new refs
   });
 
   it("should handle validation of query parameters with schema caching", () => {
@@ -137,12 +141,13 @@ describe("Schema Cache Deduplication", () => {
     const req2 = new Request();
     req2.query = { page: "2", limit: "20" };
 
+    // First validation creates 2 refs: validator + JSON schema cache
     const initialRefCount = getSchemaRefCount();
     const result1 = req1.validateQuery(querySchema);
     const afterFirstCount = getSchemaRefCount();
 
     expect(result1).toEqual({ page: "1", limit: "10" });
-    expect(afterFirstCount).toBe(initialRefCount + 1);
+    expect(afterFirstCount).toBe(initialRefCount + 2);
 
     const result2 = req2.validateQuery(querySchema);
     const afterSecondCount = getSchemaRefCount();
@@ -162,18 +167,19 @@ describe("Schema Cache Deduplication", () => {
     const req2 = new Request();
     req2.query = { value: "query-value" };
 
+    // First validation creates 2 refs: validator (zod_schema) + JSON schema cache (json_schema_zod)
     const initialRefCount = getSchemaRefCount();
     const result1 = req1.validate(schema);
     const afterBodyCount = getSchemaRefCount();
 
     expect(result1).toEqual({ value: "body-value" });
-    expect(afterBodyCount).toBe(initialRefCount + 1);
+    expect(afterBodyCount).toBe(initialRefCount + 2);
 
     const result2 = req2.validateQuery(schema);
     const afterQueryCount = getSchemaRefCount();
 
     expect(result2).toEqual({ value: "query-value" });
-    expect(afterQueryCount).toBe(afterBodyCount); // Reused same schema
+    expect(afterQueryCount).toBe(afterBodyCount); // Reused same schema (both refs already cached)
   });
 
   it("should track openapiSchemaMap size correctly", () => {

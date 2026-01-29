@@ -1,12 +1,15 @@
 import fastJson, { AnySchema } from "fast-json-stringify";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
+import { logger } from "../logger/logger.js";
 import { TypeBoxLoader } from "../validator/typebox_loader.js";
 import { ZodLoader } from "../validator/zod_loader.js";
 import type { AjvCompileParams } from "./ajv_types.js";
+import { getSchemaCacheConfig } from "./cache_config.js";
 import type {
   SerializerCacheEntry,
   SerializerFunction,
 } from "./fast_json_stringify_types.js";
+import { LRUCache } from "./lru_cache.js";
 import {
   getSchemaRefCount,
   getSchemaRefKey,
@@ -25,11 +28,13 @@ import {
  * - Zod schemas (compiled once from Zod to JSON Schema to fast-json-stringify)
  * - TypeBox schemas (compiled once directly to fast-json-stringify, as they're already JSON Schema)
  * - Plain JSON schemas (compiled once directly to fast-json-stringify)
+ *
+ * Uses LRU eviction policy to prevent unbounded memory growth.
  */
-export const fastJsonStringifyMap = new Map<
+export const fastJsonStringifyMap = new LRUCache<
   symbol | string,
   SerializerCacheEntry
->();
+>(getSchemaCacheConfig().maxSerializerCacheSize);
 
 /**
  * Gets or creates a cached fast-json-stringify serializer for the given schema.
@@ -73,9 +78,14 @@ export const getOrCreateSerializer = (
 
     return serializer;
   } catch (error) {
-    console.error(
-      "Failed to compile fast-json-stringify serializer:",
-      error instanceof Error ? error.message : String(error),
+    logger.error(
+      {
+        error,
+        schemaType: getSchemaTypeDescription(jsonSchema),
+        cacheKey:
+          typeof cacheKey === "symbol" ? cacheKey.description : cacheKey,
+      },
+      "Failed to compile fast-json-stringify serializer",
     );
     return null;
   }
@@ -135,18 +145,20 @@ export const clearSerializerCache = (): void => {
  *
  * @returns An object with cache statistics including:
  *   - size: Number of cached serializers
+ *   - maxSize: Maximum cache size before eviction
  *   - schemaRefsCreated: Total number of unique schema references created (cumulative)
  *   - entries: Details about each cached serializer
  *
  * @example
  * ```ts
  * const stats = getSerializerCacheStats();
- * console.log(`Cached serializers: ${stats.size}`);
+ * console.log(`Cached serializers: ${stats.size}/${stats.maxSize}`);
  * console.log(`Schema refs created: ${stats.schemaRefsCreated}`);
  * ```
  */
 export const getSerializerCacheStats = (): {
   size: number;
+  maxSize: number;
   schemaRefsCreated: number;
   entries: Array<{
     key: string;
@@ -164,6 +176,7 @@ export const getSerializerCacheStats = (): {
 
   return {
     size: fastJsonStringifyMap.size,
+    maxSize: fastJsonStringifyMap.getMaxSize(),
     schemaRefsCreated: getSchemaRefCount(),
     entries,
   };

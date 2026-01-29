@@ -31,7 +31,15 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
         const compiled = AjvStateManager.ajv.compile(jsonSchema);
         openapiSchemaMap.set(refKey, compiled);
       } catch (error) {
-        logger.debug({ error }, "Failed to convert Zod schema to JSON Schema");
+        logger.warn(
+          {
+            error,
+            schemaType: "zod",
+            cacheKey: refKey.description,
+            context: "serialize_decorator",
+          },
+          "Failed to compile Zod schema for validation. Schema may contain unsupported types (e.g., z.instanceof). Runtime validation will still work, but Swagger documentation may be incomplete.",
+        );
         // Some Zod schemas (e.g., z.instanceof) cannot be converted to JSON Schema
         // These schemas won't be available for Swagger documentation
         // Silently skip caching - the schema can still be used for runtime validation
@@ -44,9 +52,22 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
   if (TypeBoxLoader.isTypeBoxSchema(schema)) {
     const refKey = getSchemaRefKey(schema, "serialize_typebox");
     if (!openapiSchemaMap.has(refKey)) {
-      cacheJsonSchema(schema, schema as JSONSchema);
-      const compiled = AjvStateManager.ajv.compile(schema);
-      openapiSchemaMap.set(refKey, compiled);
+      try {
+        cacheJsonSchema(schema, schema as JSONSchema);
+        const compiled = AjvStateManager.ajv.compile(schema);
+        openapiSchemaMap.set(refKey, compiled);
+      } catch (error) {
+        logger.warn(
+          {
+            error,
+            schemaType: "typebox",
+            cacheKey: refKey.description,
+            context: "serialize_decorator",
+          },
+          "Failed to compile TypeBox schema for validation. Schema may be invalid or use unsupported features.",
+        );
+        return;
+      }
     }
     return;
   }
@@ -54,9 +75,22 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
   if (typeof schema === "object" && schema !== null) {
     const refKey = getSchemaRefKey(schema, "serialize_json");
     if (!openapiSchemaMap.has(refKey)) {
-      cacheJsonSchema(schema, schema as JSONSchema);
-      const compiled = AjvStateManager.ajv.compile(schema);
-      openapiSchemaMap.set(refKey, compiled);
+      try {
+        cacheJsonSchema(schema, schema as JSONSchema);
+        const compiled = AjvStateManager.ajv.compile(schema);
+        openapiSchemaMap.set(refKey, compiled);
+      } catch (error) {
+        logger.warn(
+          {
+            error,
+            schemaType: "json",
+            cacheKey: refKey.description,
+            context: "serialize_decorator",
+          },
+          "Failed to compile JSON schema for validation. Schema may be invalid or malformed.",
+        );
+        return;
+      }
     }
     return;
   }
@@ -64,8 +98,20 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
   // Fallback for primitives or edge cases
   const cacheKey = JSON.stringify(schema);
   if (!openapiSchemaMap.has(cacheKey)) {
-    const compiled = AjvStateManager.ajv.compile(schema);
-    openapiSchemaMap.set(cacheKey, compiled);
+    try {
+      const compiled = AjvStateManager.ajv.compile(schema);
+      openapiSchemaMap.set(cacheKey, compiled);
+    } catch (error) {
+      logger.warn(
+        {
+          error,
+          schemaType: "primitive",
+          cacheKey,
+          context: "serialize_decorator",
+        },
+        "Failed to compile schema for validation. Schema format may be unsupported.",
+      );
+    }
   }
 };
 
@@ -87,9 +133,15 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
         const compiled = AjvStateManager.ajv.compile(jsonSchema);
         openapiSchemaMap.set(refKey, compiled);
       } catch (error) {
-        // Some Zod schemas (e.g., z.instanceof) cannot be converted to JSON Schema
-        // These schemas won't be available for Swagger documentation
-        // Silently skip caching - the schema can still be used for runtime validation
+        logger.warn(
+          {
+            error,
+            schemaType: "zod",
+            cacheKey: refKey.description,
+            context: "request_validation",
+          },
+          "Failed to compile Zod schema for request validation. Schema may contain unsupported types (e.g., z.instanceof). Swagger documentation may be incomplete.",
+        );
         return;
       }
     }
@@ -99,9 +151,22 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
   if (TypeBoxLoader.isTypeBoxSchema(schema)) {
     const refKey = getSchemaRefKey(schema, "typebox_schema");
     if (!openapiSchemaMap.has(refKey)) {
-      cacheJsonSchema(schema, schema as JSONSchema);
-      const compiled = AjvStateManager.ajv.compile(schema);
-      openapiSchemaMap.set(refKey, compiled);
+      try {
+        cacheJsonSchema(schema, schema as JSONSchema);
+        const compiled = AjvStateManager.ajv.compile(schema);
+        openapiSchemaMap.set(refKey, compiled);
+      } catch (error) {
+        logger.warn(
+          {
+            error,
+            schemaType: "typebox",
+            cacheKey: refKey.description,
+            context: "request_validation",
+          },
+          "Failed to compile TypeBox schema for request validation. Schema may be invalid or use unsupported features.",
+        );
+        return;
+      }
     }
     return;
   }
@@ -109,9 +174,22 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
   if (typeof schema === "object" && schema !== null) {
     const refKey = getSchemaRefKey(schema, "json_schema");
     if (!openapiSchemaMap.has(refKey)) {
-      cacheJsonSchema(schema, schema as JSONSchema);
-      const compiled = AjvStateManager.ajv.compile(schema);
-      openapiSchemaMap.set(refKey, compiled);
+      try {
+        cacheJsonSchema(schema, schema as JSONSchema);
+        const compiled = AjvStateManager.ajv.compile(schema);
+        openapiSchemaMap.set(refKey, compiled);
+      } catch (error) {
+        logger.warn(
+          {
+            error,
+            schemaType: "json",
+            cacheKey: refKey.description,
+            context: "request_validation",
+          },
+          "Failed to compile JSON schema for request validation. Schema may be invalid or malformed.",
+        );
+        return;
+      }
     }
     return;
   }
@@ -119,8 +197,20 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
   // Fallback for primitives or edge cases
   const cacheKey = JSON.stringify(schema);
   if (!openapiSchemaMap.has(cacheKey)) {
-    const compiled = AjvStateManager.ajv.compile(schema);
-    openapiSchemaMap.set(cacheKey, compiled);
+    try {
+      const compiled = AjvStateManager.ajv.compile(schema);
+      openapiSchemaMap.set(cacheKey, compiled);
+    } catch (error) {
+      logger.warn(
+        {
+          error,
+          schemaType: "primitive",
+          cacheKey,
+          context: "request_validation",
+        },
+        "Failed to compile schema for request validation. Schema format may be unsupported.",
+      );
+    }
   }
 };
 

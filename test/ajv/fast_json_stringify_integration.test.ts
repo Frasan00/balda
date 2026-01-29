@@ -101,7 +101,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       class TestController {
         @get("/")
         @serialize(z.object({ name: z.string(), age: z.number() }), {
-          safe: false,
+          throwErrorOnValidationFail: true,
         })
         async handler(_req: Request, res: Response) {
           // Missing required 'age' field
@@ -170,7 +170,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
             name: Type.String(),
             age: Type.Number(),
           }),
-          { safe: false },
+          { throwErrorOnValidationFail: true },
         )
         async handler(_req: Request, res: Response) {
           // Missing required 'age' field
@@ -222,7 +222,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       @controller("/test-fast-json-validation-plain")
       class TestController {
         @get("/")
-        @serialize(JsonSchema, { safe: false })
+        @serialize(JsonSchema, { throwErrorOnValidationFail: true })
         async handler(_req: Request, res: Response) {
           // Invalid type: string instead of number
           res.json({ value: "not-a-number" });
@@ -265,7 +265,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       expect(res2.statusCode()).toBe(200);
     });
 
-    it("should populate cache when validation runs (safe: false)", async () => {
+    it("should populate cache when validation runs (throwErrorOnValidationFail: true)", async () => {
       const UserSchema = z.object({
         id: z.number(),
         name: z.string(),
@@ -274,7 +274,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       @controller("/test-fast-json-cache-unsafe")
       class TestController {
         @get("/")
-        @serialize(UserSchema, { safe: false })
+        @serialize(UserSchema, { throwErrorOnValidationFail: true })
         async handler(_req: Request, res: Response) {
           res.json({ id: 1, name: "John" });
         }
@@ -284,7 +284,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       const statsBefore = getSerializerCacheStats();
       expect(statsBefore.size).toBe(1);
 
-      // First request with safe: false uses the pre-compiled serializer
+      // First request with throwErrorOnValidationFail: true uses the pre-compiled serializer
       const res1 = await mockServer.get("/test-fast-json-cache-unsafe/");
       expect(res1.statusCode()).toBe(200);
 
@@ -310,7 +310,7 @@ describe("@serialize decorator with fast-json-stringify", () => {
       @controller("/test-fast-json-cache-safe-mode")
       class TestController {
         @get("/")
-        @serialize(UserSchema) // safe: true is the default
+        @serialize(UserSchema) // throwErrorOnValidationFail: false is the default
         async handler(_req: Request, res: Response) {
           res.json({ id: 1, name: "John" });
         }
@@ -393,21 +393,21 @@ describe("@serialize decorator with fast-json-stringify", () => {
       expect(stats.size).toBe(0);
     });
 
-    it("should handle safe mode validation failures gracefully", async () => {
+    it("should handle validation disabled mode gracefully", async () => {
       @controller("/test-fast-json-safe")
       class TestController {
         @get("/")
         @serialize(z.object({ name: z.string(), age: z.number() }), {
-          safe: true,
+          throwErrorOnValidationFail: false,
         })
         async handler(_req: Request, res: Response) {
-          // Missing 'age' field, but safe mode should return the response anyway
+          // Missing 'age' field, but with throwErrorOnValidationFail: false, validation is skipped
           res.json({ name: "John" });
         }
       }
 
       const res = await mockServer.get("/test-fast-json-safe/");
-      // In safe mode, validation errors don't cause 500
+      // When throwErrorOnValidationFail is false, validation errors don't cause 500
       expect(res.statusCode()).toBe(200);
     });
   });

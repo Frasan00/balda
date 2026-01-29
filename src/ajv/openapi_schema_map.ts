@@ -1,4 +1,6 @@
 import type { AjvCompileReturnType } from "./ajv_types.js";
+import { getSchemaCacheConfig } from "./cache_config.js";
+import { LRUCache } from "./lru_cache.js";
 
 /**
  * Maps globally the controller schemas to the compiled AJV schemas in order to cache them.
@@ -11,8 +13,10 @@ import type { AjvCompileReturnType } from "./ajv_types.js";
  *
  * Schema objects are tracked in a WeakMap to generate stable cache keys,
  * preventing redundant compilation across the application lifecycle.
+ *
+ * Uses LRU eviction policy to prevent unbounded memory growth.
  */
-export const openapiSchemaMap = new Map<
+export const openapiSchemaMap = new LRUCache<
   symbol | string,
   AjvCompileReturnType
->();
+>(getSchemaCacheConfig().maxValidatorCacheSize);

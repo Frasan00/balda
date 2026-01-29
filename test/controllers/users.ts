@@ -173,7 +173,10 @@ export class UsersController {
   @get("/")
   @validate.query(UserIndexQuery)
   @serialize(z.array(UserResponse))
-  @serialize(ShouldFailResponse, { status: 201, safe: false })
+  @serialize(ShouldFailResponse, {
+    status: 201,
+    throwErrorOnValidationFail: true,
+  })
   async index(
     _req: Request,
     res: Response,
@@ -189,7 +192,10 @@ export class UsersController {
   @get("/ajv")
   @validate.query(UserIndexQueryOpenApi)
   @serialize(UserResponseOpenApi)
-  @serialize(ShouldFailResponseOpenApi, { status: 201, safe: false })
+  @serialize(ShouldFailResponseOpenApi, {
+    status: 201,
+    throwErrorOnValidationFail: true,
+  })
   async indexAjv(_req: Request, res: Response, qs: { shouldFail?: string }) {
     if (qs.shouldFail === "true") {
       return res.created(users);
@@ -199,7 +205,7 @@ export class UsersController {
   }
 
   @get("/ajv/:id")
-  @serialize(SingleUserResponseOpenApi, { safe: false })
+  @serialize(SingleUserResponseOpenApi, { throwErrorOnValidationFail: true })
   @serialize(UserNotFoundResponseOpenApi, { status: 404 })
   async showAjv(req: Request<{ id: string }>, res: Response) {
     const user = users.find((user) => user.id === Number(req.params.id));
@@ -270,7 +276,7 @@ export class UsersController {
   }
 
   @get("/:id")
-  @serialize(UserResponse, { safe: false })
+  @serialize(UserResponse, { throwErrorOnValidationFail: true })
   @serialize(z.object({ error: z.literal("User not found") }), {
     status: 404,
   })
@@ -341,7 +347,10 @@ export class UsersController {
   @get("/typebox")
   @validate.query(UserIndexQueryTypeBox)
   @serialize(UserResponseArrayTypeBox)
-  @serialize(ShouldFailResponseTypeBox, { status: 201, safe: false })
+  @serialize(ShouldFailResponseTypeBox, {
+    status: 201,
+    throwErrorOnValidationFail: true,
+  })
   async indexTypeBox(
     _req: Request,
     res: Response,
@@ -355,7 +364,7 @@ export class UsersController {
   }
 
   @get("/typebox/:id")
-  @serialize(UserResponseTypeBox, { safe: false })
+  @serialize(UserResponseTypeBox, { throwErrorOnValidationFail: true })
   @serialize(UserNotFoundResponseTypeBox, { status: 404 })
   async showTypeBox(req: Request<{ id: string }>, res: Response) {
     const user = users.find((user) => user.id === Number(req.params.id));

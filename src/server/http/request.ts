@@ -2,6 +2,7 @@ import type { TSchema } from "@sinclair/typebox";
 import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
+import { cacheJsonSchema } from "../../ajv/json_schema_cache.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
 import type {
@@ -127,6 +128,7 @@ export class Request<Params extends Record<string, string> = any> {
 
   /**
    * Gets or compiles a schema, using cache when available.
+   * Also caches the JSON Schema representation for Swagger documentation.
    * @param schema - The schema to compile
    * @returns Compiled Ajv validation function
    * @internal
@@ -149,6 +151,9 @@ export class Request<Params extends Record<string, string> = any> {
     // Store in cache
     openapiSchemaMap.set(cacheKey, compiled);
 
+    // Also cache the JSON Schema for Swagger documentation
+    cacheJsonSchema(schema, jsonSchema as any);
+
     return compiled;
   }
 
@@ -156,16 +161,16 @@ export class Request<Params extends Record<string, string> = any> {
    * Compiles and validates the request data against the input schema.
    * @param inputSchema - The schema to validate the request data against (Zod, TypeBox, or plain JSON schema).
    * @param data - The request data to validate.
-   * @param safe - If true, the function will return the original data if the validation fails instead of throwing an error.
+   * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original data.
    * @returns The validated data.
    */
   private static compileAndValidate<T extends RequestSchema>(
     inputSchema: RequestSchema,
     data: T,
-    safe: boolean,
+    throwErrorOnValidationFail: boolean,
   ): ValidatedData<T> {
     const compiled = this.getOrCompileSchema(inputSchema);
-    return validateSchema(compiled, data, safe);
+    return validateSchema(compiled, data, throwErrorOnValidationFail);
   }
 
   /**
@@ -238,9 +243,22 @@ export class Request<Params extends Record<string, string> = any> {
    * The parsed body of the request from the body parser middleware.
    * If body parser middleware is not used, this will be undefined.
    *
-   * Note: This is untyped - use validation decorators to get typed body as a handler argument.
+   * Type is `unknown` to enforce validation before use.
+   * Use validation methods or decorators to get typed body:
+   * - `req.validate(schema)` - Validates and returns typed body
+   * - `@validate.body(schema)` - Decorator for automatic validation
+   *
+   * @example
+   * ```ts
+   * // With validation
+   * const validBody = req.validate(mySchema);
+   * // Now validBody is properly typed
+   *
+   * // Without validation (not recommended)
+   * const unsafeBody = req.body as MyType; // Requires type assertion
+   * ```
    */
-  body: any = undefined;
+  body: unknown = undefined;
 
   /**
    * Flag indicating if the body has been read/parsed
@@ -338,9 +356,60 @@ export class Request<Params extends Record<string, string> = any> {
 
   /**
    * The query parameters of the request.
-   * Lazy parsed - only parses URLSearchParams when accessed
+   * Lazy parsed - only parses URLSearchParams when accessed.
    *
-   * Note: This is untyped - use validation decorators to get typed query as a handler argument.
+   * ## Parsing Behavior
+   *
+   * ### Simple Queries (Optimized Fast Path)
+   * For simple queries (< 50 chars, no `&`), uses optimized parsing:
+   * - `?name=value` → `{ name: "value" }`
+   * - `?key` → `{ key: "" }`
+   * - Values are URL-decoded, keys are NOT decoded
+   *
+   * ### Complex Queries (Standard URLSearchParams)
+   * For complex queries (≥ 50 chars or contains `&`), uses standard URLSearchParams:
+   * - `?a=1&b=2` → `{ a: "1", b: "2" }`
+   * - Both keys and values are URL-decoded
+   *
+   * ### Duplicate Keys
+   * When the same key appears multiple times, **only the last value is kept**:
+   * - `?id=1&id=2` → `{ id: "2" }` (NOT an array)
+   *
+   * ### Array Parameters
+   * Array notation is **not** automatically handled:
+   * - `?ids[]=1&ids[]=2` → `{ "ids[]": "2" }` (literal key "ids[]", not an array)
+   * - Use validation schemas to parse array parameters if needed
+   *
+   * ### Special Characters
+   * - Encoded values are decoded: `?name=John%20Doe` → `{ name: "John Doe" }`
+   * - Plus signs in values become spaces (standard URL encoding)
+   * - Keys are only decoded in complex queries (URLSearchParams path)
+   *
+   * ### Edge Cases
+   * - Empty query string: `?` → `{}`
+   * - No query string: → `{}`
+   * - Encoded ampersands in values are handled correctly in complex queries:
+   *   - `?key=value%26more&other=2` → `{ key: "value&more", other: "2" }`
+   * - But may fail in simple query fast path if `&` appears in encoded form
+   *
+   * ## Type Safety
+   *
+   * Query values are **untyped strings**. For type-safe query parameters:
+   * - Use `req.validateQuery(schema)` for runtime validation
+   * - Use `@validate.query(schema)` decorator for automatic validation
+   *
+   * @example
+   * ```ts
+   * // Basic usage
+   * req.query.name // string | undefined
+   *
+   * // With validation for type safety
+   * const validated = req.validateQuery(z.object({
+   *   page: z.coerce.number(),
+   *   limit: z.coerce.number(),
+   * }));
+   * validated.page // number
+   * ```
    */
   get query(): Record<string, string> {
     if (this.#queryParsed) {
@@ -409,39 +478,43 @@ export class Request<Params extends Record<string, string> = any> {
   /**
    * The validated body of the request.
    * @param inputSchema - The schema to validate the body against (Zod schema or JSON Schema).
-   * @param safe - If true, the function will return the original body if the validation fails instead of throwing an error.
+   * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original body.
    */
   validate<T extends RequestSchema>(
     inputSchema: T,
-    safe: boolean = false,
+    throwErrorOnValidationFail: boolean = false,
   ): ValidatedData<T> {
-    return Request.compileAndValidate(inputSchema, this.body || {}, safe);
+    return Request.compileAndValidate(
+      inputSchema,
+      this.body || {},
+      throwErrorOnValidationFail,
+    );
   }
 
   /**
    * Validates the query string of the request.
    * @param inputSchema - The schema to validate the query against (Zod schema or JSON Schema).
-   * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
+   * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original query.
    */
   validateQuery<T extends RequestSchema>(
     inputSchema: T,
-    safe: boolean = false,
+    throwErrorOnValidationFail: boolean = false,
   ): ValidatedData<T> {
     return Request.compileAndValidate(
       inputSchema,
       (this.query || {}) as Record<string, string>,
-      safe,
+      throwErrorOnValidationFail,
     );
   }
 
   /**
    * Validates the body and query string of the request.
    * @param inputSchema - The schema to validate against (Zod schema or JSON Schema).
-   * @param safe - If true, the function will return undefined if the validation fails instead of throwing an error.
+   * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original data.
    */
   validateAll<T extends RequestSchema>(
     inputSchema: T,
-    safe: boolean = false,
+    throwErrorOnValidationFail: boolean = false,
   ): ValidatedData<T> {
     return Request.compileAndValidate(
       inputSchema,
@@ -449,7 +522,7 @@ export class Request<Params extends Record<string, string> = any> {
         ...(this.body ?? {}),
         ...((this.query as Record<string, string>) ?? {}),
       },
-      safe,
+      throwErrorOnValidationFail,
     );
   }
 }

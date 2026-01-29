@@ -48,6 +48,7 @@ export class Router {
   private middlewares: ServerRouteMiddleware[];
   private basePath: string;
   private staticRouteCache: Map<string, CachedRoute>;
+  private handlerResponseSchemas: Map<ServerRouteHandler, RouteResponseSchemas>;
 
   /**
    * Create a new router with an optional base path and default middlewares.
@@ -65,6 +66,7 @@ export class Router {
     this.middlewares = middlewares;
     this.basePath = this.normalizeBasePath(basePath);
     this.staticRouteCache = new Map();
+    this.handlerResponseSchemas = new Map();
   }
 
   /** Returns a shallow copy of all registered routes. */
@@ -140,6 +142,11 @@ export class Router {
 
     if (paramNames.length > 0) {
       node.paramName = paramNames.join(",");
+    }
+
+    // Store response schemas in O(1) lookup map for dynamic routes
+    if (responseSchemas) {
+      this.handlerResponseSchemas.set(handler, responseSchemas);
     }
 
     if (isStaticRoute) {
@@ -247,16 +254,14 @@ export class Router {
       return null;
     }
 
-    // Look up response schemas from routes array for dynamic routes
-    const route = this.routes.find(
-      (r) => r.method === method && r.handler === node.handler,
-    );
+    // O(1) lookup for response schemas using handler map
+    const responseSchemas = this.handlerResponseSchemas.get(node.handler);
 
     return {
       middleware: node.middleware,
       handler: node.handler,
       params,
-      responseSchemas: route?.responseSchemas,
+      responseSchemas,
     };
   }
 
@@ -735,6 +740,7 @@ export class Router {
   clearRoutes(): void {
     this.routes = [];
     this.staticRouteCache.clear();
+    this.handlerResponseSchemas.clear();
     this.trees.clear();
   }
 }

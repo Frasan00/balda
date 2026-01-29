@@ -81,8 +81,8 @@ const validateDecorator = (
     }
 
     if (options.all) {
-      meta.documentation.requestBody = options.body;
-      meta.documentation.query = options.query;
+      meta.documentation.requestBody = options.all;
+      meta.documentation.query = options.all;
     }
 
     MetadataStore.set(target, propertyKey, meta);
@@ -96,16 +96,18 @@ const validateDecorator = (
         let validatedQuery: any = undefined;
         let validatedAll: any = undefined;
 
+        const throwOnFail = options.throwOnValidationFail ?? true;
+
         if (options.body) {
-          validatedBody = req.validate(options.body, options.safe);
+          validatedBody = req.validate(options.body, throwOnFail);
         }
 
         if (options.query) {
-          validatedQuery = req.validateQuery(options.query, options.safe);
+          validatedQuery = req.validateQuery(options.query, throwOnFail);
         }
 
         if (options.all) {
-          validatedAll = req.validateAll(options.all, options.safe);
+          validatedAll = req.validateAll(options.all, throwOnFail);
         }
 
         const newArgs = [...args];
@@ -140,37 +142,49 @@ const validateDecorator = (
 /**
  * Decorator to validate the query parameters against a Zod schema or OpenAPI schema
  * @param schema - The schema to validate the query parameters against (Zod, TypeBox, or plain JSON schema)
+ * @param options - Optional validation options (customError, throwOnValidationFail)
  * @returns The decorator function
  */
 validateDecorator.query = (
   schema: RequestSchema,
-  customError?: CustomValidationError,
+  options?: {
+    customError?: CustomValidationError;
+    throwOnValidationFail?: boolean;
+  },
 ) => {
-  return validateDecorator({ query: schema, customError });
+  return validateDecorator({ query: schema, ...options });
 };
 
 /**
  * Decorator to validate the request body against a Zod schema
  * @param schema - The schema to validate the request body against (Zod, TypeBox, or plain JSON schema)
+ * @param options - Optional validation options (customError, throwOnValidationFail)
  * @returns The decorator function
  */
 validateDecorator.body = (
   schema: RequestSchema,
-  customError?: CustomValidationError,
+  options?: {
+    customError?: CustomValidationError;
+    throwOnValidationFail?: boolean;
+  },
 ) => {
-  return validateDecorator({ body: schema, customError });
+  return validateDecorator({ body: schema, ...options });
 };
 
 /**
  * Decorator to validate both the request body and query parameters against a Zod schema
  * @param schema - The schema to validate both the request body and query parameters against (Zod, TypeBox, or plain JSON schema)
+ * @param options - Optional validation options (customError, throwOnValidationFail)
  * @returns The decorator function
  */
 validateDecorator.all = (
   schema: RequestSchema,
-  customError?: CustomValidationError,
+  options?: {
+    customError?: CustomValidationError;
+    throwOnValidationFail?: boolean;
+  },
 ) => {
-  return validateDecorator({ all: schema, customError });
+  return validateDecorator({ all: schema, ...options });
 };
 
 export const validate = validateDecorator;

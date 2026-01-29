@@ -4,6 +4,7 @@ import { getContentType } from "../../plugins/static/static.js";
 import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
 import type { FastJsonStringifyFunction } from "../../ajv/fast_json_stringify_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import { logger } from "../../logger/logger.js";
 import { nativeFile } from "../../runtime/native_file.js";
 import { nativePath } from "../../runtime/native_path.js";
 
@@ -519,9 +520,18 @@ export class Response<TBody = any> {
         this.body = this.#serializer(this.body);
         // Clear the serializer after use to prevent re-serialization
         this.#serializer = undefined;
-      } catch {
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            statusCode: this.responseStatus,
+            contentType: this.headers["Content-Type"],
+          },
+          "Fast-json-stringify serialization failed, falling back to JSON.stringify",
+        );
         // If serialization fails, fall back to returning the original body
         // The caller will handle JSON.stringify as a fallback
+        this.#serializer = undefined;
       }
     }
     return this.body;

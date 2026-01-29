@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { fastJsonStringifyMap } from "../../src/ajv/fast_json_stringify_cache.js";
+import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
 import {
   compileAndCacheValidator,
-  compileResponseSchemas,
   compileRequestSchemas,
   compileRequestValidator,
+  compileResponseSchemas,
 } from "../../src/ajv/schema_compiler.js";
-import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
-import { fastJsonStringifyMap } from "../../src/ajv/fast_json_stringify_cache.js";
 import { getSchemaRefKey } from "../../src/ajv/schema_ref_cache.js";
 
 describe("Schema Compiler - Shared Utility", () => {
@@ -221,7 +221,7 @@ describe("Request Schema Pre-Compilation", () => {
       expect(fastJsonStringifyMap.has(serializerKey)).toBe(false);
     });
 
-    it("should reuse cache key for the same schema object in different contexts", () => {
+    it("should use different cache keys for the same schema object in different contexts", () => {
       const schema = {
         type: "object",
         properties: { data: { type: "string" } },
@@ -235,10 +235,11 @@ describe("Request Schema Pre-Compilation", () => {
       compileAndCacheValidator(schema);
       const responseKey = getSchemaRefKey(schema, "serialize_json");
 
-      // Same schema object gets same cache key (efficient - compile once, use everywhere)
+      // Same schema object gets DIFFERENT cache keys in different contexts
+      // This allows independent caching for validation vs serialization
       expect(openapiSchemaMap.has(requestKey)).toBe(true);
       expect(openapiSchemaMap.has(responseKey)).toBe(true);
-      expect(requestKey).toBe(responseKey); // Same Symbol for same schema object
+      expect(requestKey).not.toBe(responseKey); // Different Symbols for different contexts
     });
 
     it("should handle TypeBox schemas with correct cache key", () => {

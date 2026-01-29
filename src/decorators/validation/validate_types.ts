@@ -1,5 +1,5 @@
-import type { z, ZodAny } from "zod";
 import type { Static, TSchema } from "@sinclair/typebox";
+import type { z, ZodAny } from "zod";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
 export type RequestSchema = ZodAny | TSchema | AjvCompileParams[0];
@@ -31,8 +31,8 @@ export interface ValidationOptions {
    */
   all?: RequestSchema;
   /**
-   * Whether to use safe validation (returns original data if validation fails instead of throwing)
-   * @default false
+   * Whether to throw an error on validation failure (returns 400 response with validation errors)
+   * @default true
    */
-  safe?: boolean;
+  throwOnValidationFail?: boolean;
 }

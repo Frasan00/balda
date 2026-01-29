@@ -98,13 +98,19 @@ export type {
 // async storage
 export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";
 
-// Cache Monitoring
+// Schema Cache Monitoring and Configuration
 export {
-  getCacheMetrics,
-  logCacheMetrics,
-  clearAllCaches,
+  getCacheMetrics as getSchemaCacheMetrics,
+  logCacheMetrics as logSchemaCacheMetrics,
+  clearAllCaches as clearAllSchemaCaches,
 } from "./ajv/cache_monitor.js";
-export type { CacheMetrics } from "./ajv/cache_monitor.js";
+export type { CacheMetrics as SchemaCacheMetrics } from "./ajv/cache_monitor.js";
+export {
+  getSchemaCacheConfig,
+  setSchemaCacheConfig,
+  resetSchemaCacheConfig,
+} from "./ajv/cache_config.js";
+export type { SchemaCacheConfig } from "./ajv/cache_config.js";
 
 // Storage
 export * from "./storage/providers/blob_storage.js";

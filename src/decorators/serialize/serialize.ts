@@ -2,6 +2,7 @@ import { compileAndCacheValidator } from "../../ajv/schema_compiler.js";
 import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
 import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
 import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
+import { logger } from "../../logger/logger.js";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
@@ -16,7 +17,7 @@ import type { SerializeOptions } from "./serialize_types.js";
 interface SerializeMetadataEntry {
   name: string;
   schema: RequestSchema;
-  safe: boolean;
+  throwErrorOnValidationFail: boolean;
 }
 
 /**
@@ -83,7 +84,8 @@ export const serialize = <T extends RequestSchema>(
 
     const status = Number(options?.status ?? 200);
     meta.documentation.responses[status] = schema;
-    meta.serializeOptions[status] = options?.safe ?? true;
+    meta.serializeOptions[status] =
+      options?.throwErrorOnValidationFail ?? false;
     MetadataStore.set(target, propertyKey, meta);
 
     compileAndCacheValidator(schema);
@@ -94,7 +96,7 @@ export const serialize = <T extends RequestSchema>(
     existingMetadata[status] = {
       name: propertyKey,
       schema,
-      safe: options?.safe ?? true,
+      throwErrorOnValidationFail: options?.throwErrorOnValidationFail ?? false,
     };
     SERIALIZE_METADATA_MAP.set(descriptor.value, existingMetadata);
 
@@ -107,7 +109,9 @@ export const serialize = <T extends RequestSchema>(
 
         const serializeMetadata = SERIALIZE_METADATA_MAP.get(wrappedFunction);
         const schema = serializeMetadata?.[actualStatus]?.schema;
-        const safe = serializeMetadata?.[actualStatus]?.safe ?? true;
+        const throwErrorOnValidationFail =
+          serializeMetadata?.[actualStatus]?.throwErrorOnValidationFail ??
+          false;
 
         if (!schema) {
           return;
@@ -115,11 +119,35 @@ export const serialize = <T extends RequestSchema>(
 
         const body = res.getBody();
 
-        // When safe mode is disabled, validate the response body against the schema
-        if (!safe) {
+        // When throwErrorOnValidationFail is enabled, validate the response body against the schema
+        if (throwErrorOnValidationFail) {
           const compiledSchema = getCompiledValidator(schema);
           if (compiledSchema) {
-            await validateSchema(compiledSchema, body, safe);
+            try {
+              await validateSchema(
+                compiledSchema,
+                body,
+                throwErrorOnValidationFail,
+              );
+            } catch (validationError) {
+              // Response validation failed - this is a server error (500)
+              logger.error(
+                {
+                  error: validationError,
+                  body,
+                  statusCode: actualStatus,
+                  schemaDescription:
+                    typeof schema === "object" && schema !== null
+                      ? Object.keys(schema).slice(0, 5).join(", ")
+                      : "unknown",
+                },
+                "Response validation failed in @serialize decorator",
+              );
+              return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Response validation failed",
+              });
+            }
           }
         }
 

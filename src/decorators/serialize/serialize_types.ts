@@ -5,9 +5,11 @@ export interface SerializeOptions {
    */
   status?: number;
   /**
-   * Whether to use safe serialization (returns original data if serialization fails instead of throwing)
-   * Advised to only set unsafe if development environment
-   * @default true
+   * Whether to throw an error when response validation fails.
+   * When true, throws ValidationError if response doesn't match schema.
+   * When false, skips validation (returns original data).
+   * Advised to set to true in development environment.
+   * @default false
    */
-  safe?: boolean;
+  throwErrorOnValidationFail?: boolean;
 }
