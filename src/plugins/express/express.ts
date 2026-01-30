@@ -14,6 +14,8 @@ import type { NextFunction } from "../../server/http/next.js";
 import type { Request as BaldaRequest } from "../../server/http/request.js";
 import type { Response as BaldaResponse } from "../../server/http/response.js";
 import { router } from "../../server/router/router.js";
+import type { ExpressResponseWrapper } from "./express_types.js";
+import { logger } from "../../logger/logger.js";
 
 /**
  * Converts a Balda Request to an Express-compatible request object
@@ -24,6 +26,9 @@ function toBaldaToExpressRequest(
 ): ExpressRequest {
   const url = new URL(baldaReq.url);
   const headersObj = Object.fromEntries(baldaReq.headers.entries());
+
+  const forwardedProto = baldaReq.headers.get("x-forwarded-proto");
+  const protocol = forwardedProto || url.protocol.replace(":", "");
 
   const expressReq = {
     body: baldaReq.body,
@@ -47,8 +52,8 @@ function toBaldaToExpressRequest(
     app: {},
     res: null,
     route: null,
-    protocol: url.protocol.replace(":", ""),
-    secure: url.protocol === "https:",
+    protocol,
+    secure: protocol === "https",
     hostname: url.hostname,
     host: url.host,
     fresh: false,
@@ -67,45 +72,6 @@ function toBaldaToExpressRequest(
   } as unknown as ExpressRequest;
 
   return expressReq;
-}
-
-interface ExpressResponseWrapper {
-  locals: Record<string, any>;
-  headersSent: boolean;
-  statusCode: number;
-  status(code: number): this;
-  sendStatus(code: number): this;
-  send(body?: any): this;
-  json(body?: any): this;
-  redirect(statusOrUrl: number | string, url?: string): this;
-  setHeader(name: string, value: string | number | readonly string[]): this;
-  set(field: string | Record<string, string>, value?: string): this;
-  header(field: string | Record<string, string>, value?: string): this;
-  type(contentType: string): this;
-  contentType(type: string): this;
-  end(data?: any): this;
-  write(chunk: any): boolean;
-  get(name: string): string | undefined;
-  getHeader(name: string): string | undefined;
-  removeHeader(name: string): this;
-  append(field: string, value: string | string[]): this;
-  cookie(name: string, value: string, options?: any): this;
-  clearCookie(name: string, options?: any): this;
-  render(view: string, options?: any, callback?: any): void;
-  format(obj: any): this;
-  attachment(filename?: string): this;
-  sendFile(path: string, options?: any, fn?: any): void;
-  download(
-    path: string,
-    filename?: string | any,
-    options?: any,
-    fn?: any,
-  ): void;
-  links(links: Record<string, string>): this;
-  location(url: string): this;
-  vary(field: string): this;
-  app: Record<string, any>;
-  req: null;
 }
 
 /**
@@ -159,7 +125,6 @@ function createExpressResponse(baldaRes: BaldaResponse): ExpressResponse {
       const redirectUrl = typeof statusOrUrl === "string" ? statusOrUrl : url!;
       const status = typeof statusOrUrl === "number" ? statusOrUrl : 302;
       baldaRes.status(status).setHeader("Location", redirectUrl);
-      baldaRes.send("");
       return this;
     },
 
@@ -201,7 +166,11 @@ function createExpressResponse(baldaRes: BaldaResponse): ExpressResponse {
       return this;
     },
 
-    write(chunk: any) {
+    write(_chunk: any) {
+      logger.warn(
+        { method: "write" },
+        "res.write() is not fully supported in Express compatibility layer - responses will be buffered",
+      );
       return true;
     },
 
@@ -242,7 +211,9 @@ function createExpressResponse(baldaRes: BaldaResponse): ExpressResponse {
     },
 
     format(obj: any) {
-      return this;
+      throw new Error(
+        "format() is not supported in Express compatibility layer",
+      );
     },
 
     attachment(filename?: string) {
@@ -308,26 +279,48 @@ export function expressMiddleware(
     const expressReq = toBaldaToExpressRequest(baldaReq, basePath);
     const expressRes = createExpressResponse(baldaRes);
 
-    await new Promise<void>((resolve, reject) => {
-      const expressNext: ExpressNextFunction = (err?: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      };
+    expressReq.res = expressRes;
+    expressRes.req = expressReq;
 
-      try {
-        const result = expressHandler(expressReq, expressRes, expressNext);
-        if (result instanceof Promise) {
-          result.catch(reject);
-        }
-      } catch (error) {
-        reject(error);
-      }
-    });
+    let nextCalled = false;
+    const timeoutMs = 30000;
 
-    await next();
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        const expressNext: ExpressNextFunction = (err?: any) => {
+          nextCalled = true;
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        };
+
+        try {
+          const result = expressHandler(expressReq, expressRes, expressNext);
+          if (result instanceof Promise) {
+            result.catch(reject);
+          }
+        } catch (error) {
+          reject(error);
+        }
+      }),
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (!nextCalled && !expressRes.headersSent) {
+            logger.warn(
+              { basePath, timeout: timeoutMs },
+              "Express middleware did not call next() within timeout and did not send response",
+            );
+          }
+          resolve();
+        }, timeoutMs);
+      }),
+    ]);
+
+    if (!expressRes.headersSent) {
+      await next();
+    }
   };
 }
 
@@ -342,8 +335,17 @@ export function expressHandler(
     const expressReq = toBaldaToExpressRequest(baldaReq, basePath);
     const expressRes = createExpressResponse(baldaRes);
 
+    expressReq.res = expressRes;
+    expressRes.req = expressReq;
+
     const next: ExpressNextFunction = () => {};
-    await handler(expressReq, expressRes, next);
+
+    try {
+      await handler(expressReq, expressRes, next);
+    } catch (error) {
+      logger.error({ error, basePath }, "Express handler threw an error");
+      throw error;
+    }
   };
 }
 
@@ -376,7 +378,10 @@ export function mountExpressRouter(
     | undefined;
 
   if (!stack) {
-    console.warn("Express router has no stack - routes may not be registered");
+    logger.warn(
+      { basePath },
+      "Express router has no stack - routes may not be registered",
+    );
     return;
   }
 
@@ -473,6 +478,11 @@ function registerExpressHandlers(
   );
 }
 
+/**
+ * Normalizes a path by removing duplicate slashes and trailing slashes
+ * Note: Does not handle Express route parameters (:id), wildcards (*), or regex patterns
+ * These are passed through as-is to the Balda router
+ */
 function normalizePath(path: string): string {
   let normalized = path.replace(/\/+/g, "/");
   if (!normalized.startsWith("/")) {
