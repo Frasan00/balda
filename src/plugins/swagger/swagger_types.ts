@@ -124,10 +124,6 @@ export type SwaggerRouteOptions = {
   service?: string;
   /** Name of the route */
   name?: string;
-  /** Query parameters schema */
-  query?: RequestSchema;
-  /** Request body schema */
-  requestBody?: RequestSchema;
   /** Responses for this route */
   responses?: Record<number, RequestSchema>;
   /** Errors for this route */

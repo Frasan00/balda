@@ -1,5 +1,3 @@
-import { execSync } from "node:child_process";
-import * as readline from "node:readline";
 import type { Command } from "./commands/base_command.js";
 
 /**

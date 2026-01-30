@@ -4,7 +4,10 @@ import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
-import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
+import { AjvStateManager } from "../../ajv/ajv.js";
+import type { JSONSchema } from "../swagger/swagger_types.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import type { CompressionOptions } from "./compression_types.js";
 
 const DEFAULT_THRESHOLD = 1024; // 1KB
@@ -66,7 +69,11 @@ export const compression = (
     };
 
     res.json = function (body: any, schema?: RequestSchema): void {
-      const serializer = schema ? getOrCreateSerializer(schema) : null;
+      let serializer = null;
+      if (schema) {
+        const { jsonSchema, prefix } = getJsonSchemaWithPrefix(schema);
+        serializer = AjvStateManager.getOrCreateSerializer(jsonSchema, prefix);
+      }
       const jsonString =
         serializer && typeof body === "object" && body !== null
           ? serializer(body)
@@ -91,6 +98,39 @@ export const compression = (
     };
 
     await next();
+  };
+};
+
+const getJsonSchemaWithPrefix = (
+  schema: RequestSchema,
+): {
+  jsonSchema: JSONSchema;
+  prefix: string;
+} => {
+  if (ZodLoader.isZodSchema(schema)) {
+    return {
+      jsonSchema: ZodLoader.toJSONSchema(schema),
+      prefix: "fast_stringify_zod",
+    };
+  }
+
+  if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+    return {
+      jsonSchema: schema as JSONSchema,
+      prefix: "fast_stringify_typebox",
+    };
+  }
+
+  if (typeof schema === "object" && schema !== null) {
+    return {
+      jsonSchema: schema as JSONSchema,
+      prefix: "fast_stringify_json",
+    };
+  }
+
+  return {
+    jsonSchema: { type: typeof schema } as JSONSchema,
+    prefix: `fast_stringify_primitive_${JSON.stringify(schema)}`,
   };
 };
 

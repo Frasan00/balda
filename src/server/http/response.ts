@@ -1,12 +1,15 @@
 import { type ServerResponse } from "node:http";
 import { type CookieOptions } from "../../plugins/cookie/cookie_types.js";
 import { getContentType } from "../../plugins/static/static.js";
-import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
+import { AjvStateManager } from "../../ajv/ajv.js";
 import type { FastJsonStringifyFunction } from "../../ajv/fast_json_stringify_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import type { JSONSchema } from "../../plugins/swagger/swagger_types.js";
 import { logger } from "../../logger/logger.js";
 import { nativeFile } from "../../runtime/native_file.js";
 import { nativePath } from "../../runtime/native_path.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 
 /**
  * The response object with optional type-safe response body.
@@ -189,8 +192,47 @@ export class Response<TBody = any> {
 
     // If schema is provided (explicitly or from route), cache it for fast serialization
     if (effectiveSchema) {
-      this.#serializer = getOrCreateSerializer(effectiveSchema) ?? undefined;
+      const { jsonSchema, prefix } =
+        this.getJsonSchemaWithPrefix(effectiveSchema);
+      this.#serializer =
+        AjvStateManager.getOrCreateSerializer(jsonSchema, prefix) ?? undefined;
     }
+  }
+
+  /**
+   * Converts any schema type to JSON Schema format with appropriate prefix.
+   * @param schema - The schema to convert
+   * @returns Object with JSON Schema and prefix
+   */
+  private getJsonSchemaWithPrefix(schema: RequestSchema): {
+    jsonSchema: JSONSchema;
+    prefix: string;
+  } {
+    if (ZodLoader.isZodSchema(schema)) {
+      return {
+        jsonSchema: ZodLoader.toJSONSchema(schema),
+        prefix: "fast_stringify_zod",
+      };
+    }
+
+    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "fast_stringify_typebox",
+      };
+    }
+
+    if (typeof schema === "object" && schema !== null) {
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "fast_stringify_json",
+      };
+    }
+
+    return {
+      jsonSchema: { type: typeof schema } as JSONSchema,
+      prefix: `fast_stringify_primitive_${JSON.stringify(schema)}`,
+    };
   }
 
   /**

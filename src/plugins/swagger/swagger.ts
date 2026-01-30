@@ -7,11 +7,9 @@ import type {
 } from "../../plugins/swagger/swagger_types.js";
 import { router } from "../../server/router/router.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
-import {
-  getJsonSchemaFromCache,
-  cacheJsonSchema,
-} from "../../ajv/json_schema_cache.js";
+import { AjvStateManager } from "../../ajv/ajv.js";
 import { logger } from "../../logger/logger.js";
 
 /**
@@ -86,8 +84,8 @@ const escapeHtml = (str?: string): string => {
 };
 
 /**
- * Retrieves JSON Schema from cache, with fallback to direct conversion.
- * At route registration time, all schemas are pre-converted and cached.
+ * Retrieves JSON Schema from Ajv cache, with fallback to direct conversion.
+ * At route registration time, all schemas are pre-converted and stored in Ajv.
  * This function should always hit the cache for route schemas.
  */
 function getOrConvertToJSONSchema(
@@ -101,18 +99,26 @@ function getOrConvertToJSONSchema(
     return { type: "string" };
   }
 
-  // Try to get from cache first
-  const cached = getJsonSchemaFromCache(schema as RequestSchema);
+  // Determine the appropriate prefix based on schema type
+  let prefix = "json_schema";
+  if (ZodLoader.isZodSchema(schema)) {
+    prefix = "zod_schema";
+  } else if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+    prefix = "typebox_schema";
+  }
+
+  // Try to get from Ajv cache first
+  const cached = AjvStateManager.getJsonSchema(schema, prefix);
   if (cached) {
     return cached;
   }
 
-  // Fallback: Convert and cache for future use
+  // Fallback: Convert and store in Ajv for future use
   // This handles edge cases like global swagger models that weren't pre-compiled
   if (ZodLoader.isZodSchema(schema)) {
     try {
       const jsonSchema = ZodLoader.toJSONSchema(schema as ZodAny);
-      cacheJsonSchema(schema as RequestSchema, jsonSchema);
+      AjvStateManager.storeJsonSchema(jsonSchema, prefix);
       return jsonSchema;
     } catch (error) {
       logger.debug(
@@ -128,7 +134,7 @@ function getOrConvertToJSONSchema(
 
   // TypeBox schemas and plain JSON schemas are already in JSON Schema format
   const jsonSchema = schema as JSONSchema;
-  cacheJsonSchema(schema as RequestSchema, jsonSchema);
+  AjvStateManager.storeJsonSchema(jsonSchema, prefix);
   return jsonSchema;
 }
 
@@ -188,11 +194,16 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     };
 
     let parameters: any[] = [];
-    if (swaggerOptions?.query) {
-      const querySchema = swaggerOptions.query as any;
-      if (querySchema.type === "object" && (querySchema as ZodObject).shape) {
+    // Read query schema from route.validationSchemas (new location)
+    const querySchema = route.validationSchemas?.query;
+    if (querySchema) {
+      const querySchemaAny = querySchema as any;
+      if (
+        querySchemaAny.type === "object" &&
+        (querySchemaAny as ZodObject).shape
+      ) {
         for (const [name, schema] of Object.entries(
-          (querySchema as ZodObject).shape,
+          (querySchemaAny as ZodObject).shape,
         )) {
           // Skip if schema is invalid
           if (!schema || typeof schema !== "object") {
@@ -203,9 +214,11 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
             name,
             in: "query",
             required: Array.isArray(
-              (querySchema as ZodObject).shape[name].required,
+              (querySchemaAny as ZodObject).shape[name].required,
             )
-              ? (querySchema as ZodObject).shape[name].required.includes(name)
+              ? (querySchemaAny as ZodObject).shape[name].required.includes(
+                  name,
+                )
               : false,
             schema: getOrConvertToJSONSchema(schema as ZodType),
           });
@@ -227,19 +240,20 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       operation.parameters = parameters;
     }
 
-    if (swaggerOptions?.requestBody) {
+    // Read body schema from route.validationSchemas (new location)
+    const bodySchema =
+      route.validationSchemas?.body || route.validationSchemas?.all;
+    if (bodySchema) {
       let routeBodyContentType = "application/json";
-      if (swaggerOptions.bodyType === "form-data") {
+      if (swaggerOptions?.bodyType === "form-data") {
         routeBodyContentType = "multipart/form-data";
-      } else if (swaggerOptions.bodyType === "urlencoded") {
+      } else if (swaggerOptions?.bodyType === "urlencoded") {
         routeBodyContentType = "application/x-www-form-urlencoded";
       }
       operation.requestBody = {
         content: {
           [routeBodyContentType]: {
-            schema: getOrConvertToJSONSchema(
-              swaggerOptions.requestBody as ZodType,
-            ),
+            schema: getOrConvertToJSONSchema(bodySchema as ZodType),
           },
         },
         required: true,

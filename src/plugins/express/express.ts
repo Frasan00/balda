@@ -434,9 +434,16 @@ function processExpressLayer(layer: RouterLayer, basePath: string): void {
       "HEAD",
     ];
     for (const method of methods) {
-      router.addOrUpdate(method, wildcardPath, [middleware], async () => {}, {
-        excludeFromSwagger: true,
-      });
+      router.addOrUpdate(
+        method,
+        wildcardPath,
+        [middleware],
+        async () => {},
+        {},
+        {
+          excludeFromSwagger: true,
+        },
+      );
     }
   }
 }
@@ -454,9 +461,16 @@ function registerExpressHandlers(
   const lastHandler = handlers[handlers.length - 1];
   const finalHandler = expressHandler(lastHandler, basePath);
 
-  router.addOrUpdate(method, path, middlewares, finalHandler, {
-    excludeFromSwagger: true,
-  });
+  router.addOrUpdate(
+    method,
+    path,
+    middlewares,
+    finalHandler,
+    {},
+    {
+      excludeFromSwagger: true,
+    },
+  );
 }
 
 function normalizePath(path: string): string {

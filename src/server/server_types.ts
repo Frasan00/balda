@@ -35,6 +35,8 @@ import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import type { ClientRouter } from "./router/router_type.js";
 import type { CronUIOptions } from "../cron/cron.types.js";
+import type { RequestSchema } from "../decorators/validation/validate_types.js";
+import { ExtractParams } from "./router/path_types.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -433,7 +435,16 @@ export interface ServerInterface {
 
 export type StandardMethodOptions = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
+  body?: RequestSchema;
+  query?: RequestSchema;
+  all?: RequestSchema;
   swagger?: SwaggerRouteOptions;
 };
 
 export type SignalEvent = Deno.Signal | NodeJS.Signals;
+
+export type ControllerHandler<TPath extends string = string> = (
+  req: Request<ExtractParams<TPath>>,
+  res: Response,
+  ...args: any[]
+) => ServerHandlerReturnType;

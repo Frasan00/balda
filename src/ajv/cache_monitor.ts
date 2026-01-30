@@ -1,11 +1,4 @@
-import { openapiSchemaMap } from "./openapi_schema_map.js";
-import { jsonSchemaCache, clearJsonSchemaCache } from "./json_schema_cache.js";
-import {
-  fastJsonStringifyMap,
-  getSerializerCacheStats,
-  clearSerializerCache,
-} from "./fast_json_stringify_cache.js";
-import { getSchemaRefCount } from "./schema_ref_cache.js";
+import { AjvStateManager } from "./ajv.js";
 import { logger } from "../logger/logger.js";
 
 /**
@@ -14,29 +7,11 @@ import { logger } from "../logger/logger.js";
 export interface CacheMetrics {
   validators: {
     size: number;
-    maxSize: number;
-    description: string;
-  };
-  serializers: {
-    size: number;
-    maxSize: number;
-    schemaRefsCreated: number;
-    entries: Array<{
-      key: string;
-      compiledAt: number;
-      schemaType: string;
-    }>;
-  };
-  jsonSchemas: {
-    size: number;
-    maxSize: number;
     description: string;
   };
   totalSchemaReferences: number;
   memoryEstimate: {
     validators: string;
-    serializers: string;
-    jsonSchemas: string;
     total: string;
   };
 }
@@ -45,7 +20,7 @@ export interface CacheMetrics {
  * Gets comprehensive metrics about all schema caches.
  * Useful for monitoring memory usage and cache effectiveness.
  *
- * @returns Cache metrics including sizes, memory estimates, and detailed entries
+ * @returns Cache metrics including sizes and memory estimates
  *
  * @example
  * ```ts
@@ -55,15 +30,12 @@ export interface CacheMetrics {
  * ```
  */
 export const getCacheMetrics = (): CacheMetrics => {
-  const serializerStats = getSerializerCacheStats();
+  const stats = AjvStateManager.getCacheStats();
 
   // Estimate memory usage (rough approximation)
-  // Each validator: ~1-5KB, serializer: ~2-10KB, JSON schema: ~0.5-2KB
-  const validatorMemoryKB = openapiSchemaMap.size * 3;
-  const serializerMemoryKB = serializerStats.size * 6;
-  const jsonSchemaMemoryKB = jsonSchemaCache.size * 1;
-  const totalMemoryKB =
-    validatorMemoryKB + serializerMemoryKB + jsonSchemaMemoryKB;
+  // Each validator: ~1-5KB, serializer: ~2-10KB
+  const validatorMemoryKB = stats.schemaCount * 3;
+  const totalMemoryKB = validatorMemoryKB;
 
   const formatMemory = (kb: number): string => {
     if (kb < 1024) {
@@ -75,26 +47,13 @@ export const getCacheMetrics = (): CacheMetrics => {
 
   return {
     validators: {
-      size: openapiSchemaMap.size,
-      maxSize: openapiSchemaMap.getMaxSize(),
-      description: "Compiled AJV validators for request/response validation",
+      size: stats.schemaCount,
+      description:
+        "Compiled schemas stored in Ajv for validation and serialization",
     },
-    serializers: {
-      size: serializerStats.size,
-      maxSize: serializerStats.maxSize,
-      schemaRefsCreated: serializerStats.schemaRefsCreated,
-      entries: serializerStats.entries,
-    },
-    jsonSchemas: {
-      size: jsonSchemaCache.size,
-      maxSize: jsonSchemaCache.getMaxSize(),
-      description: "Converted JSON schemas for Swagger/OpenAPI documentation",
-    },
-    totalSchemaReferences: getSchemaRefCount(),
+    totalSchemaReferences: stats.totalRefsCreated,
     memoryEstimate: {
       validators: formatMemory(validatorMemoryKB),
-      serializers: formatMemory(serializerMemoryKB),
-      jsonSchemas: formatMemory(jsonSchemaMemoryKB),
       total: formatMemory(totalMemoryKB),
     },
   };
@@ -118,8 +77,6 @@ export const logCacheMetrics = (): void => {
   logger.info(
     {
       validators: metrics.validators.size,
-      serializers: metrics.serializers.size,
-      jsonSchemas: metrics.jsonSchemas.size,
       totalSchemaRefs: metrics.totalSchemaReferences,
       memoryEstimate: metrics.memoryEstimate.total,
     },
@@ -140,8 +97,6 @@ export const logCacheMetrics = (): void => {
  * ```
  */
 export const clearAllCaches = (): void => {
-  openapiSchemaMap.clear();
-  clearSerializerCache();
-  clearJsonSchemaCache();
+  AjvStateManager.clearAllCaches();
   logger.debug("All schema caches cleared");
 };

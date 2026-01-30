@@ -53,6 +53,7 @@ export const serveStatic = (
     async (req, res) => {
       return staticFileHandler(req, res, source);
     },
+    {},
     {
       service: "StaticFiles",
       ...swaggerOptions,

@@ -1,10 +1,9 @@
 import { compileAndCacheValidator } from "../../ajv/schema_compiler.js";
-import { getOrCreateSerializer } from "../../ajv/fast_json_stringify_cache.js";
-import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
-import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
+import { AjvStateManager } from "../../ajv/ajv.js";
 import { logger } from "../../logger/logger.js";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Response } from "../../server/http/response.js";
+import type { JSONSchema } from "../../plugins/swagger/swagger_types.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
@@ -35,32 +34,56 @@ const SERIALIZE_METADATA_MAP = new WeakMap<
 const SERIALIZE_WRAPPED_SET = new WeakSet<Function>();
 
 /**
- * Gets the compiled validator for a schema from the cache.
+ * Gets the compiled validator for a schema using Ajv's cache.
  * The schema must already be compiled via compileAndCacheValidator.
  * @param schema - The schema to get the validator for
  * @returns The compiled validator, or null if not found
  */
-const getCompiledValidator = (
+const getCompiledValidator = (schema: RequestSchema) => {
+  const { jsonSchema, prefix } = getJsonSchemaWithPrefix(schema);
+  try {
+    return AjvStateManager.getOrCompileValidator(jsonSchema, prefix);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Converts any schema type to JSON Schema format with appropriate prefix.
+ * @param schema - The schema to convert
+ * @returns Object with JSON Schema and prefix
+ */
+const getJsonSchemaWithPrefix = (
   schema: RequestSchema,
-): ReturnType<typeof openapiSchemaMap.get> => {
+): {
+  jsonSchema: JSONSchema;
+  prefix: string;
+} => {
   if (ZodLoader.isZodSchema(schema)) {
-    const refKey = getSchemaRefKey(schema, "serialize_zod");
-    return openapiSchemaMap.get(refKey);
+    return {
+      jsonSchema: ZodLoader.toJSONSchema(schema),
+      prefix: "serialize_zod",
+    };
   }
 
   if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-    const refKey = getSchemaRefKey(schema, "serialize_typebox");
-    return openapiSchemaMap.get(refKey);
+    return {
+      jsonSchema: schema as JSONSchema,
+      prefix: "serialize_typebox",
+    };
   }
 
   if (typeof schema === "object" && schema !== null) {
-    const refKey = getSchemaRefKey(schema, "serialize_json");
-    return openapiSchemaMap.get(refKey);
+    return {
+      jsonSchema: schema as JSONSchema,
+      prefix: "serialize_json",
+    };
   }
 
-  // Fallback for primitives or edge cases
-  const cacheKey = JSON.stringify(schema);
-  return openapiSchemaMap.get(cacheKey);
+  return {
+    jsonSchema: { type: typeof schema } as JSONSchema,
+    prefix: `serialize_primitive_${JSON.stringify(schema)}`,
+  };
 };
 
 export const serialize = <T extends RequestSchema>(
@@ -88,8 +111,10 @@ export const serialize = <T extends RequestSchema>(
       options?.throwErrorOnValidationFail ?? false;
     MetadataStore.set(target, propertyKey, meta);
 
+    // Pre-compile validator and serializer
     compileAndCacheValidator(schema);
-    getOrCreateSerializer(schema);
+    const { jsonSchema, prefix } = getJsonSchemaWithPrefix(schema);
+    AjvStateManager.getOrCreateSerializer(jsonSchema, prefix);
 
     // Store metadata in WeakMap instead of mutating function
     const existingMetadata = SERIALIZE_METADATA_MAP.get(descriptor.value) || {};

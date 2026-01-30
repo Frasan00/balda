@@ -25,6 +25,15 @@ export interface Route {
    * Used for automatic fast JSON serialization in Response.json()
    */
   responseSchemas?: RouteResponseSchemas;
+  /**
+   * Validation schemas for request body, query parameters, or both.
+   * When provided, the handler will receive validated data as additional parameters.
+   */
+  validationSchemas?: {
+    body?: RequestSchema;
+    query?: RequestSchema;
+    all?: RequestSchema;
+  };
 }
 
 /**

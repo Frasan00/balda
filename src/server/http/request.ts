@@ -1,16 +1,13 @@
-import type { TSchema } from "@sinclair/typebox";
 import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
-import { cacheJsonSchema } from "../../ajv/json_schema_cache.js";
-import { openapiSchemaMap } from "../../ajv/openapi_schema_map.js";
-import { getSchemaRefKey } from "../../ajv/schema_ref_cache.js";
 import type {
   RequestSchema,
   ValidatedData,
 } from "../../decorators/validation/validate_types.js";
 import type { AsyncLocalStorageContext } from "../../plugins/async_local_storage/async_local_storage_types.js";
 import type { FormFile } from "../../plugins/body_parser/file/file_types.js";
+import type { JSONSchema } from "../../plugins/swagger/swagger_types.js";
 import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
@@ -84,51 +81,45 @@ export class Request<Params extends Record<string, string> = any> {
   }
 
   /**
-   * Determines the cache key for a schema based on its type.
-   * @param schema - The schema to get a cache key for
-   * @returns A Symbol or string cache key
+   * Converts any schema type to JSON Schema format and returns it with the appropriate prefix.
+   * @param schema - The schema to convert
+   * @returns Object with JSON Schema and prefix for caching
    * @internal
    */
-  private static getSchemaRefKey(schema: RequestSchema): symbol | string {
+  private static toJSONSchemaWithPrefix(schema: RequestSchema): {
+    jsonSchema: JSONSchema;
+    prefix: string;
+  } {
     if (ZodLoader.isZodSchema(schema)) {
-      return getSchemaRefKey(schema as ZodAny, "zod_schema");
+      return {
+        jsonSchema: ZodLoader.toJSONSchema(schema as ZodAny),
+        prefix: "zod_schema",
+      };
     }
 
     if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-      return getSchemaRefKey(schema as TSchema, "typebox_schema");
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "typebox_schema",
+      };
     }
 
     if (typeof schema === "object" && schema !== null) {
-      return getSchemaRefKey(schema as object, "json_schema");
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "json_schema",
+      };
     }
 
-    return JSON.stringify(schema);
+    return {
+      jsonSchema: { type: typeof schema } as JSONSchema,
+      prefix: `primitive_${JSON.stringify(schema)}`,
+    };
   }
 
   /**
-   * Converts any schema type to JSON Schema format.
-   * @param schema - The schema to convert
-   * @returns JSON Schema object
-   * @internal
-   */
-  private static toJSONSchema(schema: RequestSchema): object {
-    // Zod schemas need conversion
-    if (ZodLoader.isZodSchema(schema)) {
-      return ZodLoader.toJSONSchema(schema as ZodAny);
-    }
-
-    // TypeBox schemas are already JSON Schema
-    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-      return schema as TSchema;
-    }
-
-    // Plain JSON schemas or primitives
-    return schema as object;
-  }
-
-  /**
-   * Gets or compiles a schema, using cache when available.
-   * Also caches the JSON Schema representation for Swagger documentation.
+   * Gets or compiles a schema using Ajv's internal caching.
+   * Also stores the JSON Schema representation for Swagger documentation.
    * @param schema - The schema to compile
    * @returns Compiled Ajv validation function
    * @internal
@@ -136,25 +127,13 @@ export class Request<Params extends Record<string, string> = any> {
   private static getOrCompileSchema(
     schema: RequestSchema,
   ): AjvCompileReturnType {
-    const cacheKey = this.getSchemaRefKey(schema);
+    const { jsonSchema, prefix } = this.toJSONSchemaWithPrefix(schema);
 
-    // Check cache first
-    const cached = openapiSchemaMap.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    // Store JSON schema for Swagger documentation
+    AjvStateManager.storeJsonSchema(jsonSchema, prefix);
 
-    // Convert to JSON Schema and compile
-    const jsonSchema = this.toJSONSchema(schema);
-    const compiled = AjvStateManager.ajv.compile(jsonSchema);
-
-    // Store in cache
-    openapiSchemaMap.set(cacheKey, compiled);
-
-    // Also cache the JSON Schema for Swagger documentation
-    cacheJsonSchema(schema, jsonSchema as any);
-
-    return compiled;
+    // Get or compile validator using Ajv's internal cache
+    return AjvStateManager.getOrCompileValidator(jsonSchema, prefix);
   }
 
   /**

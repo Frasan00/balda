@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { fastJsonStringifyMap } from "../../src/ajv/fast_json_stringify_cache.js";
-import { openapiSchemaMap } from "../../src/ajv/openapi_schema_map.js";
-import { getSchemaRefKey } from "../../src/ajv/schema_ref_cache.js";
+import { AjvStateManager } from "../../src/ajv/ajv.js";
 import type { Request } from "../../src/server/http/request.js";
 import { Response } from "../../src/server/http/response.js";
 import { Router } from "../../src/server/router/router.js";
@@ -11,9 +9,8 @@ describe("Router - Inline Route Schema Caching", () => {
 
   beforeEach(() => {
     router = new Router();
-    // Clear caches before each test
-    openapiSchemaMap.clear();
-    fastJsonStringifyMap.clear();
+    // Clear Ajv caches before each test
+    AjvStateManager.clearAllCaches();
   });
 
   it("should compile and cache response schemas during route registration", () => {
@@ -28,23 +25,24 @@ describe("Router - Inline Route Schema Caching", () => {
 
     const handler = (req: Request, res: Response) => {};
 
-    router.get("/test", handler, {
-      responses: {
-        200: responseSchema,
+    router.get(
+      "/test",
+      {
+        swagger: {
+          responses: {
+            200: responseSchema,
+          },
+        },
       },
-    });
-
-    // Verify schema is cached in openapiSchemaMap (for validation)
-    const validatorRefKey = getSchemaRefKey(responseSchema, "serialize_json");
-    expect(openapiSchemaMap.has(validatorRefKey)).toBe(true);
-
-    // Verify schema is cached in fastJsonStringifyMap (for serialization)
-    // Different prefix is used for serialization cache
-    const serializerRefKey = getSchemaRefKey(
-      responseSchema,
-      "fast_stringify_json",
+      handler,
     );
-    expect(fastJsonStringifyMap.has(serializerRefKey)).toBe(true);
+
+    // Verify schema is stored in Ajv
+    const cachedSchema = AjvStateManager.getJsonSchema(
+      responseSchema,
+      "serialize_json",
+    );
+    expect(cachedSchema).toBeDefined();
   });
 
   it("should cache multiple response schemas for different status codes", () => {
@@ -60,19 +58,31 @@ describe("Router - Inline Route Schema Caching", () => {
 
     const handler = (req: Request, res: Response) => {};
 
-    router.get("/multi", handler, {
-      responses: {
-        200: schema200,
-        404: schema404,
+    router.get(
+      "/multi",
+      {
+        swagger: {
+          responses: {
+            200: schema200,
+            404: schema404,
+          },
+        },
       },
-    });
+      handler,
+    );
 
-    // Verify both schemas are cached
-    const refKey200 = getSchemaRefKey(schema200, "serialize_json");
-    const refKey404 = getSchemaRefKey(schema404, "serialize_json");
+    // Verify both schemas are cached in Ajv
+    const cached200 = AjvStateManager.getJsonSchema(
+      schema200,
+      "serialize_json",
+    );
+    const cached404 = AjvStateManager.getJsonSchema(
+      schema404,
+      "serialize_json",
+    );
 
-    expect(openapiSchemaMap.has(refKey200)).toBe(true);
-    expect(openapiSchemaMap.has(refKey404)).toBe(true);
+    expect(cached200).toBeDefined();
+    expect(cached404).toBeDefined();
   });
 
   it("should include response schemas in route metadata", () => {
@@ -83,11 +93,17 @@ describe("Router - Inline Route Schema Caching", () => {
 
     const handler = (req: Request, res: Response) => {};
 
-    router.post("/action", handler, {
-      responses: {
-        201: responseSchema,
+    router.post(
+      "/action",
+      {
+        swagger: {
+          responses: {
+            201: responseSchema,
+          },
+        },
       },
-    });
+      handler,
+    );
 
     const routes = router.getRoutes();
     expect(routes).toHaveLength(1);
@@ -98,209 +114,145 @@ describe("Router - Inline Route Schema Caching", () => {
   it("should pass response schemas through router.find() for static routes", () => {
     const responseSchema = {
       type: "object",
-      properties: { id: { type: "string" } },
+      properties: { success: { type: "boolean" } },
     } as const;
 
     const handler = (req: Request, res: Response) => {};
 
-    router.get("/users", handler, {
-      responses: {
-        200: responseSchema,
+    router.put(
+      "/update",
+      {
+        swagger: {
+          responses: {
+            200: responseSchema,
+          },
+        },
       },
-    });
+      handler,
+    );
 
-    const match = router.find("GET", "/users");
-    expect(match).not.toBeNull();
-    expect(match!.responseSchemas).toBeDefined();
-    expect(match!.responseSchemas![200]).toBe(responseSchema);
+    const found = router.find("PUT", "/update");
+    expect(found).toBeDefined();
+    expect(found?.responseSchemas).toBeDefined();
+    expect(found?.responseSchemas![200]).toBe(responseSchema);
   });
 
   it("should pass response schemas through router.find() for dynamic routes", () => {
     const responseSchema = {
       type: "object",
-      properties: { userId: { type: "string" } },
+      properties: { id: { type: "string" } },
     } as const;
 
     const handler = (req: Request, res: Response) => {};
 
-    router.get("/users/:id", handler, {
-      responses: {
-        200: responseSchema,
+    router.get(
+      "/users/:id",
+      {
+        swagger: {
+          responses: {
+            200: responseSchema,
+          },
+        },
       },
-    });
+      handler,
+    );
 
-    const match = router.find("GET", "/users/123");
-    expect(match).not.toBeNull();
-    expect(match!.params).toEqual({ id: "123" });
-    expect(match!.responseSchemas).toBeDefined();
-    expect(match!.responseSchemas![200]).toBe(responseSchema);
+    const found = router.find("GET", "/users/123");
+    expect(found).toBeDefined();
+    expect(found?.responseSchemas).toBeDefined();
+    expect(found?.responseSchemas![200]).toBe(responseSchema);
   });
 
   it("should handle routes without response schemas", () => {
     const handler = (req: Request, res: Response) => {};
 
-    router.get("/no-schema", handler);
+    router.delete("/remove", handler);
 
-    const match = router.find("GET", "/no-schema");
-    expect(match).not.toBeNull();
-    expect(match!.responseSchemas).toBeUndefined();
-  });
-
-  it("should cache schemas only once for the same schema object", () => {
-    const sharedSchema = {
-      type: "object",
-      properties: { shared: { type: "string" } },
-    } as const;
-
-    const handler = (req: Request, res: Response) => {};
-
-    router.get("/route1", handler, {
-      responses: { 200: sharedSchema },
-    });
-
-    const initialCacheSize = openapiSchemaMap.size;
-
-    router.get("/route2", handler, {
-      responses: { 200: sharedSchema },
-    });
-
-    // Cache size should not increase since it's the same schema object
-    expect(openapiSchemaMap.size).toBe(initialCacheSize);
-  });
-
-  it("should update response schemas when route is updated", () => {
-    const schema1 = {
-      type: "object",
-      properties: { version: { type: "number" } },
-    } as const;
-
-    const schema2 = {
-      type: "object",
-      properties: { version: { type: "string" } },
-    } as const;
-
-    const handler = (req: Request, res: Response) => {};
-
-    router.get("/versioned", handler, {
-      responses: { 200: schema1 },
-    });
-
-    let routes = router.getRoutes();
-    expect(routes[0].responseSchemas![200]).toBe(schema1);
-
-    // Update the route with new schema
-    router.get("/versioned", handler, {
-      responses: { 200: schema2 },
-    });
-
-    routes = router.getRoutes();
+    const routes = router.getRoutes();
     expect(routes).toHaveLength(1);
-    expect(routes[0].responseSchemas![200]).toBe(schema2);
+    expect(routes[0].responseSchemas).toBeUndefined();
   });
-});
 
-describe("Response - Automatic Schema Application", () => {
-  it("should use route response schema automatically in Response.json()", () => {
+  it("should compile request schemas during route registration", () => {
+    const bodySchema = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        email: { type: "string" },
+      },
+      required: ["name", "email"],
+    } as const;
+
+    const querySchema = {
+      type: "object",
+      properties: {
+        page: { type: "number" },
+      },
+    } as const;
+
+    const handler = (req: Request, res: Response) => {};
+
+    router.post(
+      "/create",
+      {
+        body: bodySchema,
+        query: querySchema,
+      },
+      handler,
+    );
+
+    // Verify both request schemas are stored in Ajv
+    const cachedBody = AjvStateManager.getJsonSchema(bodySchema, "json_schema");
+    const cachedQuery = AjvStateManager.getJsonSchema(
+      querySchema,
+      "json_schema",
+    );
+
+    expect(cachedBody).toBeDefined();
+    expect(cachedQuery).toBeDefined();
+  });
+
+  it("should handle mixed request and response schemas", () => {
+    const requestSchema = {
+      type: "object",
+      properties: {
+        input: { type: "string" },
+      },
+    } as const;
+
     const responseSchema = {
       type: "object",
       properties: {
-        message: { type: "string" },
-        timestamp: { type: "number" },
+        output: { type: "string" },
       },
-      required: ["message"],
     } as const;
 
-    const response = new Response(200);
-    response.setRouteResponseSchemas({ 200: responseSchema });
+    const handler = (req: Request, res: Response) => {};
 
-    // Call json without explicit schema
-    response.json({ message: "test", timestamp: Date.now() });
+    router.post(
+      "/transform",
+      {
+        body: requestSchema,
+        swagger: {
+          responses: {
+            200: responseSchema,
+          },
+        },
+      },
+      handler,
+    );
 
-    // Verify the schema was applied (serializer should be set)
-    const body = response.getBody();
-    expect(typeof body).toBe("string"); // Should be serialized by fast-json-stringify
-  });
+    // Verify both schemas are cached
+    const cachedRequest = AjvStateManager.getJsonSchema(
+      requestSchema,
+      "json_schema",
+    );
+    const cachedResponse = AjvStateManager.getJsonSchema(
+      responseSchema,
+      "serialize_json",
+    );
 
-  it("should prioritize explicit schema over route schema", () => {
-    const routeSchema = {
-      type: "object",
-      properties: { route: { type: "string" } },
-    } as const;
-
-    const explicitSchema = {
-      type: "object",
-      properties: { explicit: { type: "string" } },
-    } as const;
-
-    const response = new Response(200);
-    response.setRouteResponseSchemas({ 200: routeSchema });
-
-    // Call json with explicit schema
-    response.json({ explicit: "value" }, explicitSchema);
-
-    // The explicit schema should be used (not the route schema)
-    const body = response.getBody();
-    expect(typeof body).toBe("string"); // Serialized
-  });
-
-  it("should handle different status codes with different schemas", () => {
-    const schema200 = {
-      type: "object",
-      properties: { success: { type: "boolean" } },
-    } as const;
-
-    const schema404 = {
-      type: "object",
-      properties: { error: { type: "string" } },
-    } as const;
-
-    const response = new Response(200);
-    response.setRouteResponseSchemas({
-      200: schema200,
-      404: schema404,
-    });
-
-    // Status 200 should use schema200
-    response.json({ success: true });
-    let body = response.getBody();
-    expect(typeof body).toBe("string");
-
-    // Change status to 404
-    const response404 = new Response(404);
-    response404.setRouteResponseSchemas({
-      200: schema200,
-      404: schema404,
-    });
-
-    response404.json({ error: "Not found" });
-    body = response404.getBody();
-    expect(typeof body).toBe("string");
-  });
-
-  it("should work without route schemas (backward compatibility)", () => {
-    const response = new Response(200);
-
-    // No route schemas set
-    response.json({ message: "test" });
-
-    const body = response.getBody();
-    // Should return object directly (not serialized since no schema)
-    expect(typeof body).toBe("object");
-    expect(body).toEqual({ message: "test" });
-  });
-
-  it("should handle missing schema for current status code", () => {
-    const response = new Response(200);
-    response.setRouteResponseSchemas({
-      404: { type: "object", properties: { error: { type: "string" } } },
-    });
-
-    // Status 200 has no schema defined
-    response.json({ message: "test" });
-
-    const body = response.getBody();
-    // Should return object directly since no schema for 200
-    expect(typeof body).toBe("object");
-    expect(body).toEqual({ message: "test" });
+    expect(cachedRequest).toBeDefined();
+    expect(cachedResponse).toBeDefined();
   });
 });

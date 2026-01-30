@@ -85,32 +85,26 @@ export { hash } from "./runtime/native_hash.js";
 // GraphQL
 export * from "./graphql/graphql.js";
 export type {
-  GraphQLTypeDef,
-  GraphQLResolvers,
   GraphQLContext,
+  GraphQLOptions,
   GraphQLResolverFunction,
   GraphQLResolverMap,
-  GraphQLOptions,
+  GraphQLResolvers,
   GraphQLResolverType,
   GraphQLSchemaInput,
+  GraphQLTypeDef,
 } from "./graphql/graphql_types.js";
 
 // async storage
 export { asyncStorage } from "./plugins/async_local_storage/async_local_storage.js";
 
-// Schema Cache Monitoring and Configuration
+// Schema Cache Monitoring
 export {
+  clearAllCaches as clearAllSchemaCaches,
   getCacheMetrics as getSchemaCacheMetrics,
   logCacheMetrics as logSchemaCacheMetrics,
-  clearAllCaches as clearAllSchemaCaches,
 } from "./ajv/cache_monitor.js";
 export type { CacheMetrics as SchemaCacheMetrics } from "./ajv/cache_monitor.js";
-export {
-  getSchemaCacheConfig,
-  setSchemaCacheConfig,
-  resetSchemaCacheConfig,
-} from "./ajv/cache_config.js";
-export type { SchemaCacheConfig } from "./ajv/cache_config.js";
 
 // Storage
 export * from "./storage/providers/blob_storage.js";

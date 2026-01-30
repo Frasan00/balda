@@ -64,6 +64,7 @@ import type { ClientRouter, Route } from "./router/router_type.js";
 import type { ExtractParams } from "./router/path_types.js";
 import { PROTECTED_KEYS } from "./server_constants.js";
 import type {
+  ControllerHandler,
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
@@ -76,6 +77,7 @@ import type {
 } from "./server_types.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
+import { RequestSchema } from "../decorators/validation/validate_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -197,261 +199,219 @@ export class Server<
 
   get<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("GET", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "GET",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   post<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("POST", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "POST",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   patch<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("PATCH", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "PATCH",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   put<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("PUT", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "PUT",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   delete<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("DELETE", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "DELETE",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   options<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("OPTIONS", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "OPTIONS",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   head<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
       );
 
-    router.addOrUpdate("HEAD", path, middlewares, handler, swaggerOptions);
+    const validationSchemas = { body, query, all };
+    router.addOrUpdate(
+      "HEAD",
+      path,
+      middlewares,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+    );
   }
 
   group(
@@ -747,6 +707,9 @@ export class Server<
   ): {
     middlewares: ServerRouteMiddleware[];
     handler: ServerRouteHandler;
+    body?: RequestSchema;
+    query?: RequestSchema;
+    all?: RequestSchema;
     swaggerOptions?: SwaggerRouteOptions;
   } {
     if (typeof optionsOrHandler === "function") {
@@ -769,6 +732,9 @@ export class Server<
     return {
       middlewares,
       handler: maybeHandler!,
+      body: options.body,
+      query: options.query,
+      all: options.all,
       swaggerOptions: options.swagger,
     };
   }
@@ -920,9 +886,16 @@ export class Server<
       "HEAD",
     ] as const;
     for (const method of methods) {
-      router.addOrUpdate(method, "*", [], this.handleNotFound, {
-        excludeFromSwagger: true,
-      });
+      router.addOrUpdate(
+        method,
+        "*",
+        [],
+        this.handleNotFound,
+        {},
+        {
+          excludeFromSwagger: true,
+        },
+      );
     }
   }
 
