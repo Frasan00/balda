@@ -263,42 +263,42 @@ export interface ServerInterface {
   mountExpressRouter: (basePath: string, expressRouter: ExpressRouter) => void;
 
   /**
-   * Shorthand for the server.router.get method
+   * Shorthand for the router.get method
    */
   get: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.post method
+   * Shorthand for the router.post method
    */
   post: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.put method
+   * Shorthand for the router.put method
    */
   put: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.patch method
+   * Shorthand for the router.patch method
    */
   patch: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.delete method
+   * Shorthand for the router.delete method
    */
   delete: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.options method
+   * Shorthand for the router.options method
    */
   options: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.head method
+   * Shorthand for the router.head method
    */
   head: (...args: any[]) => void;
 
   /**
-   * Shorthand for the server.router.group method
+   * Shorthand for the router.group method
    */
   group: (...args: any[]) => void;
 

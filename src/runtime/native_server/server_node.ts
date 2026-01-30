@@ -146,9 +146,9 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         const request = new Request();
         request.url = `${this.url}${urlString}`;
         request.method = req.method!;
-        request.body = canHaveBody(req.method)
-          ? await this.readRequestBody(req)
-          : undefined;
+        if (canHaveBody(req.method)) {
+          request.setNodeRequest(req);
+        }
         request.headers = new Headers(filteredHeaders);
 
         request.ip = this.extractClientIp(req);

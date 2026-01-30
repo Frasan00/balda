@@ -1,3 +1,5 @@
+import type { IncomingMessage } from "node:http";
+import { Readable } from "node:stream";
 import type { ZodAny } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
@@ -62,6 +64,29 @@ export class Request<Params extends Record<string, string> = any> {
       this.method === "PUT" ||
       this.method === "PATCH";
 
+    // Lazy loading the body from the Node.js IncomingMessage
+    if (this.#nodeIncomingMessage && hasBodyMethod) {
+      const webStream = Readable.toWeb(
+        this.#nodeIncomingMessage,
+      ) as unknown as ReadableStream;
+      this.#webApiRequest = new globalThis.Request(this.url, {
+        method: this.method,
+        body: webStream,
+        headers: this.headers,
+        signal: this.signal,
+        referrer: this.referrer,
+        referrerPolicy: this.referrerPolicy,
+        mode: this.mode,
+        credentials: this.credentials,
+        cache: this.cache,
+        redirect: this.redirect,
+        integrity: this.integrity,
+        keepalive: this.keepalive,
+      });
+      return this.#webApiRequest;
+    }
+
+    // Handle already parsed body or no body
     return new globalThis.Request(this.url, {
       method: this.method,
       ...(hasBodyMethod && this.body
@@ -157,6 +182,12 @@ export class Request<Params extends Record<string, string> = any> {
    * @internal
    */
   #webApiRequest?: globalThis.Request;
+
+  /**
+   * The original Node.js IncomingMessage (for lazy body reading on Node.js runtime)
+   * @internal
+   */
+  #nodeIncomingMessage?: IncomingMessage;
 
   /**
    * The URL of the request
@@ -503,5 +534,15 @@ export class Request<Params extends Record<string, string> = any> {
       },
       throwErrorOnValidationFail,
     );
+  }
+
+  /**
+   * Sets the Node.js IncomingMessage for lazy body reading.
+   * Used internally by the Node.js server implementation.
+   * @param req - The Node.js IncomingMessage
+   * @internal
+   */
+  setNodeRequest(req: IncomingMessage): void {
+    this.#nodeIncomingMessage = req;
   }
 }
