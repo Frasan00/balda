@@ -9,7 +9,7 @@ class NativeExit {
       case "deno":
         Deno.exit(code);
       default:
-        throw new Error("Unsupported runtime");
+        throw new Error(`Unsupported runtime: ${runtime.type}`);
     }
   }
 }

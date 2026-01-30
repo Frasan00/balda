@@ -11,6 +11,11 @@ export class TypeBoxLoader {
     null;
 
   /**
+   * Cache of objects confirmed as TypeBox schemas to avoid repeated symbol lookups.
+   */
+  private static typeboxSchemaCache = new WeakSet<object>();
+
+  /**
    * Synchronously loads the TypeBox library at runtime.
    * @throws TypeBoxNotInstalledError if TypeBox is not installed
    */
@@ -40,6 +45,7 @@ export class TypeBoxLoader {
   /**
    * Checks if a value is a TypeBox schema
    * TypeBox schemas have a [Kind] symbol property
+   * Results are cached in a WeakSet to avoid repeated Object.getOwnPropertySymbols calls
    */
   static isTypeBoxSchema(value: any): value is TSchema {
     try {
@@ -48,13 +54,27 @@ export class TypeBoxLoader {
       return false;
     }
 
-    return (
-      typeof value === "object" &&
-      value !== null &&
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+
+    // Fast path: check cache first
+    if (this.typeboxSchemaCache.has(value)) {
+      return true;
+    }
+
+    // Slow path: perform full type detection
+    const isTypeBox =
       "type" in value &&
       Object.getOwnPropertySymbols(value).some(
         (sym) => sym.toString() === "Symbol(TypeBox.Kind)",
-      )
-    );
+      );
+
+    // Cache positive results to avoid repeated symbol lookups
+    if (isTypeBox) {
+      this.typeboxSchemaCache.add(value);
+    }
+
+    return isTypeBox;
   }
 }

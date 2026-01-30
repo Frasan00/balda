@@ -3,7 +3,6 @@ import {
   defineLoggerConfig,
   logger,
   Server,
-  CronService,
 } from "../../src/index.js";
 import { NativeEnv } from "../../src/runtime/native_env.js";
 
@@ -25,7 +24,7 @@ defineLoggerConfig({
 
 const serverBuilder = new Server({
   port: new NativeEnv().get("PORT")
-    ? Number.parseInt(new NativeEnv().get("PORT"))
+    ? Number.parseInt(new NativeEnv().get("PORT") ?? "80")
     : 80,
   host: new NativeEnv().get("HOST") ? new NativeEnv().get("HOST") : "0.0.0.0",
   controllerPatterns: ["./test/controllers/**/*.{ts,js}"],

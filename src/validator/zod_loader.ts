@@ -12,6 +12,11 @@ export class ZodLoader {
   private static zodModule: typeof import("zod") | null = null;
 
   /**
+   * Cache of objects confirmed as Zod schemas to avoid repeated property checks.
+   */
+  private static zodSchemaCache = new WeakSet<object>();
+
+  /**
    * Synchronously loads the Zod library at runtime.
    * @throws Error if Zod is not installed
    */
@@ -42,6 +47,7 @@ export class ZodLoader {
 
   /**
    * Checks if a value is a Zod schema
+   * Results are cached in a WeakSet to avoid repeated property lookups
    */
   static isZodSchema(value: any): value is ZodAny {
     try {
@@ -50,12 +56,25 @@ export class ZodLoader {
       return false;
     }
 
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+
+    // Fast path: check cache first
+    if (this.zodSchemaCache.has(value)) {
+      return true;
+    }
+
+    // Slow path: perform full type detection
     const isZod =
-      typeof value === "object" &&
-      value !== null &&
       "_def" in value &&
       typeof value.parse === "function" &&
       typeof value.safeParse === "function";
+
+    // Cache positive results to avoid repeated property checks
+    if (isZod) {
+      this.zodSchemaCache.add(value);
+    }
 
     return isZod;
   }

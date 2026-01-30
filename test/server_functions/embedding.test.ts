@@ -133,7 +133,6 @@ describe("Server Embedding Functions", () => {
         "host",
         "routes",
         "embed",
-        "constructor",
         "get",
         "post",
         "put",
@@ -142,15 +141,6 @@ describe("Server Embedding Functions", () => {
         "getNodeServer",
         "getBunServer",
         "getDenoServer",
-        "use",
-        "setErrorHandler",
-        "listen",
-        "close",
-        "tapOptions",
-        "startUpOptions",
-        "tmpDir",
-        "logger",
-        "getMockServer",
       ];
 
       protectedKeys.forEach((key) => {

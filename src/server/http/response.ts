@@ -79,6 +79,12 @@ export class Response<TBody = any> {
    */
   #routeResponseSchemas?: Record<number, RequestSchema>;
 
+  /**
+   * Pre-resolved serializers keyed by status code.
+   * @internal
+   */
+  #routeSerializers?: Map<number, FastJsonStringifyFunction>;
+
   constructor(status: number = 200) {
     this.responseStatus = status;
     this.headers = {};
@@ -86,11 +92,12 @@ export class Response<TBody = any> {
 
   /**
    * Set the route response schemas for automatic serialization.
-   * Called internally by the server when handling requests.
    * @internal
    */
   setRouteResponseSchemas(schemas?: Record<number, RequestSchema>): void {
     this.#routeResponseSchemas = schemas;
+    this.#routeSerializers =
+      AjvStateManager.getOrCreateResponseSerializers(schemas) ?? undefined;
   }
 
   /**
@@ -186,11 +193,20 @@ export class Response<TBody = any> {
     this.body = body;
     this.headers["Content-Type"] = "application/json";
 
-    // Priority: explicit schema > route schema > no schema
+    // Fast path: pre-resolved route serializer if available
+    if (!schema && this.#routeSerializers) {
+      const preResolvedSerializer = this.#routeSerializers.get(
+        this.responseStatus,
+      );
+      if (preResolvedSerializer) {
+        this.#serializer = preResolvedSerializer;
+        return;
+      }
+    }
+
     const effectiveSchema =
       schema ?? this.#routeResponseSchemas?.[this.responseStatus];
 
-    // If schema is provided (explicitly or from route), cache it for fast serialization
     if (effectiveSchema) {
       const { jsonSchema, prefix } =
         this.getJsonSchemaWithPrefix(effectiveSchema);

@@ -6,6 +6,9 @@ import type {
   FastJsonStringifyFunction,
   SerializerFunction,
 } from "./fast_json_stringify_types.js";
+import type { RequestSchema } from "../decorators/validation/validate_types.js";
+import { ZodLoader } from "../validator/zod_loader.js";
+import { TypeBoxLoader } from "../validator/typebox_loader.js";
 
 /**
  * Global state for the AJV instance used for JSON Schema validation.
@@ -16,11 +19,11 @@ import type {
  *
  * ```typescript
  * import { Ajv } from 'ajv';
- * import { AjvStateManager } from 'balda';
+ * import { Server } from 'balda';
  *
  * const customAjv = new Ajv({
- *   validateSchema: false, // Required - must be false
- *   strict: false,         // Required - must be false
+ *   validateSchema: false, // Required - must be false and will be ignored if provided
+ *   strict: false,         // Required - must be false and will be ignored if provided
  *   allErrors: true,       // Optional - your custom config
  *   // ... other custom options
  * });
@@ -28,15 +31,15 @@ import type {
  * // Add custom formats, keywords, etc.
  * customAjv.addFormat('custom-format', /regex/);
  *
- * // Set as global instance
- * AjvStateManager.setGlobalInstance(customAjv);
+ * // Pass the custom AJV instance to the server constructor
+ * new Server({
+ *   ajvInstance: customAjv,
+ * });
  * ```
  *
  * **IMPORTANT:** The following options are required and must not be changed:
  * - `validateSchema: false` - Required for proper Zod schema compilation
  * - `strict: false` - Required for proper Zod schema compilation
- *
- * Changing these values will cause validation errors and break Zod schema support.
  */
 export class AjvStateManager {
   static ajv: Ajv = new Ajv({
@@ -51,6 +54,15 @@ export class AjvStateManager {
   private static serializerCache = new WeakMap<
     object,
     Map<string, FastJsonStringifyFunction>
+  >();
+
+  /**
+   * WeakMap to cache complete route response serializers.
+   * Avoids per-request iteration and type detection.
+   */
+  private static responseSerializersCache = new WeakMap<
+    Record<number, RequestSchema>,
+    Map<number, FastJsonStringifyFunction>
   >();
 
   /**
@@ -167,7 +179,7 @@ export class AjvStateManager {
    * @returns Compiled serializer function or null
    */
   static getOrCreateSerializer(
-    jsonSchema: JSONSchema | undefined,
+    jsonSchema: JSONSchema,
     prefix: string,
   ): SerializerFunction {
     if (!jsonSchema || typeof jsonSchema !== "object") {
@@ -186,12 +198,67 @@ export class AjvStateManager {
     }
 
     try {
-      const serializer = fastJson(jsonSchema as AnySchema);
+      const serializer = fastJson(jsonSchema as AnySchema, {
+        ajv: this.ajv.opts,
+      });
+
       prefixMap.set(prefix, serializer);
       return serializer;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Gets or creates serializers for all response schemas.
+   */
+  static getOrCreateResponseSerializers(
+    schemas?: Record<number, RequestSchema>,
+  ): Map<number, FastJsonStringifyFunction> | null {
+    if (!schemas) {
+      return null;
+    }
+
+    // Check cache first
+    const cached = this.responseSerializersCache.get(schemas);
+    if (cached) {
+      return cached;
+    }
+
+    // Cache miss: resolve all serializers
+    const resolved = new Map<number, FastJsonStringifyFunction>();
+    for (const [statusCode, schema] of Object.entries(schemas)) {
+      const status = Number(statusCode);
+
+      // Determine schema type and get serializer
+      let serializer: FastJsonStringifyFunction | null = null;
+
+      if (ZodLoader.isZodSchema(schema)) {
+        const jsonSchema = ZodLoader.toJSONSchema(schema);
+        serializer = this.getOrCreateSerializer(
+          jsonSchema,
+          "fast_stringify_zod",
+        );
+      } else if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+        serializer = this.getOrCreateSerializer(
+          schema as JSONSchema,
+          "fast_stringify_typebox",
+        );
+      } else if (typeof schema === "object" && schema !== null) {
+        serializer = this.getOrCreateSerializer(
+          schema as JSONSchema,
+          "fast_stringify_json",
+        );
+      }
+
+      if (serializer) {
+        resolved.set(status, serializer);
+      }
+    }
+
+    // Cache for future requests
+    this.responseSerializersCache.set(schemas, resolved);
+    return resolved;
   }
 
   /**

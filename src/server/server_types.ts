@@ -37,6 +37,7 @@ import type { ClientRouter } from "./router/router_type.js";
 import type { CronUIOptions } from "../cron/cron.types.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
 import { ExtractParams } from "./router/path_types.js";
+import { nativeFs } from "../runtime/native_fs.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -227,16 +228,9 @@ export interface ServerInterface {
   tmpDir: (...append: string[]) => string;
 
   /**
-   * Create a new directory
-   * @param path - The path to the directory
-   * @param options - The options to create the directory
-   * @param options.recursive - Whether to create the directory recursively
-   * @param options.mode - The mode of the directory
+   * The filesystem module of the server, uses the native apis from the current runtime
    */
-  mkdir: (
-    path: string,
-    options?: { recursive?: boolean; mode?: number | string },
-  ) => Promise<void>;
+  fs: typeof nativeFs;
 
   /**
    * Mount an Express middleware or router at a specific path for compatibility with Express-based libraries like AdminJS

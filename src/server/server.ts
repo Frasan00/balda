@@ -1,6 +1,7 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { AjvStateManager } from "../ajv/ajv.js";
 import { cronUi } from "../cron/cron.js";
+import { RequestSchema } from "../decorators/validation/validate_types.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
@@ -45,6 +46,7 @@ import { trustProxy } from "../plugins/trust_proxy/trust_proxy.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
 import { NativeEnv } from "../runtime/native_env.js";
+import { nativeExit } from "../runtime/native_exit.js";
 import { nativeFs } from "../runtime/native_fs.js";
 import { hash as nativeHash } from "../runtime/native_hash.js";
 import { nativePath } from "../runtime/native_path.js";
@@ -61,23 +63,17 @@ import { runtime } from "../runtime/runtime.js";
 import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
-import type { ExtractParams } from "./router/path_types.js";
-import { PROTECTED_KEYS } from "./server_constants.js";
 import type {
   ControllerHandler,
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
-  ServerHandlerReturnType,
   ServerInterface,
   ServerOptions,
   ServerPlugin,
   SignalEvent,
   StandardMethodOptions,
 } from "./server_types.js";
-import type { Request } from "./http/request.js";
-import type { Response } from "./http/response.js";
-import { RequestSchema } from "../decorators/validation/validate_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -157,6 +153,13 @@ export class Server<
     this.setupAbortSignalHandler();
   }
 
+  get protectedKeys(): string[] {
+    const own = Object.getOwnPropertyNames(this);
+    const proto = Object.getPrototypeOf(this);
+    const protoNames = proto ? Object.getOwnPropertyNames(proto) : [];
+    return Array.from(new Set([...own, ...protoNames]));
+  }
+
   get url(): string {
     return this.#serverConnector.url;
   }
@@ -171,6 +174,10 @@ export class Server<
 
   get routes(): Route[] {
     return router.getRoutes() || [];
+  }
+
+  get fs(): typeof nativeFs {
+    return nativeFs;
   }
 
   async hash(data: string): Promise<string> {
@@ -188,13 +195,6 @@ export class Server<
   tmpDir(...append: string[]): string {
     const baseTmpDir = "tmp";
     return nativePath.join(baseTmpDir, ...append);
-  }
-
-  async mkdir(
-    path: string,
-    options?: { recursive?: boolean; mode?: number | string },
-  ): Promise<void> {
-    await nativeFs.mkdir(path, options);
   }
 
   get<TPath extends string = string>(
@@ -475,9 +475,9 @@ export class Server<
       );
     }
 
-    if (PROTECTED_KEYS.includes(key)) {
+    if (this.protectedKeys.includes(key) || key === "constructor") {
       throw new Error(
-        `Cannot embed value with key '${key}' as it conflicts with a protected server property.`,
+        `Cannot embed value with key '${key}' as it conflicts with a protected server property`,
       );
     }
 
@@ -490,15 +490,7 @@ export class Server<
   }
 
   exit(code: number = 0): void {
-    switch (runtime.type) {
-      case "bun":
-      case "node":
-        process.exit(code);
-      case "deno":
-        Deno.exit(code);
-      default:
-        throw new Error(`Unsupported runtime: ${runtime.type}`);
-    }
+    nativeExit.exit(code);
   }
 
   on(event: SignalEvent, cb: () => SyncOrAsync): void;
