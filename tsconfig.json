@@ -12,8 +12,8 @@
     "outDir": "./lib",
     "types": ["node", "deno", "bun-types"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
   },
   "include": ["src/**/*", "test/**/*", "trash/commands", "src/cli.ts"],
-  "exclude": ["node_modules", "lib"]
+  "exclude": ["node_modules", "lib"],
 }

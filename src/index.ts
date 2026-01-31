@@ -8,6 +8,7 @@ export { get } from "./decorators/handlers/get.js";
 export { patch } from "./decorators/handlers/patch.js";
 export { post } from "./decorators/handlers/post.js";
 export { put } from "./decorators/handlers/put.js";
+export { cache } from "./decorators/handlers/cache.js";
 export type {
   TypedHandler,
   TypedRouteMetadata,
@@ -114,10 +115,18 @@ export type {
   ServerInterface,
   ServerOptions,
   SignalEvent,
+  CacheRouteOptions,
+  GetMethodOptions,
 } from "./server/server_types.js";
 
 import { Server } from "./server/server.js";
 export { Server };
+
+// Cache
+export type { CacheAdapter } from "./cache/cache_adapter.js";
+export { InMemoryAdapter } from "./cache/adapters/in_memory.js";
+export { RedisCacheAdapter } from "./cache/adapters/redis.js";
+export { buildCacheKey } from "./cache/route_cache.js";
 
 // hash
 export { hash } from "./runtime/native_hash.js";

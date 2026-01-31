@@ -11,6 +11,7 @@ import type { NextFunction } from "../../server/http/next.js";
 import type { Request as BaldaRequest } from "../../server/http/request.js";
 import type { Response as BaldaResponse } from "../../server/http/response.js";
 import type { RunTimeType } from "../runtime.js";
+import type { CacheAdapter } from "../../cache/cache_adapter.js";
 
 export type { HttpsServerOptions };
 
@@ -69,6 +70,8 @@ export type ServerConnectInput<H extends NodeHttpClient = NodeHttpClient> = {
   nodeHttpClient: H;
   /** The graphql options to apply to the server */
   graphql?: GraphQL;
+  /** Cache adapter for response caching on GET routes */
+  cacheAdapter?: CacheAdapter;
 } & (H extends "https" ? HttpsOptions<H> : {});
 
 export type ServerRouteMiddleware = (
@@ -95,10 +98,12 @@ export interface ServerRoute {
 }
 
 export type ServerListenCallback = ({
+  err,
   port,
   host,
   url,
 }: {
+  err: Error | null;
   port: number;
   host: string;
   url: string;
