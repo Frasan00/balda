@@ -16,6 +16,10 @@ A **cross-runtime, FastAPI-inspired Node.js backend framework** that aims to wor
 
 ```bash
 npm install balda
+# or
+yarn add balda
+# or
+pnpm add balda
 ```
 
 ```typescript
@@ -40,6 +44,7 @@ const server = new Server({
     },
   },
 });
+
 server.listen();
 ```
 

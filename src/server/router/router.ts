@@ -16,6 +16,8 @@ import type {
   ControllerHandler,
   ServerHandlerReturnType,
   StandardMethodOptions,
+  CacheRouteOptions,
+  GetMethodOptions,
 } from "../server_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import { wrapHandlerWithValidation } from "./validation_wrapper.js";
@@ -27,6 +29,8 @@ class Node {
   middleware: ServerRouteMiddleware[] | null;
   handler: ((req: Request, res: Response) => void) | null;
   paramName: string | null;
+  cacheOptions: CacheRouteOptions | null;
+  path: string | null;
 
   constructor() {
     this.staticChildren = new Map();
@@ -35,6 +39,8 @@ class Node {
     this.middleware = null;
     this.handler = null;
     this.paramName = null;
+    this.cacheOptions = null;
+    this.path = null;
   }
 }
 
@@ -43,6 +49,8 @@ type CachedRoute = {
   handler: ServerRouteHandler;
   params: Params;
   responseSchemas?: RouteResponseSchemas;
+  cacheOptions?: CacheRouteOptions;
+  path?: string;
 };
 
 /**
@@ -55,6 +63,7 @@ export class Router {
   private basePath: string;
   private staticRouteCache: Map<string, CachedRoute>;
   private handlerResponseSchemas: Map<ServerRouteHandler, RouteResponseSchemas>;
+  private handlerRoutePath: Map<ServerRouteHandler, string>;
 
   /**
    * Create a new router with an optional base path and default middlewares.
@@ -73,6 +82,7 @@ export class Router {
     this.basePath = this.normalizeBasePath(basePath);
     this.staticRouteCache = new Map();
     this.handlerResponseSchemas = new Map();
+    this.handlerRoutePath = new Map();
   }
 
   /** Returns a shallow copy of all registered routes. */
@@ -95,9 +105,15 @@ export class Router {
       all?: RequestSchema;
     },
     swaggerOptions?: SwaggerRouteOptions,
+    cacheOptions?: CacheRouteOptions,
   ): void {
     method = method.toUpperCase() as HttpMethod;
     const clean = path.split("?")[0];
+
+    // Cache options are only allowed on GET routes
+    if (cacheOptions && method !== "GET") {
+      throw new Error("Cache options are only allowed on GET routes");
+    }
 
     // Pre-compile request schemas (body and query) for faster validation
     compileRequestSchemas(validationSchemas?.body, validationSchemas?.query);
@@ -170,11 +186,22 @@ export class Router {
       node.paramName = paramNames.join(",");
     }
 
+    // Store path pattern (the path parameter contains the pattern, e.g. /users/:id)
+    node.path = path;
+
+    // Store cache options on node
+    if (cacheOptions) {
+      node.cacheOptions = cacheOptions;
+    }
+
     // Store response schemas in O(1) lookup map for dynamic routes
     // Use the original handler as key (before wrapping) for consistency
     if (responseSchemas) {
       this.handlerResponseSchemas.set(handler, responseSchemas);
     }
+
+    // Store path pattern in O(1) lookup map for dynamic routes
+    this.handlerRoutePath.set(handler, path);
 
     if (isStaticRoute) {
       const normalizedPath = "/" + trimmed;
@@ -184,6 +211,8 @@ export class Router {
         handler: finalHandler,
         params: {},
         responseSchemas,
+        cacheOptions,
+        path,
       });
     } else {
       // If updating a route that was previously static, clear old cache entry
@@ -203,6 +232,7 @@ export class Router {
       this.routes[idx].swaggerOptions = swaggerOptions;
       this.routes[idx].responseSchemas = responseSchemas;
       this.routes[idx].validationSchemas = finalValidationSchemas;
+      this.routes[idx].cacheOptions = cacheOptions;
       return;
     }
 
@@ -214,12 +244,13 @@ export class Router {
       swaggerOptions,
       responseSchemas,
       validationSchemas: finalValidationSchemas,
+      cacheOptions,
     });
   }
 
   /**
    * Find the matching route for the given HTTP method and path.
-   * Returns the resolved middleware chain, handler, extracted params, and response schemas; or null if not found.
+   * Returns the resolved middleware chain, handler, extracted params, response schemas, cache options, and path pattern; or null if not found.
    * Uses O(1) cache lookup for static routes, falls back to O(k) tree traversal for dynamic routes.
    */
   find(
@@ -230,6 +261,8 @@ export class Router {
     handler: ServerRouteHandler;
     params: Params;
     responseSchemas?: RouteResponseSchemas;
+    cacheOptions?: CacheRouteOptions;
+    path?: string;
   } | null {
     method = method.toUpperCase();
 
@@ -286,11 +319,16 @@ export class Router {
     // O(1) lookup for response schemas using handler map
     const responseSchemas = this.handlerResponseSchemas.get(node.handler);
 
+    // O(1) lookup for path pattern using handler map
+    const routePath = this.handlerRoutePath.get(node.handler);
+
     return {
       middleware: node.middleware,
       handler: node.handler,
       params,
       responseSchemas,
+      cacheOptions: node.cacheOptions ?? undefined,
+      path: routePath ?? node.path ?? undefined,
     };
   }
 
@@ -300,7 +338,10 @@ export class Router {
    * @internal
    */
   private extractOptionsAndHandler(
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | GetMethodOptions
+      | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): {
     middlewares: ServerRouteMiddleware[];
@@ -309,6 +350,7 @@ export class Router {
     query?: RequestSchema;
     all?: RequestSchema;
     swaggerOptions?: SwaggerRouteOptions;
+    cache?: CacheRouteOptions;
   } {
     if (typeof optionsOrHandler === "function") {
       return {
@@ -318,7 +360,7 @@ export class Router {
       };
     }
 
-    const options = optionsOrHandler as StandardMethodOptions;
+    const options = optionsOrHandler as GetMethodOptions;
     const middlewares = Array.isArray(options.middlewares)
       ? options.middlewares
       : options.middlewares
@@ -332,6 +374,7 @@ export class Router {
       query: options.query,
       all: options.all,
       swaggerOptions: options.swagger,
+      cache: options.cache,
     };
   }
 
@@ -344,16 +387,16 @@ export class Router {
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    options: StandardMethodOptions,
+    options: GetMethodOptions,
     handler: ControllerHandler<TPath>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler: GetMethodOptions | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions, cache } =
       this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
@@ -366,6 +409,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      cache,
     );
   }
 
@@ -639,6 +683,7 @@ export class Router {
         r.handler,
         r.validationSchemas,
         r.swaggerOptions,
+        r.cacheOptions,
       );
     }
   }
@@ -703,6 +748,7 @@ export class Router {
     this.routes = [];
     this.staticRouteCache.clear();
     this.handlerResponseSchemas.clear();
+    this.handlerRoutePath.clear();
     this.trees.clear();
   }
 }

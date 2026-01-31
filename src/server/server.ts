@@ -73,7 +73,13 @@ import type {
   ServerPlugin,
   SignalEvent,
   StandardMethodOptions,
+  GetMethodOptions,
+  CacheRouteOptions,
 } from "./server_types.js";
+import { buildCacheKey } from "../cache/route_cache.js";
+import { Request } from "./http/request.js";
+import { Response } from "./http/response.js";
+import { executeMiddlewareChain } from "../runtime/native_server/server_utils.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -123,6 +129,7 @@ export class Server<
       graphql: options?.graphql ?? undefined,
       abortSignal: options?.abortSignal,
       cronUI: options?.cronUI,
+      cache: options?.cache,
     };
 
     if (options?.ajvInstance) {
@@ -148,6 +155,7 @@ export class Server<
       nodeHttpClient: this.serverOptions.nodeHttpClient,
       httpsOptions: this.#httpsOptions,
       graphql: this.graphql,
+      cacheAdapter: options?.cache?.adapter,
     });
 
     this.setupAbortSignalHandler();
@@ -203,15 +211,15 @@ export class Server<
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    options: StandardMethodOptions,
+    options: GetMethodOptions,
     handler: ControllerHandler<TPath>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler: GetMethodOptions | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
+    const { middlewares, handler, body, query, all, swaggerOptions, cache } =
       this.extractOptionsAndHandlerFromRouteRegistration(
         optionsOrHandler,
         maybeHandler,
@@ -225,6 +233,7 @@ export class Server<
       handler,
       validationSchemas,
       swaggerOptions,
+      cache,
     );
   }
 
@@ -570,16 +579,28 @@ export class Server<
       );
     }
 
-    this.bootstrap().then(() => {
-      this.#serverConnector.listen();
-      this.isListening = true;
+    const baseData = {
+      port: this.port,
+      host: this.host,
+      url: this.url,
+    };
 
-      cb?.({
-        port: this.port,
-        host: this.host,
-        url: this.url,
+    this.bootstrap()
+      .then(() => {
+        this.#serverConnector.listen();
+        this.isListening = true;
+
+        cb?.({
+          err: null,
+          ...baseData,
+        });
+      })
+      .catch((err) => {
+        cb?.({
+          err,
+          ...baseData,
+        });
       });
-    });
   }
 
   async waitUntilListening(): Promise<void> {
@@ -694,7 +715,10 @@ export class Server<
   }
 
   private extractOptionsAndHandlerFromRouteRegistration(
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
+    optionsOrHandler:
+      | StandardMethodOptions
+      | GetMethodOptions
+      | ServerRouteHandler,
     maybeHandler?: ServerRouteHandler,
   ): {
     middlewares: ServerRouteMiddleware[];
@@ -703,6 +727,7 @@ export class Server<
     query?: RequestSchema;
     all?: RequestSchema;
     swaggerOptions?: SwaggerRouteOptions;
+    cache?: CacheRouteOptions;
   } {
     if (typeof optionsOrHandler === "function") {
       // Handler only
@@ -713,8 +738,8 @@ export class Server<
       };
     }
 
-    // StandardMethodOptions
-    const options = optionsOrHandler as StandardMethodOptions;
+    // StandardMethodOptions or GetMethodOptions
+    const options = optionsOrHandler as GetMethodOptions;
     const middlewares = Array.isArray(options.middlewares)
       ? options.middlewares
       : options.middlewares
@@ -728,6 +753,7 @@ export class Server<
       query: options.query,
       all: options.all,
       swaggerOptions: options.swagger,
+      cache: options.cache,
     };
   }
 
@@ -889,6 +915,114 @@ export class Server<
         },
       );
     }
+  }
+
+  /**
+   * Warm up cache for a static GET route by executing the handler and storing the result
+   * @param method - HTTP method (should be "GET")
+   * @param path - Route path (e.g. "/users/profiles")
+   * @param query - Optional query parameters
+   */
+  async warmCache(
+    method: string,
+    path: string,
+    query?: Record<string, string>,
+  ): Promise<void> {
+    const cacheAdapter =
+      this.serverOptions?.cache?.adapter ??
+      (this.constructor as any).cache?.adapter;
+
+    if (!cacheAdapter) {
+      this.logger.warn("No cache adapter configured, cannot warm cache");
+      return;
+    }
+
+    const match = router.find(method, path);
+    if (!match) {
+      throw new Error(`No route found for ${method} ${path}`);
+    }
+
+    if (method !== "GET" && method.toUpperCase() !== "GET") {
+      throw new Error("Cache warm-up is only supported for GET routes");
+    }
+
+    if (!match.cacheOptions) {
+      throw new Error(
+        `Route ${method} ${path} does not have cache options enabled`,
+      );
+    }
+
+    // Build cache key
+    const key =
+      match.cacheOptions.key ??
+      buildCacheKey(method, match.path!, match.params, query ?? {});
+
+    // Create mock request and response
+    const request = new Request();
+    request.method = method;
+    request.url = path;
+    request.params = match.params;
+    if (query) {
+      const queryString = new URLSearchParams(query).toString();
+      request.setQueryString(queryString);
+    }
+
+    const response = new Response();
+    response.setRouteResponseSchemas(match.responseSchemas);
+
+    // Execute middleware chain
+    await executeMiddlewareChain(
+      match.middleware,
+      match.handler,
+      request,
+      response,
+    );
+
+    // Store in cache
+    const payload = {
+      status: response.responseStatus,
+      headers: { ...response.headers },
+      body: response.getBody(),
+    };
+
+    await cacheAdapter.set(key, payload, match.cacheOptions.ttl);
+    this.logger.debug({ key, method, path }, "Cache warmed up");
+  }
+
+  /**
+   * Invalidate a specific cache key
+   * @param key - Cache key to invalidate
+   */
+  async invalidateCache(key: string): Promise<void> {
+    const cacheAdapter =
+      this.serverOptions?.cache?.adapter ??
+      (this.constructor as any).cache?.adapter;
+
+    if (!cacheAdapter) {
+      this.logger.warn("No cache adapter configured, cannot invalidate cache");
+      return;
+    }
+
+    await cacheAdapter.invalidate(key);
+    this.logger.debug({ key }, "Cache invalidated");
+  }
+
+  /**
+   * Invalidate all cache keys starting with the given prefix
+   * @param prefix - Cache key prefix to invalidate
+   */
+  async invalidateCachePrefix(prefix: string): Promise<void> {
+    const cacheAdapter =
+      this.serverOptions?.cache?.adapter ??
+      (this.constructor as any).cache?.adapter;
+
+    if (!cacheAdapter) {
+      this.logger.warn("No cache adapter configured, cannot invalidate cache");
+      return;
+    }
+
+    await cacheAdapter.invalidateAll(prefix);
+    this.logger.debug({ prefix }, "Cache prefix invalidated");
   }
 
   /**

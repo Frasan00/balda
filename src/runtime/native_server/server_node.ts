@@ -36,6 +36,8 @@ import {
   executeApolloGraphQLRequestNode,
   executeMiddlewareChain,
 } from "./server_utils.js";
+import type { CacheAdapter } from "../../cache/cache_adapter.js";
+import { executeWithCache } from "../../cache/route_cache.js";
 
 const pipeReadableStreamToNodeResponse = async (
   stream: WebReadableStream,
@@ -55,6 +57,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   nodeHttpClient: H;
   httpsOptions?: HttpsServerOptions;
   graphql: GraphQL;
+  cacheAdapter?: CacheAdapter;
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
   >;
@@ -73,6 +76,7 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         : undefined;
 
     this.graphql = input?.graphql ?? new GraphQL();
+    this.cacheAdapter = input?.cacheAdapter;
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
     const protocol =
       this.nodeHttpClient === "https" || this.nodeHttpClient === "http2-secure"
@@ -161,17 +165,38 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         response.nodeResponse = httpResponse;
         response.setRouteResponseSchemas(match?.responseSchemas);
 
-        const responseResult = await executeMiddlewareChain(
-          match?.middleware ?? [],
-          match?.handler ??
-            ((req, res) => {
-              res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
-              });
-            }),
-          request,
-          response,
-        );
+        // Use cache wrapper if cache options and adapter are available
+        const responseResult =
+          match?.cacheOptions && this.cacheAdapter
+            ? await executeWithCache(
+                this.cacheAdapter,
+                match.cacheOptions,
+                match.path!,
+                match.middleware ?? [],
+                match.handler ??
+                  ((req, res) => {
+                    res.notFound({
+                      ...errorFactory(
+                        new RouteNotFoundError(req.url, req.method),
+                      ),
+                    });
+                  }),
+                request,
+                response,
+              )
+            : await executeMiddlewareChain(
+                match?.middleware ?? [],
+                match?.handler ??
+                  ((req, res) => {
+                    res.notFound({
+                      ...errorFactory(
+                        new RouteNotFoundError(req.url, req.method),
+                      ),
+                    });
+                  }),
+                request,
+                response,
+              );
 
         if (httpResponse.headersSent || httpResponse.writableEnded) {
           return;

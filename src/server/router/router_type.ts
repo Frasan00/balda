@@ -5,6 +5,7 @@ import type {
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import type { Router } from "./router.js";
+import type { CacheRouteOptions } from "../server_types.js";
 
 export type Params = Record<string, string>;
 
@@ -14,9 +15,9 @@ export type Params = Record<string, string>;
  */
 export type RouteResponseSchemas = Record<number, RequestSchema>;
 
-export interface Route {
+export interface Route<T extends string = string> {
   method: string;
-  path: string;
+  path: T;
   middleware: ServerRouteMiddleware[];
   handler: ServerRouteHandler;
   swaggerOptions?: SwaggerRouteOptions;
@@ -34,6 +35,10 @@ export interface Route {
     query?: RequestSchema;
     all?: RequestSchema;
   };
+  /**
+   * Cache options for GET routes. Used to cache responses.
+   */
+  cacheOptions?: CacheRouteOptions;
 }
 
 /**

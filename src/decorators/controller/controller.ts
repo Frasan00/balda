@@ -73,25 +73,37 @@ export const controller = (
       const policyMiddleware =
         allPolicies.length > 0 ? [createPolicyMiddleware(allPolicies)] : [];
 
+      if (meta.cache && meta.route.method !== "GET") {
+        throw new Error(
+          `Cache decorator can only be used on GET routes. Found on ${meta.route.method} ${fullPath} in ${target.name}`,
+        );
+      }
+
       // Prepend class-level middlewares, then policy middleware, then route-level middlewares
       const allMiddlewares = [
         ...classMiddlewares,
         ...policyMiddleware,
         ...(meta.middlewares || []),
       ];
+
+      // Build swagger options from controller and method metadata
+      const routeSwaggerOptions: SwaggerRouteOptions = {
+        // default service name
+        service: target.name.replace(/Controller$/, ""),
+        // controller options
+        ...swaggerOptions,
+        // route options
+        ...meta.documentation,
+      };
+
       router.addOrUpdate(
         meta.route.method as HttpMethod,
         fullPath,
         allMiddlewares,
         handler,
-        {
-          // default service name
-          service: target.name.replace(/Controller$/, ""),
-          // controller options
-          ...swaggerOptions,
-          // route options
-          ...meta.documentation,
-        },
+        undefined, // validationSchemas - handled by @validate decorator wrapper
+        routeSwaggerOptions,
+        meta.cache, // cache options for GET routes
       );
     }
 

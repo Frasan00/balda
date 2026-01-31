@@ -12,6 +12,7 @@ import type { Server } from "../server/server.js";
 import { NodeHttpClient } from "../server/server_types.js";
 import { MockResponse } from "./mock_response.js";
 import type { MockServerOptions } from "./mock_server_types.js";
+import { executeWithCache } from "../cache/route_cache.js";
 
 /**
  * Allows to mock server requests without needing to start the server, useful for testing purposes
@@ -104,7 +105,15 @@ export class MockServer {
     const url = new URL(
       `http://${this.server.host}:${this.server.port}${path}`,
     );
-    url.search = new URLSearchParams(query).toString();
+
+    // Merge existing query params from path with options.query
+    // Only override url.search if options.query has keys
+    if (Object.keys(query).length > 0) {
+      // Merge path query params with options query params
+      const existingParams = Object.fromEntries(url.searchParams.entries());
+      const mergedQuery = { ...existingParams, ...query };
+      url.search = new URLSearchParams(mergedQuery).toString();
+    }
 
     const webRequest = new globalThis.Request(url.toString(), {
       method: method.toUpperCase(),
@@ -116,18 +125,30 @@ export class MockServer {
     });
 
     const req = Request.fromRequest(webRequest);
-    req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
+    req.query = Object.fromEntries(url.searchParams.entries());
     req.params = route.params;
     req.cookies = cookies;
     req.ip = ip;
 
     try {
-      const res = await executeMiddlewareChain(
-        route.middleware,
-        route.handler,
-        req,
-        new Response(),
-      );
+      const res = new Response();
+
+      // Use cache wrapper if cache options and adapter are available
+      const cacheAdapter = this.server.serverOptions.cache?.adapter;
+      if (route.cacheOptions && cacheAdapter) {
+        await executeWithCache(
+          cacheAdapter,
+          route.cacheOptions,
+          route.path!,
+          route.middleware,
+          route.handler,
+          req,
+          res,
+        );
+      } else {
+        await executeMiddlewareChain(route.middleware, route.handler, req, res);
+      }
+
       return new MockResponse(res);
     } catch (error) {
       this.logger.error(

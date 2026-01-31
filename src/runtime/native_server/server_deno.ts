@@ -16,6 +16,8 @@ import {
   executeApolloGraphQLRequestWeb,
   executeMiddlewareChain,
 } from "./server_utils.js";
+import type { CacheAdapter } from "../../cache/cache_adapter.js";
+import { executeWithCache } from "../../cache/route_cache.js";
 
 export class ServerDeno implements ServerInterface {
   declare port: number;
@@ -26,6 +28,7 @@ export class ServerDeno implements ServerInterface {
   declare runtimeServer: ReturnType<typeof Deno.serve>;
   declare tapOptions?: ServerTapOptions;
   graphql: GraphQL;
+  cacheAdapter?: CacheAdapter;
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
   >;
@@ -38,6 +41,7 @@ export class ServerDeno implements ServerInterface {
     this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
     this.graphql = input?.graphql ?? new GraphQL();
+    this.cacheAdapter = input?.cacheAdapter;
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
   }
 
@@ -124,17 +128,35 @@ export class ServerDeno implements ServerInterface {
         const baldaResponse = new Response();
         baldaResponse.setRouteResponseSchemas(match?.responseSchemas);
 
-        await executeMiddlewareChain(
-          match?.middleware ?? [],
-          match?.handler ??
-            ((req, res) => {
-              res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
-              });
-            }),
-          baldaRequest,
-          baldaResponse,
-        );
+        // Use cache wrapper if cache options and adapter are available
+        if (match?.cacheOptions && this.cacheAdapter) {
+          await executeWithCache(
+            this.cacheAdapter,
+            match.cacheOptions,
+            match.path!,
+            match.middleware ?? [],
+            match.handler ??
+              ((req, res) => {
+                res.notFound({
+                  ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+                });
+              }),
+            baldaRequest,
+            baldaResponse,
+          );
+        } else {
+          await executeMiddlewareChain(
+            match?.middleware ?? [],
+            match?.handler ??
+              ((req, res) => {
+                res.notFound({
+                  ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+                });
+              }),
+            baldaRequest,
+            baldaResponse,
+          );
+        }
 
         const webResponse = Response.toWebResponse(baldaResponse);
         return webResponse;

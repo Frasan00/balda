@@ -38,6 +38,7 @@ import type { CronUIOptions } from "../cron/cron.types.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
 import { ExtractParams } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
+import type { CacheAdapter } from "../cache/cache_adapter.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -134,6 +135,20 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * By passing the "path" option, the UI will be enabled at the given path.
    */
   cronUI?: CronUIOptions;
+  /**
+   * Cache adapter for response caching on GET routes
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   cache: {
+   *     adapter: new InMemoryAdapter(),
+   *   },
+   * });
+   * ```
+   */
+  cache?: {
+    adapter: CacheAdapter;
+  };
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -148,6 +163,9 @@ export type ResolvedServerOptions = {
   graphql?: GraphQLOptions;
   abortSignal?: AbortSignal;
   cronUI?: CronUIOptions;
+  cache?: {
+    adapter: CacheAdapter;
+  };
 };
 
 export type ServerErrorHandler = (
@@ -427,12 +445,24 @@ export interface ServerInterface {
   exit: (code?: number) => void;
 }
 
+export type CacheRouteOptions = {
+  /** Time to live for the cache in milliseconds */
+  ttl?: number;
+  /** Optional hardcoded cache key override */
+  key?: string;
+};
+
 export type StandardMethodOptions = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
   body?: RequestSchema;
   query?: RequestSchema;
   all?: RequestSchema;
   swagger?: SwaggerRouteOptions;
+};
+
+export type GetMethodOptions = StandardMethodOptions & {
+  /** Cache options for GET routes only */
+  cache?: CacheRouteOptions;
 };
 
 export type SignalEvent = Deno.Signal | NodeJS.Signals;
