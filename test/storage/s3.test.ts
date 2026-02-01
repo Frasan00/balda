@@ -239,12 +239,19 @@ describe("S3StorageProvider with LocalStack", () => {
   });
 
   describe("getDownloadUrl", () => {
-    it("should throw error when CloudFront is not configured", async () => {
+    it("should throw error when CloudFront is not configured on Node/Deno, or return presigned URL on Bun", async () => {
       const key = `${testKeyPrefix}/download-test.txt`;
+      const isBun = typeof globalThis.Bun !== "undefined";
 
-      await expect(provider.getDownloadUrl(key)).rejects.toThrow(
-        "getDownloadUrl requires CloudFront configuration",
-      );
+      if (isBun) {
+        const url = await provider.getDownloadUrl(key);
+        expect(url).toContain(key);
+        expect(url).toContain("X-Amz-Signature");
+      } else {
+        await expect(provider.getDownloadUrl(key)).rejects.toThrow(
+          "getDownloadUrl requires CloudFront configuration on Node.js/Deno",
+        );
+      }
     });
   });
 
