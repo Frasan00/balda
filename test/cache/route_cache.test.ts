@@ -20,17 +20,48 @@ describe("buildCacheKey", () => {
     expect(key2).toContain('"id":"2"');
   });
 
-  it("should generate different keys for different query params", () => {
+  it("should generate same keys for different query params by default (includeQuery: false)", () => {
     const key1 = buildCacheKey("GET", "/users", {}, { role: "admin" });
     const key2 = buildCacheKey("GET", "/users", {}, { role: "user" });
+    expect(key1).toBe(key2);
+    expect(key1).not.toContain("role");
+  });
+
+  it("should generate different keys for different query params when includeQuery is true", () => {
+    const key1 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      { role: "admin" },
+      { includeQuery: true },
+    );
+    const key2 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      { role: "user" },
+      { includeQuery: true },
+    );
     expect(key1).not.toBe(key2);
     expect(key1).toContain('"role":"admin"');
     expect(key2).toContain('"role":"user"');
   });
 
-  it("should generate same keys regardless of query param order", () => {
-    const key1 = buildCacheKey("GET", "/search", {}, { q: "test", page: "1" });
-    const key2 = buildCacheKey("GET", "/search", {}, { page: "1", q: "test" });
+  it("should generate same keys regardless of query param order when includeQuery is true", () => {
+    const key1 = buildCacheKey(
+      "GET",
+      "/search",
+      {},
+      { q: "test", page: "1" },
+      { includeQuery: true },
+    );
+    const key2 = buildCacheKey(
+      "GET",
+      "/search",
+      {},
+      { page: "1", q: "test" },
+      { includeQuery: true },
+    );
     expect(key1).toBe(key2);
   });
 
@@ -50,12 +81,13 @@ describe("buildCacheKey", () => {
     expect(key1).toBe(key2);
   });
 
-  it("should combine params and query in key", () => {
+  it("should combine params and query in key when includeQuery is true", () => {
     const key = buildCacheKey(
       "GET",
       "/users/:id",
       { id: "123" },
       { include: "posts", sort: "desc" },
+      { includeQuery: true },
     );
     expect(key).toContain("cache:GET:/users/:id");
     expect(key).toContain('"id":"123"');
@@ -63,9 +95,82 @@ describe("buildCacheKey", () => {
     expect(key).toContain('"sort":"desc"');
   });
 
-  it("should handle empty params and query", () => {
+  it("should handle empty params and query with default options", () => {
     const key = buildCacheKey("GET", "/static", {}, {});
-    expect(key).toBe("cache:GET:/static:{}:{}");
+    expect(key).toBe("cache:GET:/static:{}");
+  });
+
+  it("should include headers in key when includeHeaders is true", () => {
+    const key1 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      {},
+      { includeHeaders: true, headers: { "accept-language": "en" } },
+    );
+    const key2 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      {},
+      { includeHeaders: true, headers: { "accept-language": "fr" } },
+    );
+    expect(key1).not.toBe(key2);
+    expect(key1).toContain('"accept-language":"en"');
+    expect(key2).toContain('"accept-language":"fr"');
+  });
+
+  it("should generate same keys regardless of header order when includeHeaders is true", () => {
+    const key1 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      {},
+      {
+        includeHeaders: true,
+        headers: { "accept-language": "en", "user-agent": "test" },
+      },
+    );
+    const key2 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      {},
+      {
+        includeHeaders: true,
+        headers: { "user-agent": "test", "accept-language": "en" },
+      },
+    );
+    expect(key1).toBe(key2);
+  });
+
+  it("should not include headers in key when includeHeaders is false or omitted", () => {
+    const key1 = buildCacheKey("GET", "/users", {}, {});
+    const key2 = buildCacheKey(
+      "GET",
+      "/users",
+      {},
+      {},
+      { includeHeaders: false },
+    );
+    expect(key1).toBe(key2);
+    expect(key1).not.toContain("accept-language");
+  });
+
+  it("should support combining includeQuery and includeHeaders", () => {
+    const key = buildCacheKey(
+      "GET",
+      "/search",
+      {},
+      { q: "test" },
+      {
+        includeQuery: true,
+        includeHeaders: true,
+        headers: { "accept-language": "en" },
+      },
+    );
+    expect(key).toContain('"q":"test"');
+    expect(key).toContain('"accept-language":"en"');
   });
 });
 
@@ -222,5 +327,22 @@ describe("Router - Cache with Groups", () => {
 
     const notCached = router.find("GET", "/api/not-cached");
     expect(notCached!.cacheOptions).toBeUndefined();
+  });
+
+  it("should store includeQuery and includeHeaders options", () => {
+    const handler = (req: Request, res: Response) => {};
+    router.get(
+      "/with-options",
+      { cache: { ttl: 5000, includeQuery: true, includeHeaders: true } },
+      handler,
+    );
+
+    const match = router.find("GET", "/with-options");
+    expect(match).not.toBeNull();
+    expect(match!.cacheOptions).toEqual({
+      ttl: 5000,
+      includeQuery: true,
+      includeHeaders: true,
+    });
   });
 });

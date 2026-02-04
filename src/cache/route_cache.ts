@@ -19,6 +19,15 @@ type CachedPayload = {
 };
 
 /**
+ * Options for building cache keys
+ */
+export type BuildCacheKeyOptions = {
+  includeQuery?: boolean;
+  includeHeaders?: boolean;
+  headers?: Record<string, string>;
+};
+
+/**
  * Sort object keys for deterministic stringification
  */
 const sortKeys = (obj: Record<string, any>): Record<string, any> => {
@@ -31,11 +40,19 @@ const sortKeys = (obj: Record<string, any>): Record<string, any> => {
 };
 
 /**
- * Build a deterministic cache key from method, path pattern, params, and query
+ * Convert Headers to a plain Record for deterministic cache key building
+ */
+const headersFromRequest = (headers: Headers): Record<string, string> => {
+  return Object.fromEntries(headers.entries());
+};
+
+/**
+ * Build a deterministic cache key from method, path pattern, params, and optionally query/headers
  * @param method - HTTP method (e.g. "GET")
  * @param pathPattern - Path pattern with :param segments (e.g. /users/profiles/:profileId)
  * @param params - Route params extracted from path
  * @param query - Query parameters
+ * @param options - Optional cache key building options (includeQuery, includeHeaders, headers)
  * @returns Cache key string
  */
 export const buildCacheKey = (
@@ -43,10 +60,24 @@ export const buildCacheKey = (
   pathPattern: string,
   params: Record<string, string>,
   query: Record<string, string>,
+  options?: BuildCacheKeyOptions,
 ): string => {
   const sortedParams = sortKeys(params);
-  const sortedQuery = sortKeys(query);
-  return `cache:${method}:${pathPattern}:${JSON.stringify(sortedParams)}:${JSON.stringify(sortedQuery)}`;
+  let key = `cache:${method}:${pathPattern}:${JSON.stringify(sortedParams)}`;
+
+  // Include query only if explicitly requested
+  if (options?.includeQuery) {
+    const sortedQuery = sortKeys(query);
+    key += `:${JSON.stringify(sortedQuery)}`;
+  }
+
+  // Include headers only if explicitly requested and headers are provided
+  if (options?.includeHeaders && options?.headers) {
+    const sortedHeaders = sortKeys(options.headers);
+    key += `:${JSON.stringify(sortedHeaders)}`;
+  }
+
+  return key;
 };
 
 /**
@@ -72,7 +103,13 @@ export const executeWithCache = async (
   // Build cache key
   const key =
     cacheOptions.key ??
-    buildCacheKey(req.method, pathPattern, req.params, req.query);
+    buildCacheKey(req.method, pathPattern, req.params, req.query, {
+      includeQuery: cacheOptions.includeQuery ?? false,
+      includeHeaders: cacheOptions.includeHeaders ?? false,
+      headers: cacheOptions.includeHeaders
+        ? headersFromRequest(req.headers)
+        : undefined,
+    });
 
   // Try to get from cache
   try {

@@ -89,9 +89,13 @@ describe("Cache Integration - InMemory", () => {
       res.json({ id: req.params.id, timestamp: Date.now() });
     });
 
-    server.get("/inline/query", { cache: { ttl: 5000 } }, (req, res) => {
-      res.json({ query: req.query, timestamp: Date.now() });
-    });
+    server.get(
+      "/inline/query",
+      { cache: { ttl: 5000, includeQuery: true } },
+      (req, res) => {
+        res.json({ query: req.query, timestamp: Date.now() });
+      },
+    );
 
     server.get(
       "/inline/custom",
@@ -623,14 +627,26 @@ describe("Cache - Response Headers and Status", () => {
 });
 
 describe("Cache - buildCacheKey utility", () => {
-  it("should export buildCacheKey for manual usage", () => {
+  it("should export buildCacheKey for manual usage with includeQuery", () => {
+    const key = buildCacheKey(
+      "GET",
+      "/users/:id",
+      { id: "123" },
+      { sort: "asc" },
+      { includeQuery: true },
+    );
+    expect(key).toBe('cache:GET:/users/:id:{"id":"123"}:{"sort":"asc"}');
+  });
+
+  it("should build keys without query by default", () => {
     const key = buildCacheKey(
       "GET",
       "/users/:id",
       { id: "123" },
       { sort: "asc" },
     );
-    expect(key).toBe('cache:GET:/users/:id:{"id":"123"}:{"sort":"asc"}');
+    expect(key).toBe('cache:GET:/users/:id:{"id":"123"}');
+    expect(key).not.toContain("sort");
   });
 
   it("should allow users to build keys for invalidation", () => {
@@ -692,9 +708,13 @@ describe("Cache - Edge Cases", () => {
       },
     });
 
-    server.get("/empty-query", { cache: { ttl: 5000 } }, (req, res) => {
-      res.json({ query: req.query, timestamp: Date.now() });
-    });
+    server.get(
+      "/empty-query",
+      { cache: { ttl: 5000, includeQuery: true } },
+      (req, res) => {
+        res.json({ query: req.query, timestamp: Date.now() });
+      },
+    );
 
     server.get(
       "/complex/:userId/posts/:postId",

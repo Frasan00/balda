@@ -29,7 +29,7 @@ export class CachedController {
   }
 
   @get("/search")
-  @cache({ ttl: 5000 })
+  @cache({ ttl: 5000, includeQuery: true })
   search(req: Request, res: Response) {
     this.callCount++;
     res.json({

@@ -955,7 +955,11 @@ export class Server<
     // Build cache key
     const key =
       match.cacheOptions.key ??
-      buildCacheKey(method, match.path!, match.params, query ?? {});
+      buildCacheKey(method, match.path!, match.params, query ?? {}, {
+        includeQuery: match.cacheOptions.includeQuery ?? false,
+        includeHeaders: match.cacheOptions.includeHeaders ?? false,
+        headers: match.cacheOptions.includeHeaders ? {} : undefined,
+      });
 
     // Create mock request and response
     const request = new Request();

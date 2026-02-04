@@ -127,6 +127,7 @@ export type { CacheAdapter } from "./cache/cache_adapter.js";
 export { InMemoryAdapter } from "./cache/adapters/in_memory.js";
 export { RedisCacheAdapter } from "./cache/adapters/redis.js";
 export { buildCacheKey } from "./cache/route_cache.js";
+export type { BuildCacheKeyOptions } from "./cache/route_cache.js";
 
 // hash
 export { hash } from "./runtime/native_hash.js";

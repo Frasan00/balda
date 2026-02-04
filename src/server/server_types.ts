@@ -450,6 +450,10 @@ export type CacheRouteOptions = {
   ttl?: number;
   /** Optional hardcoded cache key override */
   key?: string;
+  /** Include query string in cache key (default: false) */
+  includeQuery?: boolean;
+  /** Include request headers in cache key (default: false) */
+  includeHeaders?: boolean;
 };
 
 export type StandardMethodOptions = {
