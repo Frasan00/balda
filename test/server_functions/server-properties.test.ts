@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Server, defineLoggerConfig, logger } from "../../src/index.js";
+import { Server } from "../../src/index.js";
 
 describe("Server Properties and Basic Functions", () => {
   let server: Server<"http">;
@@ -204,7 +204,6 @@ describe("Server Properties and Basic Functions", () => {
         controllerPatterns: ["**/*.controller.ts"],
         plugins: {},
         swagger: false,
-        useBodyParser: false,
       });
 
       expect(customServer.port).toBe(9999);

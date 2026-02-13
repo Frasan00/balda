@@ -7,13 +7,18 @@ import {
   type FlagSchema,
   parseCliArgsAndFlags,
 } from "./arg_parser.js";
-import type { CommandOptions } from "./command_types.js";
+import type { CommandFlagsAndArgs, CommandOptions } from "./command_types.js";
 
 /**
  * Base class for all cli commands.
  * @abstract
  */
 export abstract class Command {
+  private static readonly flagsAndArgs: CommandFlagsAndArgs = {
+    flags: parseCliArgsAndFlags().flags,
+    args: parseCliArgsAndFlags().args.slice(1),
+  };
+
   /**
    * The name of the command.
    */
@@ -35,17 +40,19 @@ export abstract class Command {
    */
   static options: CommandOptions = {
     keepAlive: false,
+    loggerPath: "src/logger.ts",
+    allowUnknownFlags: true,
   };
 
   /**
    * Static arguments in order to be validated by decorators. Will be fetched in the command instance.
    */
-  static args: Argument[] = parseCliArgsAndFlags().args.slice(1);
+  static args: Argument[] = this.flagsAndArgs.args;
 
   /**
    * Static flags in order to be validated by decorators. Will be fetched in the command instance.
    */
-  static flags: FlagSchema = parseCliArgsAndFlags().flags;
+  static flags: FlagSchema = this.flagsAndArgs.flags;
 
   static logger = logger.child({ scope: this.constructor.name });
 
@@ -129,6 +136,8 @@ export abstract class Command {
       "",
       `${colors.subtitle}Command Options:${colors.reset}`,
       `  ${colors.flag}keepAlive${colors.reset}      ${(options?.keepAlive ?? false) ? colors.success + "Enabled" + colors.reset : colors.error + "Disabled" + colors.reset}`,
+      `  ${colors.flag}loggerPath${colors.reset}     ${options?.loggerPath ?? "src/logger.ts"}`,
+      `  ${colors.flag}allowUnknownFlags${colors.reset} ${(options?.allowUnknownFlags ?? true) ? colors.success + "Enabled" + colors.reset : colors.error + "Disabled" + colors.reset}`,
       "",
     ];
 
@@ -232,6 +241,66 @@ export abstract class Command {
     }
 
     return lines.join("\n");
+  };
+
+  /**
+   * Validates that no unknown flags were provided when allowUnknownFlags is false.
+   */
+  static readonly validateUnknownFlags = (target: any): void => {
+    if (target.options?.allowUnknownFlags !== false) {
+      return;
+    }
+
+    const alwaysAllowed = new Set(["-h", "--help"]);
+    const knownFlags = new Set<string>();
+
+    const allMeta = MetadataStore.getAll(target);
+    if (allMeta) {
+      for (const meta of allMeta.values()) {
+        if (meta.type === "flag") {
+          knownFlags.add(`--${meta.name}`);
+          knownFlags.add(`-${meta.name}`);
+          knownFlags.add(meta.name);
+          if (meta.aliases) {
+            const aliases = Array.isArray(meta.aliases)
+              ? meta.aliases
+              : [meta.aliases];
+            for (const alias of aliases) {
+              knownFlags.add(`--${alias}`);
+              knownFlags.add(`-${alias}`);
+              knownFlags.add(alias);
+            }
+          }
+        }
+      }
+    }
+
+    const unknownFlags = Object.keys(target.flags).filter(
+      (flag) => !alwaysAllowed.has(flag) && !knownFlags.has(flag),
+    );
+
+    if (unknownFlags.length) {
+      const colors = {
+        error: "\x1b[0;31m",
+        title: "\x1b[1;31m",
+        reset: "\x1b[0m",
+        info: "\x1b[0;34m",
+        flag: "\x1b[0;35m",
+      };
+
+      console.error(`${colors.title}❌ Unknown Flags:${colors.reset}`);
+      console.error("");
+      unknownFlags.forEach((flag) => {
+        console.error(
+          `  ${colors.error}•${colors.reset} ${colors.flag}${flag}${colors.reset}`,
+        );
+      });
+      console.error("");
+      console.error(
+        `${colors.info}💡 Tip: Use --help for available flags${colors.reset}`,
+      );
+      nativeExit.exit(1);
+    }
   };
 
   static readonly validateContext = (target: any): void => {

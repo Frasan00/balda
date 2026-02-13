@@ -85,7 +85,7 @@ export class Server<
   readonly serverOptions: ResolvedServerOptions;
   readonly router: ClientRouter = router;
   readonly #nativeEnv: NativeEnv = new NativeEnv();
-  private readonly logger = logger.child({ scope: "Server" });
+  private readonly logger;
 
   isListening: boolean;
   isProduction: boolean;
@@ -124,6 +124,8 @@ export class Server<
       abortSignal: options?.abortSignal,
       cronUI: options?.cronUI,
     };
+
+    this.logger = (options?.logger ?? logger).child({ scope: "Balda" });
 
     if (options?.ajvInstance) {
       AjvStateManager.setGlobalInstance(options.ajvInstance);
@@ -570,16 +572,25 @@ export class Server<
       );
     }
 
-    this.bootstrap().then(() => {
-      this.#serverConnector.listen();
-      this.isListening = true;
+    const basePayload: Parameters<ServerListenCallback>[0] = {
+      port: this.port,
+      host: this.host,
+      url: this.url,
+    };
 
-      cb?.({
-        port: this.port,
-        host: this.host,
-        url: this.url,
+    this.bootstrap()
+      .then(() => {
+        this.#serverConnector.listen();
+        this.isListening = true;
+
+        cb?.({
+          ...basePayload,
+          error: undefined,
+        });
+      })
+      .catch((error) => {
+        cb?.({ ...basePayload, error });
       });
-    });
   }
 
   async waitUntilListening(): Promise<void> {
@@ -654,12 +665,9 @@ export class Server<
     }
 
     try {
-      const { glob } = await import("glob");
-
       let controllerPaths = await Promise.all(
         controllerPatterns.map(async (pattern) => {
-          return glob(pattern, {
-            absolute: true,
+          return nativeFs.glob(pattern, {
             cwd: nativeCwd.getCwd(),
           });
         }),

@@ -1,4 +1,4 @@
-import { glob } from "glob";
+import { nativeFs } from "../runtime/native_fs.js";
 import type { TaskContext } from "node-cron";
 import { BaldaError } from "../errors/balda_error.js";
 import { logger } from "../logger/logger.js";
@@ -77,8 +77,7 @@ export class CronService {
     const allFiles: string[] = [];
 
     for (const pattern of cronJobPatterns) {
-      const files = await glob(pattern, {
-        absolute: true,
+      const files = await nativeFs.glob(pattern, {
         cwd: nativeCwd.getCwd(),
       });
 

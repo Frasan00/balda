@@ -1,8 +1,8 @@
-import { glob } from "glob";
 import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
 import { QueueManager } from "./queue.js";
 import type { BuiltInProviderKey, GenericPubSub } from "./queue_types.js";
+import { nativeFs } from "../runtime/native_fs.js";
 
 type QueueHandler = (payload: unknown) => Promise<void>;
 
@@ -138,8 +138,7 @@ export class QueueService {
     const allFiles: string[] = [];
 
     for (const pattern of queueHandlerPatterns) {
-      const files = await glob(pattern, {
-        absolute: true,
+      const files = await nativeFs.glob(pattern, {
         cwd: nativeCwd.getCwd(),
       });
 

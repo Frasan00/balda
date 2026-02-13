@@ -1,7 +1,6 @@
 import { defineConfig } from "tsup";
 
 const external = [
-  "glob",
   "pino",
   "ajv",
   "@aws-sdk/client-s3",

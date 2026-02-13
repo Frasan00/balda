@@ -1,9 +1,4 @@
-import {
-  PolicyManager,
-  defineLoggerConfig,
-  logger,
-  Server,
-} from "../../src/index.js";
+import { PolicyManager, logger, Server } from "../../src/index.js";
 import { NativeEnv } from "../../src/runtime/native_env.js";
 
 export const policyManager = new PolicyManager({
@@ -16,10 +11,6 @@ export const policyManager = new PolicyManager({
       return false;
     },
   },
-});
-
-defineLoggerConfig({
-  level: "debug",
 });
 
 const serverBuilder = new Server({

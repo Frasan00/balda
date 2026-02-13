@@ -1,7 +1,8 @@
-import { glob } from "glob";
+import type { Logger } from "pino";
 import { logger } from "../logger/logger.js";
 import { nativeCwd } from "../runtime/native_cwd.js";
-import type { Command } from "./base_command.js";
+import { nativePath } from "../runtime/native_path.js";
+import { Command } from "./base_command.js";
 import BuildCommand from "./base_commands/build_command.js";
 import CronStartCommand from "./base_commands/cron_start_command.js";
 import GenerateCommand from "./base_commands/generate_command.js";
@@ -20,6 +21,7 @@ import ListCommand from "./base_commands/list_command.js";
 import QueueWorkCommand from "./base_commands/queue_work_command.js";
 import ServeCommand from "./base_commands/serve_command.js";
 import SetupStorageCommand from "./base_commands/setup_storage_command.js";
+import { nativeFs } from "../runtime/native_fs.js";
 
 // Base commands are always loaded
 export const baseCommands = [
@@ -61,7 +63,36 @@ export class CommandRegistry {
   private commands: Map<string, typeof Command>;
   private builtInCommands: Set<string>;
   static commandsPattern = "src/commands/**/*.{ts,js}";
+  static loggerPath = "src/logger.ts";
   static logger = logger.child({ scope: "CommandRegistry" });
+
+  /**
+   * Override the default logger used by CommandRegistry and all Command subclasses.
+   * @param customLogger - A pino Logger instance
+   */
+  static setLogger(customLogger: Logger) {
+    CommandRegistry.logger = customLogger.child({ scope: "CommandRegistry" });
+    Command.logger = customLogger.child({ scope: "Command" });
+  }
+
+  /**
+   * Dynamically imports the logger file and sets it as the logger for all commands.
+   * The file must export a named `logger` that is a pino Logger instance.
+   * @param overridePath - Optional path override (e.g. from CommandOptions.loggerPath). Falls back to CommandRegistry.loggerPath.
+   */
+  static async loadLogger(overridePath?: string): Promise<void> {
+    const loggerPath = overridePath || CommandRegistry.loggerPath;
+    try {
+      const mod = await import(nativePath.join(nativeCwd.getCwd(), loggerPath));
+      if (mod.logger) {
+        CommandRegistry.setLogger(mod.logger);
+      }
+    } catch {
+      CommandRegistry.logger.debug(
+        `Could not load logger from ${loggerPath}, using default logger`,
+      );
+    }
+  }
 
   /**
    * Private constructor to prevent direct instantiation
@@ -107,8 +138,7 @@ export class CommandRegistry {
   async loadCommands(commandsPattern: string) {
     CommandRegistry.logger.info(`Loading commands from ${commandsPattern}`);
 
-    const commandFiles = await glob(commandsPattern, {
-      absolute: true,
+    const commandFiles = await nativeFs.glob(commandsPattern, {
       cwd: nativeCwd.getCwd(),
     });
 

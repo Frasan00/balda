@@ -15,15 +15,7 @@ const createBaseLogger = () => {
 };
 
 /**
- * The logger instance, can be overridden by the `defineLoggerConfig` function
+ * The default logger instance used internally by Balda.
+ * To use a custom logger, pass a pino instance to `new Server({ logger })` or `CommandRegistry.setLogger()`.
  */
-export let logger = createBaseLogger();
-
-/**
- * Define the logger config, this will override the logger instance with the given options
- * @param options - The logger options
- */
-export const defineLoggerConfig = (options?: LoggerOptions) => {
-  logger = pino(options);
-  return logger;
-};
+export const logger = createBaseLogger();

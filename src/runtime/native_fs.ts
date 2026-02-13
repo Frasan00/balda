@@ -1,6 +1,31 @@
 import { runtime } from "./runtime.js";
+import type { glob } from "node:fs/promises";
+import { nativeCwd } from "./native_cwd.js";
+import { nativePath } from "./native_path.js";
 
 class NativeFs {
+  async glob(...args: Parameters<typeof glob>): Promise<string[]> {
+    const fs = await import("node:fs/promises");
+    const cwd = nativeCwd.getCwd();
+    const cwdPath = nativePath.resolve(
+      cwd,
+      (args[1] as { cwd?: string })?.cwd ?? "",
+    );
+    const paths: string[] = [];
+    for await (const p of fs.glob(...args)) {
+      if (typeof p === "string") {
+        paths.push(nativePath.resolve(cwdPath, p));
+        continue;
+      }
+
+      if (p.isFile()) {
+        paths.push(nativePath.resolve(cwdPath, p.name));
+      }
+    }
+
+    return paths;
+  }
+
   async mkdir(
     path: string,
     options?: { recursive?: boolean; mode?: number | string },

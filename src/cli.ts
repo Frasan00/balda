@@ -154,8 +154,14 @@ export const cli = async () => {
     }
   }
 
+  // Load user's logger from loggerPath
+  await CommandRegistry.loadLogger(commandClass.options?.loggerPath);
+
   // Check if the command has the help flag
   commandClass.handleHelpFlag(commandClass.flags);
+
+  // Validate unknown flags
+  commandClass.validateUnknownFlags(commandClass);
 
   // Validate the command context
   commandClass.validateContext(commandClass);

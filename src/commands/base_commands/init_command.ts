@@ -215,6 +215,13 @@ export default class InitCommand extends Command {
       new TextEncoder().encode(indexTemplate),
     );
 
+    const loggerTemplate = this.getLoggerTemplate();
+    this.logger.info(`Creating logger.${ext} file...`);
+    await nativeFs.writeFile(
+      `${this.srcPath}/logger.${ext}`,
+      new TextEncoder().encode(loggerTemplate),
+    );
+
     // Create MQTT configuration if requested
     if (this.mqtt) {
       const mqttDir = nativePath.join(this.srcPath, "mqtt");
@@ -283,10 +290,12 @@ export default class InitCommand extends Command {
       : "";
 
     return `import { Server } from "balda";
+import { logger } from "./logger.js";
 
 const serverInstance = new Server({
   port: 80,
   host: "0.0.0.0",
+  logger,
   plugins: {
     bodyParser: {
       json: {
@@ -333,13 +342,15 @@ export { serverInstance as server };
   console.log("GraphQL service configured");`);
     }
 
+    imports.push('import { logger } from "./logger.js";');
+
     const importsBlock = imports.join("\n");
     const servicesBlock = services.length > 0 ? services.join("\n") : "";
 
     return `${importsBlock}
 ${servicesBlock ? `\n${servicesBlock}\n` : ""}
 server.listen(({ url }) => {
-  console.log(\`Server is running on \${url}\`);
+  logger.info(\`Server is running on \${url}\`);
 });
 `;
   }
@@ -366,6 +377,13 @@ server.listen(({ url }) => {
 // Add your GraphQL type definitions and resolvers in separate files within this directory
 // The GraphQL endpoint is automatically available at /graphql
 // You can extend the schema using server.graphql.addTypeDef() and server.graphql.addResolver()
+`;
+  }
+
+  static getLoggerTemplate() {
+    return `import pino from "pino";
+
+export const logger = pino({ level: "info" });
 `;
   }
 }

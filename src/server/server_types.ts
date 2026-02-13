@@ -1,5 +1,6 @@
 import type { Ajv } from "ajv";
 import type { RequestHandler } from "express";
+import type { Logger } from "pino";
 import type { GraphQLOptions } from "../graphql/graphql_types.js";
 import type { MockServer } from "../mock/mock_server.js";
 import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
@@ -113,6 +114,17 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   ajvInstance?: Ajv;
+  /**
+   * Custom Pino logger instance for the server. If not provided, the default internal logger is used.
+   * @example
+   * ```ts
+   * import pino from "pino";
+   * const server = new Server({
+   *   logger: pino({ level: "debug" }),
+   * });
+   * ```
+   */
+  logger?: Logger;
   /**
    * An AbortSignal to gracefully shutdown the server when aborted
    * @example

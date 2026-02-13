@@ -95,10 +95,12 @@ export interface ServerRoute {
 }
 
 export type ServerListenCallback = ({
+  error,
   port,
   host,
   url,
 }: {
+  error?: Error;
   port: number;
   host: string;
   url: string;

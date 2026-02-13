@@ -75,7 +75,7 @@ export { QueueService } from "./queue/queue_service.js";
 export type { CustomTypedQueue, TypedQueue } from "./queue/typed_queue.js";
 
 // Logger
-export { logger, defineLoggerConfig } from "./logger/logger.js";
+export { logger } from "./logger/logger.js";
 export type { LoggerOptions } from "./logger/logger_types.js";
 
 // Commands

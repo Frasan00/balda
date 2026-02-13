@@ -76,36 +76,6 @@ export class AjvStateManager {
    */
   private static schemaKeyCache = new WeakMap<object, Map<string, string>>();
 
-  static {
-    this.ajv.addFormat(
-      "email",
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/,
-    );
-
-    this.ajv.addFormat(
-      "url",
-      /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/,
-    );
-
-    this.ajv.addFormat("date", /^\d{4}-\d{2}-\d{2}$/);
-
-    this.ajv.addFormat(
-      "datetime",
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/,
-    );
-
-    this.ajv.addFormat("time", /^\d{2}:\d{2}:\d{2}$/);
-    this.ajv.addFormat("binary", /^(?:[0-9a-fA-F]{2})+$/);
-    this.ajv.addFormat(
-      "base64",
-      /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/,
-    );
-    this.ajv.addFormat(
-      "uuid",
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
-  }
-
   /**
    * Sets the global AJV instance to use for JSON Schema validation.
    * @param ajv - The AJV instance to set as global.
