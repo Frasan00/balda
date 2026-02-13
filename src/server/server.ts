@@ -82,10 +82,10 @@ export class Server<
   H extends NodeHttpClient = NodeHttpClient,
 > implements ServerInterface {
   readonly _brand = "BaldaServer" as const;
+  readonly #nativeEnv: NativeEnv = new NativeEnv();
   readonly serverOptions: ResolvedServerOptions;
   readonly router: ClientRouter = router;
-  readonly #nativeEnv: NativeEnv = new NativeEnv();
-  private readonly logger;
+  readonly logger;
 
   isListening: boolean;
   isProduction: boolean;
