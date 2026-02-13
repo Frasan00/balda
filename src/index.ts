@@ -81,8 +81,8 @@ export type { LoggerOptions } from "./logger/logger_types.js";
 // Commands
 export { Command } from "./commands/base_command.js";
 export {
-  type CommandRegistry,
   commandRegistry,
+  CommandRegistry,
 } from "./commands/command_registry.js";
 export type { CommandOptions } from "./commands/command_types.js";
 

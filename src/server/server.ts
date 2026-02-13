@@ -112,6 +112,7 @@ export class Server<
    */
   constructor(options?: ServerOptions<H>) {
     this.#wasInitialized = false;
+    this.logger = (options?.logger ?? logger).child({ scope: "Balda" });
     this.serverOptions = {
       nodeHttpClient: options?.nodeHttpClient ?? ("http" as H),
       port: options?.port ?? Number(this.#nativeEnv.get("PORT")) ?? 80,
@@ -124,8 +125,6 @@ export class Server<
       abortSignal: options?.abortSignal,
       cronUI: options?.cronUI,
     };
-
-    this.logger = (options?.logger ?? logger).child({ scope: "Balda" });
 
     if (options?.ajvInstance) {
       AjvStateManager.setGlobalInstance(options.ajvInstance);

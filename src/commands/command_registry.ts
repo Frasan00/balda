@@ -111,6 +111,15 @@ export class CommandRegistry {
     this.commandsPattern = pattern;
   }
 
+  getLogger() {
+    return CommandRegistry.logger;
+  }
+
+  setLogger(logger: Logger) {
+    CommandRegistry.logger = logger.child({ scope: "CommandRegistry" });
+    Command.logger = logger.child({ scope: "Command" });
+  }
+
   getCommand(name: string): typeof Command | null {
     return this.commands.get(name) ?? null;
   }

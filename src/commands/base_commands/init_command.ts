@@ -382,8 +382,10 @@ server.listen(({ url }) => {
 
   static getLoggerTemplate() {
     return `import pino from "pino";
+import { CommandRegistry } from "../command_registry.js";
 
 export const logger = pino({ level: "info" });
+CommandRegistry.setLogger(logger);
 `;
   }
 }
