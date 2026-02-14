@@ -17,7 +17,7 @@ const quickBench = async (): Promise<void> => {
     host: "0.0.0.0",
   });
 
-  server.get(
+  server.router.get(
     "/",
     {
       swagger: {

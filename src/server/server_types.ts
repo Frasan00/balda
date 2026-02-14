@@ -269,46 +269,6 @@ export interface ServerInterface {
   mountExpressRouter: (basePath: string, expressRouter: ExpressRouter) => void;
 
   /**
-   * Shorthand for the router.get method
-   */
-  get: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.post method
-   */
-  post: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.put method
-   */
-  put: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.patch method
-   */
-  patch: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.delete method
-   */
-  delete: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.options method
-   */
-  options: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.head method
-   */
-  head: (...args: any[]) => void;
-
-  /**
-   * Shorthand for the router.group method
-   */
-  group: (...args: any[]) => void;
-
-  /**
    * Get the node server instance, you must be using node runtime to use this method based on the nodeHttpClient option passed to the server constructor (defaults to http)
    * @throws if the runtime is not node
    */

@@ -1,7 +1,6 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
 import { AjvStateManager } from "../ajv/ajv.js";
 import { cronUi } from "../cron/cron.js";
-import { RequestSchema } from "../decorators/validation/validate_types.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
@@ -39,7 +38,6 @@ import type { SessionOptions } from "../plugins/session/session_types.js";
 import { serveStatic } from "../plugins/static/static.js";
 import type { StaticPluginOptions } from "../plugins/static/static_types.js";
 import { swagger } from "../plugins/swagger/swagger.js";
-import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import { timeout as timeoutMw } from "../plugins/timeout/timeout.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
 import { trustProxy } from "../plugins/trust_proxy/trust_proxy.js";
@@ -64,7 +62,6 @@ import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
 import type {
-  ControllerHandler,
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
@@ -73,7 +70,6 @@ import type {
   ServerOptions,
   ServerPlugin,
   SignalEvent,
-  StandardMethodOptions,
 } from "./server_types.js";
 
 /**
@@ -198,244 +194,6 @@ export class Server<
   tmpDir(...append: string[]): string {
     const baseTmpDir = "tmp";
     return nativePath.join(baseTmpDir, ...append);
-  }
-
-  get<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  get<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  get<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "GET",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  post<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  post<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  post<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "POST",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  patch<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  patch<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  patch<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "PATCH",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  put<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  put<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  put<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "PUT",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  delete<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  delete<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  delete<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "DELETE",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  options<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  options<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  options<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "OPTIONS",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  head<TPath extends string = string>(
-    path: TPath,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  head<TPath extends string = string>(
-    path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
-  ): void;
-  head<TPath extends string = string>(
-    path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
-    maybeHandler?: ControllerHandler<TPath>,
-  ): void {
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandlerFromRouteRegistration(
-        optionsOrHandler,
-        maybeHandler,
-      );
-
-    const validationSchemas = { body, query, all };
-    router.addOrUpdate(
-      "HEAD",
-      path,
-      middlewares,
-      handler,
-      validationSchemas,
-      swaggerOptions,
-    );
-  }
-
-  group(
-    path: string,
-    middleware: ServerRouteMiddleware[] | ServerRouteMiddleware,
-    cb: (router: ClientRouter) => void,
-  ): void;
-  group(path: string, cb: (router: ClientRouter) => void): void;
-  group(
-    path: string,
-    middlewareOrCb:
-      | ServerRouteMiddleware[]
-      | ServerRouteMiddleware
-      | ((router: ClientRouter) => void),
-    maybeCb?: (router: ClientRouter) => void,
-  ): void {
-    this.router.group(
-      path,
-      middlewareOrCb as ServerRouteMiddleware[] | ServerRouteMiddleware,
-      maybeCb as (router: ClientRouter) => void,
-    );
   }
 
   getNodeServer(): RuntimeServerMap<"node", H> {
@@ -708,44 +466,6 @@ export class Server<
         `Could not auto-import controllers: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-  }
-
-  private extractOptionsAndHandlerFromRouteRegistration(
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
-  ): {
-    middlewares: ServerRouteMiddleware[];
-    handler: ServerRouteHandler;
-    body?: RequestSchema;
-    query?: RequestSchema;
-    all?: RequestSchema;
-    swaggerOptions?: SwaggerRouteOptions;
-  } {
-    if (typeof optionsOrHandler === "function") {
-      // Handler only
-      return {
-        middlewares: [],
-        handler: optionsOrHandler as ServerRouteHandler,
-        swaggerOptions: undefined,
-      };
-    }
-
-    // StandardMethodOptions
-    const options = optionsOrHandler as StandardMethodOptions;
-    const middlewares = Array.isArray(options.middlewares)
-      ? options.middlewares
-      : options.middlewares
-        ? [options.middlewares]
-        : [];
-
-    return {
-      middlewares,
-      handler: maybeHandler!,
-      body: options.body,
-      query: options.query,
-      all: options.all,
-      swaggerOptions: options.swagger,
-    };
   }
 
   private applyPlugins(plugins: ServerPlugin): void {

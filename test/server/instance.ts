@@ -86,7 +86,7 @@ serverBuilder.setErrorHandler((_req, res, next, error) => {
   return next();
 });
 
-serverBuilder.get("/", (_req, res) => {
+serverBuilder.router.get("/", (_req, res) => {
   res.redirect("/docs");
 });
 

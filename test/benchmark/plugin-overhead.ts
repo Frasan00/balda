@@ -62,11 +62,11 @@ const createServerWithPlugins = (config: PluginConfig): Server => {
     server.use(plugin());
   });
 
-  server.get("/", (_req, res) => {
+  server.router.get("/", (_req, res) => {
     res.json({ message: "Hello, world!" });
   });
 
-  server.post("/data", (req, res) => {
+  server.router.post("/data", (req, res) => {
     res.json({ received: req.body || {} });
   });
 

@@ -11,11 +11,11 @@ const createTestServer = (): Server => {
     host: "0.0.0.0",
   });
 
-  server.get("/", (_req, res) => {
+  server.router.get("/", (_req, res) => {
     res.json({ message: "Hello, world!" });
   });
 
-  server.get("/json", (_req, res) => {
+  server.router.get("/json", (_req, res) => {
     res.json({
       id: 123,
       name: "Test User",
@@ -28,7 +28,7 @@ const createTestServer = (): Server => {
     });
   });
 
-  server.get("/large", (_req, res) => {
+  server.router.get("/large", (_req, res) => {
     const data = Array.from({ length: 100 }, (_, i) => ({
       id: i,
       name: `Item ${i}`,

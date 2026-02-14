@@ -1,5 +1,5 @@
-import { Server } from "../../src/server/server";
-import { logger } from "../../src/logger/logger";
+import { Server } from "../../src/server/server.js";
+import { logger } from "../../src/logger/logger.js";
 
 /**
  * Minimal server to benchmark the server performance
@@ -10,7 +10,7 @@ const server = new Server({
   swagger: false,
 });
 
-server.get("/", (_req, res) => {
+server.router.get("/", (_req, res) => {
   res.json({ message: "Hello, world!" });
 });
 

@@ -23,7 +23,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
         swagger: false,
         host: "0.0.0.0",
       });
-      server.get("/", (_req, res) => {
+      server.router.get("/", (_req, res) => {
         res.json({ message: "Hello, world!" });
       });
       return server;
@@ -40,7 +40,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
         host: "0.0.0.0",
       });
       server.use(json());
-      server.post("/json", (req, res) => {
+      server.router.post("/json", (req, res) => {
         res.json({ received: req.body });
       });
       return server;
@@ -66,7 +66,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
           tags: [`tag${i % 10}`, `category${i % 5}`],
         },
       }));
-      server.get("/large", (_req, res) => {
+      server.router.get("/large", (_req, res) => {
         res.json({ data: largeData });
       });
       return server;
@@ -84,7 +84,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
       });
       server.use(compression());
       const data = { message: "x".repeat(10000) };
-      server.get("/compressed", (_req, res) => {
+      server.router.get("/compressed", (_req, res) => {
         res.json(data);
       });
       return server;
@@ -100,7 +100,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
         swagger: false,
         host: "0.0.0.0",
       });
-      server.get("/users/:id/posts/:postId", (req, res) => {
+      server.router.get("/users/:id/posts/:postId", (req, res) => {
         res.json({
           userId: req.params.id,
           postId: req.params.postId,
@@ -119,7 +119,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
         swagger: false,
         host: "0.0.0.0",
       });
-      server.get("/search", (req, res) => {
+      server.router.get("/search", (req, res) => {
         res.json({
           query: req.query,
           count: Object.keys(req.query).length,
@@ -144,11 +144,11 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
       server.use(logPlugin());
       server.use(compression());
 
-      server.get("/", (_req, res) => {
+      server.router.get("/", (_req, res) => {
         res.json({ message: "Hello with all plugins!" });
       });
 
-      server.post("/data", (req, res) => {
+      server.router.post("/data", (req, res) => {
         res.json({ received: req.body });
       });
 

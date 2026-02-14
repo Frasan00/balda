@@ -7,14 +7,13 @@ import type {
 import type { Request } from "../http/request.js";
 import type { Response } from "../http/response.js";
 import type { Params, Route, RouteResponseSchemas } from "./router_type.js";
-import type { ExtractParams } from "./path_types.js";
+
 import {
   compileResponseSchemas,
   compileRequestSchemas,
 } from "../../ajv/schema_compiler.js";
 import type {
   ControllerHandler,
-  ServerHandlerReturnType,
   StandardMethodOptions,
 } from "../server_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
@@ -544,35 +543,17 @@ export class Router {
    */
   head<TPath extends string = string>(
     path: TPath,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-      ...args: any[]
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
     options: StandardMethodOptions,
-    handler: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-      ...args: any[]
-    ) => ServerHandlerReturnType,
+    handler: ControllerHandler<TPath>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler:
-      | StandardMethodOptions
-      | ((
-          req: Request<ExtractParams<TPath>>,
-          res: Response,
-          ...args: any[]
-        ) => ServerHandlerReturnType),
-    maybeHandler?: (
-      req: Request<ExtractParams<TPath>>,
-      res: Response,
-      ...args: any[]
-    ) => ServerHandlerReturnType,
+    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
     const { middlewares, handler, body, query, all, swaggerOptions } =
