@@ -68,6 +68,7 @@ import type {
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
+  ServerHook,
   ServerInterface,
   ServerOptions,
   ServerPlugin,
@@ -97,6 +98,7 @@ export class Server<
   #controllerImportBlacklistedPaths: string[] = ["node_modules"];
   #notFoundHandler?: ServerRouteHandler;
   #httpsOptions?: HttpsServerOptions;
+  #beforeStartHooks: ServerHook[] = [];
 
   /**
    * The constructor for the server
@@ -564,6 +566,10 @@ export class Server<
     this.#notFoundHandler = notFoundHandler?.bind(this);
   }
 
+  beforeStart(hook: ServerHook): void {
+    this.#beforeStartHooks.push(hook);
+  }
+
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {
       throw new Error(
@@ -578,7 +584,11 @@ export class Server<
     };
 
     this.bootstrap()
-      .then(() => {
+      .then(async () => {
+        for (const hook of this.#beforeStartHooks) {
+          await hook();
+        }
+
         this.#serverConnector.listen();
         this.isListening = true;
 

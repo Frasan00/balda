@@ -76,6 +76,8 @@ const displayCategorizedCommands = (
  * CLI entry point
  */
 export const cli = async () => {
+  // Load user's logger early so loadCommands logs with the correct logger
+  await CommandRegistry.loadLogger();
   await commandRegistry.loadCommands(CommandRegistry.commandsPattern);
   const [commandName, ...rest] = nativeArgs.getCliArgs();
 

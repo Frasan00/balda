@@ -383,6 +383,18 @@ export interface ServerInterface {
    */
   setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**
+   * Register a hook to be called after bootstrap (controllers imported, plugins applied) but before the server starts accepting requests.
+   * Multiple hooks are called in the order they are registered.
+   * @param hook - The hook function to call, can be sync or async
+   * @example
+   * ```ts
+   * server.beforeStart(async () => {
+   *   await connectToDatabase();
+   * });
+   * ```
+   */
+  beforeStart: (hook: ServerHook) => void;
+  /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    * It initializes the server without blocking the event loop, you can pass a callback to be called when the server is listening
    * Use `waitUntilListening` instead if you want to wait for the server to be listening for requests before returning
@@ -446,6 +458,8 @@ export type StandardMethodOptions = {
   all?: RequestSchema;
   swagger?: SwaggerRouteOptions;
 };
+
+export type ServerHook = () => SyncOrAsync;
 
 export type SignalEvent = Deno.Signal | NodeJS.Signals;
 

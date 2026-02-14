@@ -111,6 +111,7 @@ export type {
 export type {
   NodeHttpClient,
   ServerErrorHandler,
+  ServerHook,
   ServerInterface,
   ServerOptions,
   SignalEvent,
