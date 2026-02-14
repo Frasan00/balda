@@ -10,17 +10,17 @@ import type { RequestSchema } from "../validation/validate_types.js";
  * Type-safe handler for routes with typed path parameters and response
  * Body and query are validated first and passed as separate typed arguments
  * @example
- * TypedHandler<"/users/:id", CreateUserSchema, SearchQuerySchema, UserResponse>
- *   → (req: Request<{ id: string }>, res: Response<UserResponse>, body: CreateUserInput, query: SearchQuery) => void | Promise<void>
+ * TypedHandler<"/users/:id", CreateUserSchema, SearchQuerySchema, { 200: UserResponse }>
+ *   → (req: Request<{ id: string }>, res: Response<{ 200: UserResponse }>, body: CreateUserInput, query: SearchQuery) => void | Promise<void>
  */
 export type TypedHandler<
   TPath extends string,
   TBody extends RequestSchema | undefined = undefined,
   TQuery extends RequestSchema | undefined = undefined,
-  TResponseBody = any,
+  TResponseMap extends Record<number, any> = Record<number, any>,
 > = (
   req: Request<ExtractParams<TPath>>,
-  res: Response<TResponseBody>,
+  res: Response<TResponseMap>,
   ...args: [
     ...(TBody extends RequestSchema ? [body: InferSchemaType<TBody>] : []),
     ...(TQuery extends RequestSchema ? [query: InferSchemaType<TQuery>] : []),

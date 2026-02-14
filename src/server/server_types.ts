@@ -37,7 +37,7 @@ import type { Response } from "./http/response.js";
 import type { ClientRouter } from "./router/router_type.js";
 import type { CronUIOptions } from "../cron/cron.types.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
-import { ExtractParams } from "./router/path_types.js";
+import { ExtractParams, InferResponseMap } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
@@ -411,20 +411,31 @@ export interface ServerInterface {
   exit: (code?: number) => void;
 }
 
-export type StandardMethodOptions = {
+export type StandardMethodOptions<
+  TResponses extends Record<number, RequestSchema> = Record<
+    number,
+    RequestSchema
+  >,
+> = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
   body?: RequestSchema;
   query?: RequestSchema;
   all?: RequestSchema;
-  swagger?: SwaggerRouteOptions;
+  swagger?: SwaggerRouteOptions<TResponses>;
 };
 
 export type ServerHook = () => SyncOrAsync;
 
 export type SignalEvent = Deno.Signal | NodeJS.Signals;
 
-export type ControllerHandler<TPath extends string = string> = (
+export type ControllerHandler<
+  TPath extends string = string,
+  TResponses extends Record<number, RequestSchema> = Record<
+    number,
+    RequestSchema
+  >,
+> = (
   req: Request<ExtractParams<TPath>>,
-  res: Response,
+  res: Response<InferResponseMap<TResponses>>,
   ...args: any[]
 ) => ServerHandlerReturnType;

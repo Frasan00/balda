@@ -106,7 +106,9 @@ export type { Request } from "./server/http/request.js";
 export type { Response } from "./server/http/response.js";
 export type {
   ExtractParams,
+  InferResponseMap,
   InferSchemaType,
+  ResponseBodyForStatus,
 } from "./server/router/path_types.js";
 export type {
   NodeHttpClient,

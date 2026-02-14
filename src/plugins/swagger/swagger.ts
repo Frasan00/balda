@@ -1,16 +1,16 @@
-import type { ZodAny, ZodObject, ZodType } from "zod";
+import type { ZodObject, ZodType } from "zod";
+import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
+import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import { logger } from "../../logger/logger.js";
 import type {
+  JSONSchema,
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
-  JSONSchema,
 } from "../../plugins/swagger/swagger_types.js";
 import { router } from "../../server/router/router.js";
-import { ZodLoader } from "../../validator/zod_loader.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
-import type { RequestSchema } from "../../decorators/validation/validate_types.js";
-import { AjvStateManager } from "../../ajv/ajv.js";
-import { logger } from "../../logger/logger.js";
+import { ZodLoader } from "../../validator/zod_loader.js";
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json
@@ -117,7 +117,7 @@ function getOrConvertToJSONSchema(
   // This handles edge cases like global swagger models that weren't pre-compiled
   if (ZodLoader.isZodSchema(schema)) {
     try {
-      const jsonSchema = ZodLoader.toJSONSchema(schema as ZodAny);
+      const jsonSchema = ZodLoader.toJSONSchema(schema as ZodType);
       AjvStateManager.storeJsonSchema(jsonSchema, prefix);
       return jsonSchema;
     } catch (error) {

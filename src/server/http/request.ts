@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
-import type { ZodAny } from "zod";
+import type { ZodType } from "zod";
 import { AjvStateManager } from "../../ajv/ajv.js";
 import type { AjvCompileReturnType } from "../../ajv/ajv_types.js";
 import type {
@@ -117,7 +117,7 @@ export class Request<Params extends Record<string, string> = any> {
   } {
     if (ZodLoader.isZodSchema(schema)) {
       return {
-        jsonSchema: ZodLoader.toJSONSchema(schema as ZodAny),
+        jsonSchema: ZodLoader.toJSONSchema(schema as ZodType),
         prefix: "zod_schema",
       };
     }

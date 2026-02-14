@@ -341,10 +341,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  get<TPath extends string = string>(
+  get<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
@@ -375,10 +381,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  post<TPath extends string = string>(
+  post<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
@@ -409,10 +421,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  patch<TPath extends string = string>(
+  patch<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
@@ -443,10 +461,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  put<TPath extends string = string>(
+  put<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
@@ -477,10 +501,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  delete<TPath extends string = string>(
+  delete<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
@@ -511,10 +541,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  options<TPath extends string = string>(
+  options<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
@@ -545,10 +581,16 @@ export class Router {
     path: TPath,
     handler: ControllerHandler<TPath>,
   ): void;
-  head<TPath extends string = string>(
+  head<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+  >(
     path: TPath,
-    options: StandardMethodOptions,
-    handler: ControllerHandler<TPath>,
+    options: StandardMethodOptions<TResponses>,
+    handler: ControllerHandler<TPath, TResponses>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,

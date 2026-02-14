@@ -2,11 +2,11 @@
  * Manages synchronous loading of the Zod library at runtime.
  * Zod is a peer dependency and only loaded if Zod schemas are used.
  */
-import type { ZodAny } from "zod";
+import type { ZodType } from "zod";
+import { Zod3SchemaUsedError } from "../errors/zod3_schema_used.js";
 import { Zod4NotInstalledError } from "../errors/zod4_not_installed_error.js";
 import { requireFn } from "../package.js";
 import type { JSONSchema } from "../plugins/swagger/swagger_types.js";
-import { Zod3SchemaUsedError } from "../errors/zod3_schema_used.js";
 
 export class ZodLoader {
   private static zodModule: typeof import("zod") | null = null;
@@ -49,7 +49,7 @@ export class ZodLoader {
    * Checks if a value is a Zod schema
    * Results are cached in a WeakSet to avoid repeated property lookups
    */
-  static isZodSchema(value: any): value is ZodAny {
+  static isZodSchema(value: any): value is ZodType {
     try {
       this.load();
     } catch {
@@ -101,7 +101,7 @@ export class ZodLoader {
    * @throws Zod4NotInstalledError if Zod v4 is not installed or toJSONSchema is not available
    * @throws Error if the schema is invalid or incompatible (Example using zod/v3)
    */
-  static toJSONSchema(schema: ZodAny): JSONSchema {
+  static toJSONSchema(schema: ZodType): JSONSchema {
     this.load();
     this.ensureZodV4();
 

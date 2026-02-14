@@ -11,14 +11,17 @@ import { nativePath } from "../../runtime/native_path.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 
+import type { ResponseBodyForStatus } from "../router/path_types.js";
+
 /**
- * The response object with optional type-safe response body.
- * This is the main object that is passed to the handler function.
- * It contains the response body, status, headers, etc.
- * It also contains the methods to send the response.
- * @template TBody - The expected response body type (for type safety)
+ * The response object with per-status-code type-safe response bodies.
+ * When response schemas are provided (e.g. via swagger.responses), each shorthand
+ * method (ok, created, notFound, etc.) is typed to its corresponding status code schema.
+ * @template TResponseMap - Maps HTTP status codes to their inferred body types (defaults to Record<number, any>)
  */
-export class Response<TBody = any> {
+export class Response<
+  TResponseMap extends Record<number, any> = Record<number, any>,
+> {
   static toWebResponse(response: Response): globalThis.Response {
     const body = response.getBody();
     const contentType = response.headers["Content-Type"]?.toLowerCase();
@@ -120,7 +123,7 @@ export class Response<TBody = any> {
    * Send a response with the given body, tries to determine the content type based on the body type, status defaults to 200
    * @warning If cannot determine the content type, it will be sent as is
    */
-  send(body: TBody): void {
+  send(body: TResponseMap[keyof TResponseMap]): void {
     if (body === null || body === undefined) {
       return this.text("");
     }
@@ -147,11 +150,7 @@ export class Response<TBody = any> {
 
     if (typeof body === "object" && body !== null) {
       try {
-        return this.json(
-          body as TBody extends Record<string, unknown> | Array<unknown>
-            ? TBody
-            : Record<string, unknown> | Array<unknown>,
-        );
+        return this.json(body as any);
       } catch (error) {
         return this.text(String(body));
       }
@@ -184,12 +183,7 @@ export class Response<TBody = any> {
    * @param body - The response body to serialize
    * @param schema - Optional schema for fast-json-stringify. When provided, enables fast serialization
    */
-  json(
-    body: TBody extends Record<string, unknown> | Array<unknown>
-      ? TBody
-      : Record<string, unknown> | Array<unknown>,
-    schema?: RequestSchema,
-  ): void {
+  json(body: TResponseMap[keyof TResponseMap], schema?: RequestSchema): void {
     this.body = body;
     this.headers["Content-Type"] = "application/json";
 
@@ -213,42 +207,6 @@ export class Response<TBody = any> {
       this.#serializer =
         AjvStateManager.getOrCreateSerializer(jsonSchema, prefix) ?? undefined;
     }
-  }
-
-  /**
-   * Converts any schema type to JSON Schema format with appropriate prefix.
-   * @param schema - The schema to convert
-   * @returns Object with JSON Schema and prefix
-   */
-  private getJsonSchemaWithPrefix(schema: RequestSchema): {
-    jsonSchema: JSONSchema;
-    prefix: string;
-  } {
-    if (ZodLoader.isZodSchema(schema)) {
-      return {
-        jsonSchema: ZodLoader.toJSONSchema(schema),
-        prefix: "fast_stringify_zod",
-      };
-    }
-
-    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-      return {
-        jsonSchema: schema as JSONSchema,
-        prefix: "fast_stringify_typebox",
-      };
-    }
-
-    if (typeof schema === "object" && schema !== null) {
-      return {
-        jsonSchema: schema as JSONSchema,
-        prefix: "fast_stringify_json",
-      };
-    }
-
-    return {
-      jsonSchema: { type: typeof schema } as JSONSchema,
-      prefix: `fast_stringify_primitive_${JSON.stringify(schema)}`,
-    };
   }
 
   /**
@@ -299,22 +257,22 @@ export class Response<TBody = any> {
   /**
    * 200 OK
    */
-  ok(body?: TBody): void {
-    this.status(200).send(body as TBody);
+  ok(body?: ResponseBodyForStatus<TResponseMap, 200>): void {
+    this.status(200).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 201 Created
    */
-  created(body?: TBody): void {
-    this.status(201).send(body as TBody);
+  created(body?: ResponseBodyForStatus<TResponseMap, 201>): void {
+    this.status(201).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 202 Accepted
    */
-  accepted(body?: TBody): void {
-    this.status(202).send(body as TBody);
+  accepted(body?: ResponseBodyForStatus<TResponseMap, 202>): void {
+    this.status(202).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
@@ -328,8 +286,8 @@ export class Response<TBody = any> {
   /**
    * 206 Partial Content
    */
-  partialContent(body?: TBody): void {
-    this.status(206).send(body as TBody);
+  partialContent(body?: ResponseBodyForStatus<TResponseMap, 206>): void {
+    this.status(206).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
@@ -397,127 +355,129 @@ export class Response<TBody = any> {
   /**
    * 400 Bad Request
    */
-  badRequest(body?: TBody): void {
-    this.status(400).send(body as TBody);
+  badRequest(body?: ResponseBodyForStatus<TResponseMap, 400>): void {
+    this.status(400).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 401 Unauthorized
    */
-  unauthorized(body?: TBody): void {
-    this.status(401).send(body as TBody);
+  unauthorized(body?: ResponseBodyForStatus<TResponseMap, 401>): void {
+    this.status(401).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 403 Forbidden
    */
-  forbidden(body?: TBody): void {
-    this.status(403).send(body as TBody);
+  forbidden(body?: ResponseBodyForStatus<TResponseMap, 403>): void {
+    this.status(403).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 404 Not Found
    */
-  notFound(body?: TBody): void {
-    this.status(404).send(body as TBody);
+  notFound(body?: ResponseBodyForStatus<TResponseMap, 404>): void {
+    this.status(404).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 405 Method Not Allowed
    */
-  methodNotAllowed(body?: TBody): void {
-    this.status(405).send(body as TBody);
+  methodNotAllowed(body?: ResponseBodyForStatus<TResponseMap, 405>): void {
+    this.status(405).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 406 Not Acceptable
    */
-  notAcceptable(body?: TBody): void {
-    this.status(406).send(body as TBody);
+  notAcceptable(body?: ResponseBodyForStatus<TResponseMap, 406>): void {
+    this.status(406).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 409 Conflict
    */
-  conflict(body?: TBody): void {
-    this.status(409).send(body as TBody);
+  conflict(body?: ResponseBodyForStatus<TResponseMap, 409>): void {
+    this.status(409).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 410 Gone
    */
-  gone(body?: TBody): void {
-    this.status(410).send(body as TBody);
+  gone(body?: ResponseBodyForStatus<TResponseMap, 410>): void {
+    this.status(410).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 413 Payload Too Large
    */
-  payloadTooLarge(body?: TBody): void {
-    this.status(413).send(body as TBody);
+  payloadTooLarge(body?: ResponseBodyForStatus<TResponseMap, 413>): void {
+    this.status(413).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 415 Unsupported Media Type
    */
-  unsupportedMediaType(body?: TBody): void {
-    this.status(415).send(body as TBody);
+  unsupportedMediaType(body?: ResponseBodyForStatus<TResponseMap, 415>): void {
+    this.status(415).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 422 Unprocessable Entity
    */
-  unprocessableEntity(body?: TBody): void {
-    this.status(422).send(body as TBody);
+  unprocessableEntity(body?: ResponseBodyForStatus<TResponseMap, 422>): void {
+    this.status(422).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 429 Too Many Requests
    */
-  tooManyRequests(body?: TBody): void {
-    this.status(429).send(body as TBody);
+  tooManyRequests(body?: ResponseBodyForStatus<TResponseMap, 429>): void {
+    this.status(429).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 5XX Server Errors
    */
-  internalServerError(body?: TBody): void {
-    this.status(500).send(body as TBody);
+  internalServerError(body?: ResponseBodyForStatus<TResponseMap, 500>): void {
+    this.status(500).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 501 Not Implemented
    */
-  notImplemented(body?: TBody): void {
-    this.status(501).send(body as TBody);
+  notImplemented(body?: ResponseBodyForStatus<TResponseMap, 501>): void {
+    this.status(501).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 502 Bad Gateway
    */
-  badGateway(body?: TBody): void {
-    this.status(502).send(body as TBody);
+  badGateway(body?: ResponseBodyForStatus<TResponseMap, 502>): void {
+    this.status(502).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 503 Service Unavailable
    */
-  serviceUnavailable(body?: TBody): void {
-    this.status(503).send(body as TBody);
+  serviceUnavailable(body?: ResponseBodyForStatus<TResponseMap, 503>): void {
+    this.status(503).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 504 Gateway Timeout
    */
-  gatewayTimeout(body?: TBody): void {
-    this.status(504).send(body as TBody);
+  gatewayTimeout(body?: ResponseBodyForStatus<TResponseMap, 504>): void {
+    this.status(504).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
    * 505 HTTP Version Not Supported
    */
-  httpVersionNotSupported(body?: TBody): void {
-    this.status(505).send(body as TBody);
+  httpVersionNotSupported(
+    body?: ResponseBodyForStatus<TResponseMap, 505>,
+  ): void {
+    this.status(505).send(body as TResponseMap[keyof TResponseMap]);
   }
 
   /**
@@ -593,5 +553,41 @@ export class Response<TBody = any> {
       }
     }
     return this.body;
+  }
+
+  /**
+   * Converts any schema type to JSON Schema format with appropriate prefix.
+   * @param schema - The schema to convert
+   * @returns Object with JSON Schema and prefix
+   */
+  private getJsonSchemaWithPrefix(schema: RequestSchema): {
+    jsonSchema: JSONSchema;
+    prefix: string;
+  } {
+    if (ZodLoader.isZodSchema(schema)) {
+      return {
+        jsonSchema: ZodLoader.toJSONSchema(schema),
+        prefix: "fast_stringify_zod",
+      };
+    }
+
+    if (TypeBoxLoader.isTypeBoxSchema(schema)) {
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "fast_stringify_typebox",
+      };
+    }
+
+    if (typeof schema === "object" && schema !== null) {
+      return {
+        jsonSchema: schema as JSONSchema,
+        prefix: "fast_stringify_json",
+      };
+    }
+
+    return {
+      jsonSchema: { type: typeof schema } as JSONSchema,
+      prefix: `fast_stringify_primitive_${JSON.stringify(schema)}`,
+    };
   }
 }
