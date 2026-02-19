@@ -32,9 +32,14 @@ export type InferResponseMap<T extends Record<number, RequestSchema>> = {
 
 /**
  * Extracts the body type for a specific HTTP status code from a response map.
+ * When the status code has a schema defined, enforces exact type matching.
  * Defaults to `any` when the status code is not present in the map.
  */
 export type ResponseBodyForStatus<
   TMap,
   TStatus extends number,
-> = TStatus extends keyof TMap ? TMap[TStatus] : any;
+> = TStatus extends keyof TMap
+  ? 0 extends 1 & TMap[TStatus]
+    ? any
+    : { [K in keyof TMap[TStatus]]: TMap[TStatus][K] }
+  : any;

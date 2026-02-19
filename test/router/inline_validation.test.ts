@@ -354,15 +354,15 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
           query: querySchema,
+          responses: {
+            200: {
+              type: "object",
+              properties: { results: { type: "array" } },
+            },
+          },
           swagger: {
             name: "Search API",
             description: "Search with filters",
-            responses: {
-              200: {
-                type: "object",
-                properties: { results: { type: "array" } },
-              },
-            },
           },
         },
         async (req, res, validatedBody, validatedQuery) => {
@@ -393,12 +393,10 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         "/posts/:id",
         {
           body: bodySchema,
-          swagger: {
-            responses: {
-              200: {
-                type: "object",
-                properties: { updated: { type: "boolean" } },
-              },
+          responses: {
+            200: {
+              type: "object",
+              properties: { updated: { type: "boolean" } },
             },
           },
         },

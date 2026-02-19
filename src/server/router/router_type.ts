@@ -21,7 +21,12 @@ export interface Route {
   handler: ServerRouteHandler;
   swaggerOptions?: SwaggerRouteOptions;
   /**
-   * Compiled response schemas from swagger.responses, indexed by status code.
+   * Response schemas from route options, indexed by status code.
+   * Used by swagger plugin for documentation and fast JSON serialization.
+   */
+  responses?: RouteResponseSchemas;
+  /**
+   * Compiled response schemas, indexed by status code.
    * Used for automatic fast JSON serialization in Response.json()
    */
   responseSchemas?: RouteResponseSchemas;

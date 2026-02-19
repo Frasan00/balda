@@ -20,12 +20,10 @@ const quickBench = async (): Promise<void> => {
   server.router.get(
     "/",
     {
-      swagger: {
-        responses: {
-          200: Type.Object({
-            message: Type.String(),
-          }),
-        },
+      responses: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
       },
     },
     async (_req, res) => {

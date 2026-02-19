@@ -23,15 +23,13 @@ describe("Router - Inline Route Schema Caching", () => {
       required: ["message"],
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.get(
       "/test",
       {
-        swagger: {
-          responses: {
-            200: responseSchema,
-          },
+        responses: {
+          200: responseSchema,
         },
       },
       handler,
@@ -56,16 +54,14 @@ describe("Router - Inline Route Schema Caching", () => {
       properties: { error: { type: "string" } },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.get(
       "/multi",
       {
-        swagger: {
-          responses: {
-            200: schema200,
-            404: schema404,
-          },
+        responses: {
+          200: schema200,
+          404: schema404,
         },
       },
       handler,
@@ -91,15 +87,13 @@ describe("Router - Inline Route Schema Caching", () => {
       properties: { result: { type: "boolean" } },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.post(
       "/action",
       {
-        swagger: {
-          responses: {
-            201: responseSchema,
-          },
+        responses: {
+          201: responseSchema,
         },
       },
       handler,
@@ -117,15 +111,13 @@ describe("Router - Inline Route Schema Caching", () => {
       properties: { success: { type: "boolean" } },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.put(
       "/update",
       {
-        swagger: {
-          responses: {
-            200: responseSchema,
-          },
+        responses: {
+          200: responseSchema,
         },
       },
       handler,
@@ -143,15 +135,13 @@ describe("Router - Inline Route Schema Caching", () => {
       properties: { id: { type: "string" } },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.get(
       "/users/:id",
       {
-        swagger: {
-          responses: {
-            200: responseSchema,
-          },
+        responses: {
+          200: responseSchema,
         },
       },
       handler,
@@ -164,7 +154,7 @@ describe("Router - Inline Route Schema Caching", () => {
   });
 
   it("should handle routes without response schemas", () => {
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.delete("/remove", handler);
 
@@ -190,7 +180,7 @@ describe("Router - Inline Route Schema Caching", () => {
       },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.post(
       "/create",
@@ -227,16 +217,14 @@ describe("Router - Inline Route Schema Caching", () => {
       },
     } as const;
 
-    const handler = (req: Request, res: Response) => {};
+    const handler = (req: Request, res: Response<any>) => {};
 
     router.post(
       "/transform",
       {
         body: requestSchema,
-        swagger: {
-          responses: {
-            200: responseSchema,
-          },
+        responses: {
+          200: responseSchema,
         },
       },
       handler,

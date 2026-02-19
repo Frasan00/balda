@@ -94,6 +94,7 @@ export class Router {
       all?: RequestSchema;
     },
     swaggerOptions?: SwaggerRouteOptions,
+    responses?: Record<number, RequestSchema>,
   ): void {
     method = method.toUpperCase() as HttpMethod;
     const clean = path.split("?")[0];
@@ -101,8 +102,8 @@ export class Router {
     // Pre-compile request schemas (body and query) for faster validation
     compileRequestSchemas(validationSchemas?.body, validationSchemas?.query);
 
-    // Compile and cache response schemas from swagger options
-    const responseSchemas = compileResponseSchemas(swaggerOptions?.responses);
+    // Compile and cache response schemas from route options
+    const responseSchemas = compileResponseSchemas(responses);
 
     // Wrap handler with validation logic if schemas are provided
     const hasValidation =
@@ -200,6 +201,7 @@ export class Router {
       this.routes[idx].middleware = middleware;
       this.routes[idx].handler = finalHandler;
       this.routes[idx].swaggerOptions = swaggerOptions;
+      this.routes[idx].responses = responses;
       this.routes[idx].responseSchemas = responseSchemas;
       this.routes[idx].validationSchemas = finalValidationSchemas;
       return;
@@ -211,6 +213,7 @@ export class Router {
       middleware,
       handler: finalHandler,
       swaggerOptions,
+      responses,
       responseSchemas,
       validationSchemas: finalValidationSchemas,
     });
@@ -307,6 +310,7 @@ export class Router {
     body?: RequestSchema;
     query?: RequestSchema;
     all?: RequestSchema;
+    responses?: Record<number, RequestSchema>;
     swaggerOptions?: SwaggerRouteOptions;
   } {
     if (typeof optionsOrHandler === "function") {
@@ -330,6 +334,7 @@ export class Router {
       body: options.body,
       query: options.query,
       all: options.all,
+      responses: options.responses,
       swaggerOptions: options.swagger,
     };
   }
@@ -358,8 +363,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -371,6 +383,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -398,8 +411,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -411,6 +431,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -438,8 +459,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -451,6 +479,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -478,8 +507,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -491,6 +527,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -518,8 +555,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -531,6 +575,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -558,8 +603,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -571,6 +623,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -598,8 +651,15 @@ export class Router {
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const { middlewares, handler, body, query, all, swaggerOptions } =
-      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
     const validationSchemas = { body, query, all };
@@ -611,6 +671,7 @@ export class Router {
       handler,
       validationSchemas,
       swaggerOptions,
+      responses,
     );
   }
 
@@ -662,6 +723,7 @@ export class Router {
         r.handler,
         r.validationSchemas,
         r.swaggerOptions,
+        r.responses,
       );
     }
   }

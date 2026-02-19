@@ -12,7 +12,7 @@ import { logger } from "../logger/logger.js";
  * Also caches the JSON Schema (OpenAPI format) and fast-json-stringify serializer.
  *
  * This is the single source of truth for schema compilation used by:
- * - Inline routes (server.router.get() with swagger.responses)
+ * - Inline routes (server.router.get() with responses option)
  * - Decorator routes (@serialize decorator)
  *
  * @param schema - The schema to compile (Zod, TypeBox, or plain JSON schema)
@@ -231,7 +231,7 @@ export const compileRequestSchemas = (
  * Stores both validators and serializers using Ajv's storage.
  *
  * This function is called:
- * - During inline route registration (server.router.get() with swagger.responses)
+ * - During inline route registration (server.router.get() with responses option)
  * - During decorator route registration (@controller with @serialize)
  *
  * @param responses - Map of status codes to schemas

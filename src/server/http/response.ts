@@ -15,7 +15,7 @@ import type { ResponseBodyForStatus } from "../router/path_types.js";
 
 /**
  * The response object with per-status-code type-safe response bodies.
- * When response schemas are provided (e.g. via swagger.responses), each shorthand
+ * When response schemas are provided (e.g. via the `responses` route option), each shorthand
  * method (ok, created, notFound, etc.) is typed to its corresponding status code schema.
  * @template TResponseMap - Maps HTTP status codes to their inferred body types (defaults to Record<number, any>)
  */
@@ -76,7 +76,7 @@ export class Response<
   #serializer?: FastJsonStringifyFunction;
 
   /**
-   * Response schemas from route registration (swagger.responses).
+   * Response schemas from route registration (responses option).
    * Used for automatic fast JSON serialization without explicit schema passing.
    * @internal
    */
@@ -258,21 +258,21 @@ export class Response<
    * 200 OK
    */
   ok(body?: ResponseBodyForStatus<TResponseMap, 200>): void {
-    this.status(200).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(200).send(body as TResponseMap[200]);
   }
 
   /**
    * 201 Created
    */
   created(body?: ResponseBodyForStatus<TResponseMap, 201>): void {
-    this.status(201).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(201).send(body as TResponseMap[201]);
   }
 
   /**
    * 202 Accepted
    */
   accepted(body?: ResponseBodyForStatus<TResponseMap, 202>): void {
-    this.status(202).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(202).send(body as TResponseMap[202]);
   }
 
   /**
@@ -287,7 +287,7 @@ export class Response<
    * 206 Partial Content
    */
   partialContent(body?: ResponseBodyForStatus<TResponseMap, 206>): void {
-    this.status(206).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(206).send(body as TResponseMap[206]);
   }
 
   /**
@@ -356,119 +356,119 @@ export class Response<
    * 400 Bad Request
    */
   badRequest(body?: ResponseBodyForStatus<TResponseMap, 400>): void {
-    this.status(400).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(400).send(body as TResponseMap[400]);
   }
 
   /**
    * 401 Unauthorized
    */
   unauthorized(body?: ResponseBodyForStatus<TResponseMap, 401>): void {
-    this.status(401).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(401).send(body as TResponseMap[401]);
   }
 
   /**
    * 403 Forbidden
    */
   forbidden(body?: ResponseBodyForStatus<TResponseMap, 403>): void {
-    this.status(403).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(403).send(body as TResponseMap[403]);
   }
 
   /**
    * 404 Not Found
    */
   notFound(body?: ResponseBodyForStatus<TResponseMap, 404>): void {
-    this.status(404).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(404).send(body as TResponseMap[404]);
   }
 
   /**
    * 405 Method Not Allowed
    */
   methodNotAllowed(body?: ResponseBodyForStatus<TResponseMap, 405>): void {
-    this.status(405).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(405).send(body as TResponseMap[405]);
   }
 
   /**
    * 406 Not Acceptable
    */
   notAcceptable(body?: ResponseBodyForStatus<TResponseMap, 406>): void {
-    this.status(406).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(406).send(body as TResponseMap[406]);
   }
 
   /**
    * 409 Conflict
    */
   conflict(body?: ResponseBodyForStatus<TResponseMap, 409>): void {
-    this.status(409).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(409).send(body as TResponseMap[409]);
   }
 
   /**
    * 410 Gone
    */
   gone(body?: ResponseBodyForStatus<TResponseMap, 410>): void {
-    this.status(410).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(410).send(body as TResponseMap[410]);
   }
 
   /**
    * 413 Payload Too Large
    */
   payloadTooLarge(body?: ResponseBodyForStatus<TResponseMap, 413>): void {
-    this.status(413).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(413).send(body as TResponseMap[413]);
   }
 
   /**
    * 415 Unsupported Media Type
    */
   unsupportedMediaType(body?: ResponseBodyForStatus<TResponseMap, 415>): void {
-    this.status(415).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(415).send(body as TResponseMap[415]);
   }
 
   /**
    * 422 Unprocessable Entity
    */
   unprocessableEntity(body?: ResponseBodyForStatus<TResponseMap, 422>): void {
-    this.status(422).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(422).send(body as TResponseMap[422]);
   }
 
   /**
    * 429 Too Many Requests
    */
   tooManyRequests(body?: ResponseBodyForStatus<TResponseMap, 429>): void {
-    this.status(429).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(429).send(body as TResponseMap[429]);
   }
 
   /**
    * 5XX Server Errors
    */
   internalServerError(body?: ResponseBodyForStatus<TResponseMap, 500>): void {
-    this.status(500).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(500).send(body as TResponseMap[500]);
   }
 
   /**
    * 501 Not Implemented
    */
   notImplemented(body?: ResponseBodyForStatus<TResponseMap, 501>): void {
-    this.status(501).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(501).send(body as TResponseMap[501]);
   }
 
   /**
    * 502 Bad Gateway
    */
   badGateway(body?: ResponseBodyForStatus<TResponseMap, 502>): void {
-    this.status(502).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(502).send(body as TResponseMap[502]);
   }
 
   /**
    * 503 Service Unavailable
    */
   serviceUnavailable(body?: ResponseBodyForStatus<TResponseMap, 503>): void {
-    this.status(503).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(503).send(body as TResponseMap[503]);
   }
 
   /**
    * 504 Gateway Timeout
    */
   gatewayTimeout(body?: ResponseBodyForStatus<TResponseMap, 504>): void {
-    this.status(504).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(504).send(body as TResponseMap[504]);
   }
 
   /**
@@ -477,7 +477,7 @@ export class Response<
   httpVersionNotSupported(
     body?: ResponseBodyForStatus<TResponseMap, 505>,
   ): void {
-    this.status(505).send(body as TResponseMap[keyof TResponseMap]);
+    this.status(505).send(body as TResponseMap[505]);
   }
 
   /**

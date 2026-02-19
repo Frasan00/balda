@@ -421,7 +421,8 @@ export type StandardMethodOptions<
   body?: RequestSchema;
   query?: RequestSchema;
   all?: RequestSchema;
-  swagger?: SwaggerRouteOptions<TResponses>;
+  responses?: TResponses;
+  swagger?: SwaggerRouteOptions;
 };
 
 export type ServerHook = () => SyncOrAsync;

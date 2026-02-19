@@ -274,10 +274,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
 
     operation.responses = {};
-    if (swaggerOptions?.responses) {
-      for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.responses,
-      )) {
+    const routeResponses = route.responses || swaggerOptions?.responses;
+    if (routeResponses) {
+      for (const [statusCode, schema] of Object.entries(routeResponses)) {
         operation.responses[statusCode] = {
           description: `Response for ${statusCode}`,
           content: {

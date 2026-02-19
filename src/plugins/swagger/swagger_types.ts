@@ -119,18 +119,13 @@ export type SwaggerGlobalOptions =
 /**
  * Route-specific documentation options (for individual endpoints)
  */
-export type SwaggerRouteOptions<
-  TResponses extends Record<number, RequestSchema> = Record<
-    number,
-    RequestSchema
-  >,
-> = {
+export type SwaggerRouteOptions = {
   /** Service category where the route belongs to */
   service?: string;
   /** Name of the route */
   name?: string;
-  /** Responses for this route */
-  responses?: TResponses;
+  /** Responses for this route (used by decorators) */
+  responses?: Record<number, RequestSchema>;
   /** Errors for this route */
   errors?: Record<number, RequestSchema>;
   /** Security requirements for this route */
