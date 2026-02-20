@@ -22,8 +22,14 @@ import { ZodLoader } from "../../validator/zod_loader.js";
  * It also contains the validation methods.
  *
  * @template Params - The path parameters type (automatically extracted from route)
+ * @template TBody - The typed body (inferred from body schema when provided)
+ * @template TQuery - The typed query (inferred from query schema when provided)
  */
-export class Request<Params extends Record<string, string> = any> {
+export class Request<
+  Params extends Record<string, string> = any,
+  TBody = unknown,
+  TQuery extends Record<string, any> = Record<string, string>,
+> {
   /**
    * Creates a new request object from a Web API Request object.
    * Optimized with bulk property assignment to reduce per-request overhead.
@@ -253,22 +259,11 @@ export class Request<Params extends Record<string, string> = any> {
    * The parsed body of the request from the body parser middleware.
    * If body parser middleware is not used, this will be undefined.
    *
-   * Type is `unknown` to enforce validation before use.
-   * Use validation methods or decorators to get typed body:
-   * - `req.validate(schema)` - Validates and returns typed body
-   * - `@validate.body(schema)` - Decorator for automatic validation
-   *
-   * @example
-   * ```ts
-   * // With validation
-   * const validBody = req.validate(mySchema);
-   * // Now validBody is properly typed
-   *
-   * // Without validation (not recommended)
-   * const unsafeBody = req.body as MyType; // Requires type assertion
-   * ```
+   * Type is `unknown` by default to enforce validation before use.
+   * When a `body` schema is provided in route options, the type is automatically
+   * inferred from the schema.
    */
-  body: unknown = undefined;
+  body: TBody = undefined as TBody;
 
   /**
    * Flag indicating if the body has been read/parsed
@@ -360,7 +355,7 @@ export class Request<Params extends Record<string, string> = any> {
   /**
    * Private properties for lazy query parsing
    */
-  #query?: Record<string, string>;
+  #query?: Record<string, any>;
   #queryString?: string;
   #queryParsed = false;
 
@@ -404,26 +399,12 @@ export class Request<Params extends Record<string, string> = any> {
    *
    * ## Type Safety
    *
-   * Query values are **untyped strings**. For type-safe query parameters:
-   * - Use `req.validateQuery(schema)` for runtime validation
-   * - Use `@validate.query(schema)` decorator for automatic validation
-   *
-   * @example
-   * ```ts
-   * // Basic usage
-   * req.query.name // string | undefined
-   *
-   * // With validation for type safety
-   * const validated = req.validateQuery(z.object({
-   *   page: z.coerce.number(),
-   *   limit: z.coerce.number(),
-   * }));
-   * validated.page // number
-   * ```
+   * When a `query` schema is provided in route options, the type is automatically
+   * inferred from the schema.
    */
-  get query(): Record<string, string> {
+  get query(): TQuery {
     if (this.#queryParsed) {
-      return this.#query!;
+      return this.#query as TQuery;
     }
 
     if (!this.#queryString || this.#queryString === "") {
@@ -450,10 +431,10 @@ export class Request<Params extends Record<string, string> = any> {
     }
 
     this.#queryParsed = true;
-    return this.#query!;
+    return this.#query as TQuery;
   }
 
-  set query(value: Record<string, string>) {
+  set query(value: TQuery) {
     this.#query = value;
     this.#queryParsed = true;
   }
@@ -496,7 +477,7 @@ export class Request<Params extends Record<string, string> = any> {
   ): ValidatedData<T> {
     return Request.compileAndValidate(
       inputSchema,
-      this.body || {},
+      (this.body || {}) as any,
       throwErrorOnValidationFail,
     );
   }
@@ -512,7 +493,7 @@ export class Request<Params extends Record<string, string> = any> {
   ): ValidatedData<T> {
     return Request.compileAndValidate(
       inputSchema,
-      (this.query || {}) as Record<string, string>,
+      (this.query || {}) as any,
       throwErrorOnValidationFail,
     );
   }
@@ -529,8 +510,8 @@ export class Request<Params extends Record<string, string> = any> {
     return Request.compileAndValidate(
       inputSchema,
       {
-        ...(this.body ?? {}),
-        ...((this.query as Record<string, string>) ?? {}),
+        ...((this.body as any) ?? {}),
+        ...((this.query as any) ?? {}),
       },
       throwErrorOnValidationFail,
     );

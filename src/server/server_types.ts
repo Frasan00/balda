@@ -37,7 +37,12 @@ import type { Response } from "./http/response.js";
 import type { ClientRouter } from "./router/router_type.js";
 import type { CronUIOptions } from "../cron/cron.types.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
-import { ExtractParams, InferResponseMap } from "./router/path_types.js";
+import {
+  ExtractParams,
+  InferBodyType,
+  InferQueryType,
+  InferResponseMap,
+} from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
@@ -416,10 +421,12 @@ export type StandardMethodOptions<
     number,
     RequestSchema
   >,
+  TBody extends RequestSchema | undefined = undefined,
+  TQuery extends RequestSchema | undefined = undefined,
 > = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
-  body?: RequestSchema;
-  query?: RequestSchema;
+  body?: TBody;
+  query?: TQuery;
   all?: RequestSchema;
   responses?: TResponses;
   swagger?: SwaggerRouteOptions;
@@ -435,8 +442,13 @@ export type ControllerHandler<
     number,
     RequestSchema
   >,
+  TBody extends RequestSchema | undefined = undefined,
+  TQuery extends RequestSchema | undefined = undefined,
 > = (
-  req: Request<ExtractParams<TPath>>,
+  req: Request<
+    ExtractParams<TPath>,
+    InferBodyType<TBody>,
+    InferQueryType<TQuery>
+  >,
   res: Response<InferResponseMap<TResponses>>,
-  ...args: any[]
 ) => ServerHandlerReturnType;

@@ -28,8 +28,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
+        async (req, res) => {
+          capturedBody = req.body;
           res.json({ success: true });
         },
       );
@@ -57,8 +57,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          res.json({ data: validatedBody });
+        async (req, res) => {
+          res.json({ data: req.body });
         },
       );
 
@@ -85,8 +85,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
+        async (req, res) => {
+          capturedBody = req.body;
           res.json({ success: true });
         },
       );
@@ -118,8 +118,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
+        async (req, res) => {
+          capturedBody = req.body;
           res.json({ updated: true });
         },
       );
@@ -147,8 +147,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           query: querySchema,
         },
-        async (req, res, validatedQuery) => {
-          res.json({ page: validatedQuery.page, limit: validatedQuery.limit });
+        async (req, res) => {
+          res.json({ page: req.query.page, limit: req.query.limit });
         },
       );
 
@@ -171,8 +171,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           query: querySchema,
         },
-        async (req, res, validatedQuery) => {
-          res.json({ data: validatedQuery });
+        async (req, res) => {
+          res.json({ data: req.query });
         },
       );
 
@@ -207,9 +207,9 @@ describe("Router - Inline Validation with Parameter Injection", () => {
           body: bodySchema,
           query: querySchema,
         },
-        async (req, res, validatedBody, validatedQuery) => {
-          capturedBody = validatedBody;
-          capturedQuery = validatedQuery;
+        async (req, res) => {
+          capturedBody = req.body;
+          capturedQuery = req.query;
           res.json({ exported: true });
         },
       );
@@ -244,12 +244,12 @@ describe("Router - Inline Validation with Parameter Injection", () => {
           body: bodySchema,
           query: querySchema,
         },
-        async (...args: any[]) => {
-          paramOrder.push("req: " + (args[0] instanceof Request));
-          paramOrder.push("res: " + (args[1] instanceof Response));
-          paramOrder.push("body: " + JSON.stringify(args[2]));
-          paramOrder.push("query: " + JSON.stringify(args[3]));
-          args[1].json({ ok: true });
+        async (req, res) => {
+          paramOrder.push("req: " + (req instanceof Request));
+          paramOrder.push("res: " + (res instanceof Response));
+          paramOrder.push("body: " + JSON.stringify(req.body));
+          paramOrder.push("query: " + JSON.stringify(req.query));
+          res.json({ ok: true });
         },
       );
 
@@ -283,8 +283,11 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           all: allSchema,
         },
-        async (req, res, validatedData) => {
-          res.json({ id: validatedData.id, value: validatedData.value });
+        async (req, res) => {
+          res.json({
+            id: (req.body as any).id,
+            value: (req.body as any).value,
+          });
         },
       );
 
@@ -318,9 +321,9 @@ describe("Router - Inline Validation with Parameter Injection", () => {
           middlewares: [testMiddleware],
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
+        async (req, res) => {
           validationExecuted = true;
-          res.json({ text: validatedBody.text });
+          res.json({ text: (req.body as any).text });
         },
       );
 
@@ -365,7 +368,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
             description: "Search with filters",
           },
         },
-        async (req, res, validatedBody, validatedQuery) => {
+        async (req, res) => {
           res.json({ ok: true });
         },
       );
@@ -400,7 +403,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
             },
           },
         },
-        async (req, res, validatedBody) => {
+        async (req, res) => {
           res.json({ updated: true });
         },
       );
@@ -425,9 +428,9 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
+        async (req, res) => {
           capturedParams = req.params;
-          capturedBody = validatedBody;
+          capturedBody = req.body;
           res.json({ updated: true });
         },
       );
@@ -460,9 +463,9 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           query: querySchema,
         },
-        async (req, res, validatedQuery) => {
+        async (req, res) => {
           capturedParams = req.params;
-          capturedQuery = validatedQuery;
+          capturedQuery = req.query;
           res.json({ found: true });
         },
       );
@@ -497,8 +500,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          res.json({ count: validatedBody.count });
+        async (req, res) => {
+          res.json({ count: (req.body as any).count });
         },
       );
 
@@ -525,7 +528,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
+        async (req, res) => {
           res.json({ ok: true });
         },
       );
@@ -551,7 +554,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           query: querySchema,
         },
-        async (req, res, validatedQuery) => {
+        async (req, res) => {
           res.json({ data: [] });
         },
       );
@@ -624,8 +627,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
+        async (req, res) => {
+          capturedBody = req.body;
           res.json({ created: true });
         },
       );
@@ -663,9 +666,9 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
-          res.json({ processed: validatedBody.items.length });
+        async (req, res) => {
+          capturedBody = req.body;
+          res.json({ processed: (req.body as any).items.length });
         },
       );
 
@@ -696,8 +699,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: bodySchema,
         },
-        async (req, res, validatedBody) => {
-          capturedBody = validatedBody;
+        async (req, res) => {
+          capturedBody = req.body;
           res.json({ ok: true });
         },
       );
@@ -725,7 +728,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
           body: bodySchema,
           query: querySchema,
         },
-        async (req, res, body, query) => {
+        async (req, res) => {
           res.json({ ok: true });
         },
       );
@@ -764,8 +767,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
         {
           body: inlineSchema,
         },
-        async (req, res, validatedBody) => {
-          inlineBody = validatedBody;
+        async (req, res) => {
+          inlineBody = req.body;
           res.json({ ok: true });
         },
       );
@@ -808,8 +811,8 @@ describe("Router - Inline Validation with Parameter Injection", () => {
           {
             body: bodySchema,
           },
-          async (req, res, validatedBody) => {
-            capturedBody = validatedBody;
+          async (req, res) => {
+            capturedBody = req.body;
             res.json({ created: true });
           },
         );

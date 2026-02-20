@@ -1,6 +1,9 @@
 import type { Static, TSchema } from "@sinclair/typebox";
 import type { z, ZodType } from "zod";
-import type { RequestSchema } from "../../decorators/validation/validate_types.js";
+import type {
+  RequestSchema,
+  ValidatedData,
+} from "../../decorators/validation/validate_types.js";
 
 /**
  * Extracts parameter names from a path string and creates a typed object
@@ -29,6 +32,20 @@ export type InferSchemaType<T> = T extends ZodType
 export type InferResponseMap<T extends Record<number, RequestSchema>> = {
   [K in keyof T]: InferSchemaType<T[K]>;
 };
+
+/**
+ * Infers the typed body from a schema. Returns `unknown` if no schema is provided.
+ */
+export type InferBodyType<T> = T extends RequestSchema
+  ? ValidatedData<T>
+  : unknown;
+
+/**
+ * Infers the typed query from a schema. Returns `Record<string, string>` if no schema is provided.
+ */
+export type InferQueryType<T> = T extends RequestSchema
+  ? ValidatedData<T>
+  : Record<string, string>;
 
 /**
  * Extracts the body type for a specific HTTP status code from a response map.

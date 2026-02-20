@@ -21,24 +21,22 @@ export const wrapHandlerWithValidation = (
 ): ServerRouteHandler => {
   return async function (req: Request, res: Response, ...args: any[]) {
     try {
-      const newArgs: any[] = [req, res, ...args];
-
       if (options.body) {
         const validatedBody = req.validate(options.body, true);
-        newArgs.push(validatedBody);
+        (req as any).body = validatedBody;
       }
 
       if (options.query) {
         const validatedQuery = req.validateQuery(options.query, true);
-        newArgs.push(validatedQuery);
+        (req as any).query = validatedQuery;
       }
 
       if (options.all) {
         const validatedAll = req.validateAll(options.all, true);
-        newArgs.push(validatedAll);
+        (req as any).body = validatedAll;
       }
 
-      return handler(...(newArgs as Parameters<typeof handler>));
+      return handler(req, res, ...args);
     } catch (error) {
       return res.badRequest(error);
     }
