@@ -18,6 +18,13 @@ import type {
 } from "../server_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import { wrapHandlerWithValidation } from "./validation_wrapper.js";
+import type { CacheRouteConfig } from "../../cache/cache.types.js";
+import {
+  getCacheService,
+  getCacheOptions,
+} from "../../cache/cache.registry.js";
+import { createCacheMiddleware } from "../../cache/cache.plugin.js";
+import { resolveCacheConfig } from "../../cache/cache.utils.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -328,11 +335,25 @@ export class Router {
         ? [options.middlewares]
         : [];
 
+    // Inject cache middleware if cache config is provided
+    if (options.cache) {
+      const cacheService = getCacheService();
+      if (cacheService) {
+        const resolved = resolveCacheConfig(options.cache as CacheRouteConfig);
+        const cacheMw = createCacheMiddleware(
+          cacheService,
+          resolved,
+          getCacheOptions(),
+        );
+        middlewares.push(cacheMw);
+      }
+    }
+
     return {
       middlewares,
       handler: maybeHandler!,
-      body: options.body,
-      query: options.query,
+      body: options.body as RequestSchema,
+      query: options.query as RequestSchema,
       all: options.all,
       responses: options.responses,
       swaggerOptions: options.swagger,
@@ -356,7 +377,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   get<TPath extends string = string>(
@@ -406,7 +427,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   post<TPath extends string = string>(
@@ -456,7 +477,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   patch<TPath extends string = string>(
@@ -506,7 +527,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   put<TPath extends string = string>(
@@ -556,7 +577,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   delete<TPath extends string = string>(
@@ -606,7 +627,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   options<TPath extends string = string>(
@@ -656,7 +677,7 @@ export class Router {
     TQuery extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
     handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
   ): void;
   head<TPath extends string = string>(

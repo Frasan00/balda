@@ -259,9 +259,22 @@ export class Request<
    * The parsed body of the request from the body parser middleware.
    * If body parser middleware is not used, this will be undefined.
    *
-   * Type is `unknown` by default to enforce validation before use.
-   * When a `body` schema is provided in route options, the type is automatically
-   * inferred from the schema.
+   * Type is `unknown` by default to enforce validation or casting before use.
+   * @imperative while using router directly, when using body property, the type is inferred from the schema provided in the route options.
+   * @example
+   * ```typescript
+   * router.post("/", { body: z.object({ name: z.string() }) }, async (req, res) => {
+   *   return res.json({ name: req.body.name });
+   * });
+   * ```
+   * @decorator When using the validate decorator, the validated data is appended to the function parameters.
+   * ```ts
+   * @post("/")
+   * @validate.body(z.object({ name: z.string() }))
+   * async createUser(req: Request, res: Response, body: z.infer<typeof z.object({ name: z.string() })>) {
+   *   return res.json({ name: body.name });
+   * }
+   * ```
    */
   body: TBody = undefined as TBody;
 

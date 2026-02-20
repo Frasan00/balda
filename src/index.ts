@@ -1,4 +1,5 @@
 // Decorators
+export { cache } from "./decorators/cache/cache.js";
 export { cron } from "./cron/decorator/cron_decorator.js";
 export { arg } from "./decorators/command/arg.js";
 export { flag } from "./decorators/command/flag.js";
@@ -239,5 +240,23 @@ import type { ClientRouter } from "./server/router/router_type.js";
  * Singleton main router instance that handles all route registrations inside the balda server
  */
 export const router = routerInstance as ClientRouter;
+
+// Cache
+export { CacheService } from "./cache/cache.service.js";
+export { MemoryCacheProvider } from "./cache/providers/memory_cache_provider.js";
+export { RedisCacheProvider } from "./cache/providers/redis_cache_provider.js";
+export type {
+  CacheProvider,
+  CachePluginOptions,
+  CacheRedisOptions,
+  CacheRouteConfig,
+  CacheKeyIncludes,
+  TypedCacheRouteConfig,
+  TypedCacheKeyIncludes,
+  CacheServiceInterface,
+  CacheStats,
+  LockBehavior,
+} from "./cache/cache.types.js";
+export { CacheStatus, CACHE_STATUS_HEADER } from "./cache/cache.constants.js";
 
 export default Server;

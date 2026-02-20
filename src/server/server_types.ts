@@ -44,6 +44,10 @@ import {
   InferResponseMap,
 } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
+import type {
+  CachePluginOptions,
+  TypedCacheRouteConfig,
+} from "../cache/cache.types.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -151,6 +155,22 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * By passing the "path" option, the UI will be enabled at the given path.
    */
   cronUI?: CronUIOptions;
+  /**
+   * Cache configuration for the server.
+   * When provided, enables the cache system and exposes it via `server.cache`.
+   *
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   cache: { provider: 'memory', defaultTtl: 300 }
+   * });
+   * // or with Redis
+   * const server = new Server({
+   *   cache: { provider: 'redis', redis: { host: 'localhost', port: 6379 } }
+   * });
+   * ```
+   */
+  cache?: CachePluginOptions;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -165,6 +185,7 @@ export type ResolvedServerOptions = {
   graphql?: GraphQLOptions;
   abortSignal?: AbortSignal;
   cronUI?: CronUIOptions;
+  cache?: CachePluginOptions;
 };
 
 export type ServerErrorHandler = (
@@ -421,8 +442,9 @@ export type StandardMethodOptions<
     number,
     RequestSchema
   >,
-  TBody extends RequestSchema | undefined = undefined,
-  TQuery extends RequestSchema | undefined = undefined,
+  TBody extends RequestSchema | unknown = unknown,
+  TQuery extends RequestSchema | unknown = unknown,
+  TPath extends string = string,
 > = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
   body?: TBody;
@@ -430,6 +452,8 @@ export type StandardMethodOptions<
   all?: RequestSchema;
   responses?: TResponses;
   swagger?: SwaggerRouteOptions;
+  /** Cache configuration for this route. Requires cache to be configured in ServerOptions. */
+  cache?: TypedCacheRouteConfig<TBody, TQuery, TPath>;
 };
 
 export type ServerHook = () => SyncOrAsync;
@@ -442,13 +466,15 @@ export type ControllerHandler<
     number,
     RequestSchema
   >,
-  TBody extends RequestSchema | undefined = undefined,
-  TQuery extends RequestSchema | undefined = undefined,
+  TBody extends RequestSchema | unknown = unknown,
+  TQuery extends RequestSchema | unknown = unknown,
 > = (
   req: Request<
     ExtractParams<TPath>,
     InferBodyType<TBody>,
-    InferQueryType<TQuery>
+    InferQueryType<TQuery> extends Record<string, any>
+      ? InferQueryType<TQuery>
+      : Record<string, unknown>
   >,
   res: Response<InferResponseMap<TResponses>>,
 ) => ServerHandlerReturnType;

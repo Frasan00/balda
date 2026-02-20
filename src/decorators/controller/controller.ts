@@ -7,6 +7,13 @@ import type {
 } from "../../runtime/native_server/server_types.js";
 import type { PolicyMetadata } from "../../server/policy/policy_types.js";
 import { router } from "../../server/router/router.js";
+import {
+  getCacheService,
+  getCacheOptions,
+} from "../../cache/cache.registry.js";
+import { createCacheMiddleware } from "../../cache/cache.plugin.js";
+import { resolveCacheConfig } from "../../cache/cache.utils.js";
+import type { CacheRouteConfig } from "../../cache/cache.types.js";
 
 /**
  * Creates a middleware that enforces policies before allowing the request to proceed.
@@ -79,6 +86,23 @@ export const controller = (
         ...policyMiddleware,
         ...(meta.middlewares || []),
       ];
+
+      // Inject cache middleware if @cache() decorator was used
+      if (meta.cacheConfig) {
+        const cacheService = getCacheService();
+        if (cacheService) {
+          const resolved = resolveCacheConfig(
+            meta.cacheConfig as CacheRouteConfig,
+          );
+          const cacheMw = createCacheMiddleware(
+            cacheService,
+            resolved,
+            getCacheOptions(),
+          );
+          allMiddlewares.push(cacheMw);
+        }
+      }
+
       router.addOrUpdate(
         meta.route.method as HttpMethod,
         fullPath,

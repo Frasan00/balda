@@ -71,6 +71,11 @@ import type {
   ServerPlugin,
   SignalEvent,
 } from "./server_types.js";
+import { DEFAULT_CACHE_OPTIONS } from "../cache/cache.constants.js";
+import { initCacheService } from "../cache/cache.registry.js";
+import type { CachePluginOptions } from "../cache/cache.types.js";
+import { MemoryCacheProvider } from "../cache/providers/memory_cache_provider.js";
+import type { CacheService } from "../cache/cache.service.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -95,6 +100,7 @@ export class Server<
   #notFoundHandler?: ServerRouteHandler;
   #httpsOptions?: HttpsServerOptions;
   #beforeStartHooks: ServerHook[] = [];
+  #cacheService: CacheService | null = null;
 
   /**
    * The constructor for the server
@@ -122,6 +128,7 @@ export class Server<
       graphql: options?.graphql ?? undefined,
       abortSignal: options?.abortSignal,
       cronUI: options?.cronUI,
+      cache: options?.cache,
     };
 
     if (options?.ajvInstance) {
@@ -177,6 +184,16 @@ export class Server<
 
   get fs(): typeof nativeFs {
     return nativeFs;
+  }
+
+  get cache(): CacheService {
+    if (!this.#cacheService) {
+      throw new Error(
+        "Cache service not initialized, you must call `new Server({ cache: {} })` to initialize the cache service",
+      );
+    }
+
+    return this.#cacheService;
   }
 
   async hash(data: string): Promise<string> {
@@ -535,6 +552,11 @@ export class Server<
       return;
     }
 
+    // Initialize cache service before importing controllers so @cache() decorators work
+    if (this.serverOptions.cache) {
+      await this.initializeCache(this.serverOptions.cache);
+    }
+
     await this.importControllers(options?.controllerPatterns);
     this.applyPlugins(this.serverOptions.plugins);
 
@@ -552,6 +574,47 @@ export class Server<
     }
 
     this.#wasInitialized = true;
+  }
+
+  /**
+   * Initialize the cache service and embed it on the server instance.
+   * @internal
+   */
+  private async initializeCache(opts: CachePluginOptions): Promise<void> {
+    const resolvedOptions = {
+      ...DEFAULT_CACHE_OPTIONS,
+      ...(opts.defaultTtl !== undefined && { defaultTtl: opts.defaultTtl }),
+      ...(opts.compressionThreshold !== undefined && {
+        compressionThreshold: opts.compressionThreshold,
+      }),
+      ...(opts.keyPrefix !== undefined && { keyPrefix: opts.keyPrefix }),
+      ...(opts.enableStats !== undefined && { enableStats: opts.enableStats }),
+      ...(opts.lockTimeout !== undefined && { lockTimeout: opts.lockTimeout }),
+      ...(opts.lockBehavior !== undefined && {
+        lockBehavior: opts.lockBehavior,
+      }),
+    };
+
+    let provider: import("../cache/cache.types.js").CacheProvider;
+
+    if (
+      opts.provider &&
+      typeof opts.provider === "object" &&
+      "get" in opts.provider
+    ) {
+      // Custom provider instance
+      provider = opts.provider;
+    } else if (opts.provider === "redis") {
+      const { RedisCacheProvider } =
+        await import("../cache/providers/redis_cache_provider.js");
+      provider = new RedisCacheProvider(opts.redis);
+    } else {
+      // Default to memory
+      provider = new MemoryCacheProvider();
+    }
+
+    const cacheService = initCacheService(provider, resolvedOptions);
+    this.#cacheService = cacheService;
   }
 
   /**

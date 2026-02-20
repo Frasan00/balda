@@ -1,7 +1,7 @@
 import { Response } from "../server/http/response.js";
 
 export class MockResponse<T = any> {
-  constructor(private readonly response: Response) {}
+  constructor(readonly response: Response) {}
 
   // base getters
   body(): T {
@@ -64,8 +64,6 @@ export class MockResponse<T = any> {
     }
     return this;
   }
-
-  // TODO: body assertions
 
   assertBodySubset(subset: Partial<T>): this {
     this.assertSubset(this.body(), subset, "body");

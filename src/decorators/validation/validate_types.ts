@@ -9,8 +9,8 @@ export type ValidatedData<T extends RequestSchema> = T extends ZodType
   : T extends TSchema
     ? Static<T>
     : T extends AjvCompileParams[0]
-      ? any
-      : any;
+      ? unknown
+      : unknown;
 
 export interface CustomValidationError {
   status?: number;
