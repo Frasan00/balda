@@ -354,7 +354,7 @@ export class Router {
       handler: maybeHandler!,
       body: options.body as RequestSchema,
       query: options.query as RequestSchema,
-      all: options.all,
+      all: options.all as RequestSchema,
       responses: options.responses,
       swaggerOptions: options.swagger,
     };
@@ -375,10 +375,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
@@ -425,10 +426,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
@@ -475,10 +477,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
@@ -525,10 +528,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
@@ -575,10 +579,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
@@ -625,10 +630,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
@@ -675,10 +681,11 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery>,
+    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
+    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
   ): void;
   head<TPath extends string = string>(
     path: TPath,

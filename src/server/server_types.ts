@@ -445,11 +445,12 @@ export type StandardMethodOptions<
   TBody extends RequestSchema | unknown = unknown,
   TQuery extends RequestSchema | unknown = unknown,
   TPath extends string = string,
+  TAll extends RequestSchema | unknown = unknown,
 > = {
   middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
   body?: TBody;
   query?: TQuery;
-  all?: RequestSchema;
+  all?: TAll;
   responses?: TResponses;
   swagger?: SwaggerRouteOptions;
   /** Cache configuration for this route. Requires cache to be configured in ServerOptions. */
@@ -468,10 +469,11 @@ export type ControllerHandler<
   >,
   TBody extends RequestSchema | unknown = unknown,
   TQuery extends RequestSchema | unknown = unknown,
+  TAll extends RequestSchema | unknown = unknown,
 > = (
   req: Request<
     ExtractParams<TPath>,
-    InferBodyType<TBody>,
+    TBody extends RequestSchema ? InferBodyType<TBody> : InferBodyType<TAll>,
     InferQueryType<TQuery> extends Record<string, any>
       ? InferQueryType<TQuery>
       : Record<string, unknown>
