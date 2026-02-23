@@ -413,3 +413,57 @@ describe("Cache — cacheMiddleware() standalone", () => {
     expect(mwCallCount).toBe(1);
   });
 });
+
+// ─── plugins.cache — ServerPlugin config tests ─────────────────────────────
+describe("Cache — plugins.cache in ServerPlugin", () => {
+  let mockServer: MockServer;
+  let pluginCallCount = 0;
+
+  beforeAll(async () => {
+    const server = new Server({
+      port: 4104,
+      host: "localhost",
+      plugins: {
+        cache: {
+          provider: "memory",
+          defaultTtl: 120,
+        },
+      },
+    });
+
+    mockServer = await server.getMockServer();
+
+    server.router.get(
+      "/plugin-cache/items",
+      { cache: { ttl: 60 } },
+      (_req, res) => {
+        pluginCallCount++;
+        res.json({ items: ["x", "y"], callCount: pluginCallCount });
+      },
+    );
+  });
+
+  beforeEach(() => {
+    pluginCallCount = 0;
+  });
+
+  it("initializes the global CacheService via plugins.cache", () => {
+    expect(getCacheService()).not.toBeNull();
+  });
+
+  it("first request is a MISS", async () => {
+    const res = await mockServer.get("/plugin-cache/items");
+    expect(res.statusCode()).toBe(200);
+    expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
+    expect(pluginCallCount).toBe(1);
+  });
+
+  it("second identical request is a HIT", async () => {
+    await mockServer.get("/plugin-cache/items");
+    pluginCallCount = 0;
+
+    const res = await mockServer.get("/plugin-cache/items");
+    expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Hit);
+    expect(pluginCallCount).toBe(0);
+  });
+});

@@ -43,7 +43,7 @@ import {
   InferResponseMap,
 } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
-import type { TypedCacheRouteConfig } from "../cache/cache.types.js";
+import type { TypedCacheRouteConfig, CachePluginOptions } from "../cache/cache.types.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -64,6 +64,7 @@ export type ServerPlugin = {
   methodOverride?: MethodOverrideOptions;
   compression?: CompressionOptions;
   asyncLocalStorage?: AsyncLocalStorageContextSetters;
+  cache?: CachePluginOptions;
 };
 
 export type NodeHttpClient = "http" | "http2" | "https" | "http2-secure";

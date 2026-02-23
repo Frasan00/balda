@@ -1,4 +1,8 @@
 import type { Router as ExpressRouter, RequestHandler } from "express";
+import { cacheMiddleware } from "../cache/cache.middleware.js";
+import { MemoryCacheProvider } from "../cache/providers/memory_cache_provider.js";
+import { RedisCacheProvider } from "../cache/providers/redis_cache_provider.js";
+import type { CachePluginOptions } from "../cache/cache.types.js";
 import { AjvStateManager } from "../ajv/ajv.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
@@ -500,6 +504,23 @@ export class Server<
             asyncLocalStorage(pluginOptions as AsyncLocalStorageContextSetters),
           );
           break;
+        case "cache": {
+          const opts = pluginOptions as CachePluginOptions;
+          let provider: import("../cache/cache.types.js").CacheProvider;
+          if (
+            opts.provider &&
+            typeof opts.provider === "object" &&
+            "get" in opts.provider
+          ) {
+            provider = opts.provider;
+          } else if (opts.provider === "redis") {
+            provider = new RedisCacheProvider(opts.redis);
+          } else {
+            provider = new MemoryCacheProvider();
+          }
+          this.use(cacheMiddleware(provider, opts));
+          break;
+        }
         default:
           this.logger.warn(`Unknown plugin ${pluginName}`);
           break;
