@@ -75,9 +75,6 @@ const serverBuilder = new Server({
       hop: "first",
     },
   },
-  cronUI: {
-    path: "/cron",
-  },
 });
 
 serverBuilder.setErrorHandler((_req, res, next, error) => {

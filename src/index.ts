@@ -26,7 +26,8 @@ export type {
 
 // Cron
 export { BaseCron } from "./cron/base_cron.js";
-export { CronService, setCronGlobalErrorHandler } from "./cron/cron.js";
+export { CronService, setCronGlobalErrorHandler, cronUi } from "./cron/cron.js";
+export { cronUIInstance } from "./cron/cron-ui.js";
 export type {
   CronSchedule,
   CronScheduleParams,
@@ -243,6 +244,11 @@ export const router = routerInstance as ClientRouter;
 
 // Cache
 export { CacheService } from "./cache/cache.service.js";
+export {
+  initCacheService,
+  getCacheService,
+  resetCacheService,
+} from "./cache/cache.registry.js";
 export { MemoryCacheProvider } from "./cache/providers/memory_cache_provider.js";
 export { RedisCacheProvider } from "./cache/providers/redis_cache_provider.js";
 export type {
@@ -257,6 +263,10 @@ export type {
   CacheStats,
   LockBehavior,
 } from "./cache/cache.types.js";
-export { CacheStatus, CACHE_STATUS_HEADER } from "./cache/cache.constants.js";
+export {
+  CacheStatus,
+  CACHE_STATUS_HEADER,
+  DEFAULT_CACHE_OPTIONS,
+} from "./cache/cache.constants.js";
 
 export default Server;

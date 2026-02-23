@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { Server } from "../../src/server/server.js";
 import { MemoryCacheProvider } from "../../src/cache/providers/memory_cache_provider.js";
-import { getCacheService } from "../../src/cache/cache.registry.js";
+import {
+  getCacheService,
+  initCacheService,
+} from "../../src/cache/cache.registry.js";
 import {
   CACHE_STATUS_HEADER,
   CacheStatus,
+  DEFAULT_CACHE_OPTIONS,
 } from "../../src/cache/cache.constants.js";
 import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
@@ -17,12 +21,12 @@ describe("Cache — @cache() decorator (controller)", () => {
   let mockServer: MockServer;
 
   beforeAll(async () => {
+    // Initialize cache service standalone before server bootstrap
+    initCacheService(memoryProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     const server = new Server({
       port: 4100,
       host: "localhost",
-      cache: {
-        provider: memoryProvider,
-      },
       plugins: {
         bodyParser: { json: {} },
       },
@@ -138,12 +142,12 @@ describe("Cache — inline router config", () => {
   beforeAll(async () => {
     const inlineProvider = new MemoryCacheProvider();
 
+    // Initialize cache service standalone
+    initCacheService(inlineProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     const server = new Server({
       port: 4101,
       host: "localhost",
-      cache: {
-        provider: inlineProvider,
-      },
     });
 
     // getMockServer() initializes the cache registry, so routes added
@@ -285,8 +289,8 @@ describe("Cache — inline router config", () => {
   });
 });
 
-// ─── CacheService invalidation via embed ────────────────────────────────────
-describe("Cache — invalidation via server.cache embed", () => {
+// ─── CacheService invalidation via getCacheService ──────────────────────────
+describe("Cache — invalidation via getCacheService", () => {
   let mockServer: MockServer;
   let server: Server;
   let embedCallCount = 0;
@@ -294,10 +298,12 @@ describe("Cache — invalidation via server.cache embed", () => {
   beforeAll(async () => {
     const inlineProvider = new MemoryCacheProvider();
 
+    // Initialize cache service standalone
+    initCacheService(inlineProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     server = new Server({
       port: 4102,
       host: "localhost",
-      cache: { provider: inlineProvider },
     });
 
     mockServer = await server.getMockServer();

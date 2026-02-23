@@ -35,7 +35,6 @@ import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
 import type { ClientRouter } from "./router/router_type.js";
-import type { CronUIOptions } from "../cron/cron.types.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
 import {
   ExtractParams,
@@ -44,10 +43,7 @@ import {
   InferResponseMap,
 } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
-import type {
-  CachePluginOptions,
-  TypedCacheRouteConfig,
-} from "../cache/cache.types.js";
+import type { TypedCacheRouteConfig } from "../cache/cache.types.js";
 
 export type ServerHandlerReturnType = any | Promise<any>;
 
@@ -150,27 +146,6 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   abortSignal?: AbortSignal;
-  /**
-   * The cronUI options to apply to the server.
-   * By passing the "path" option, the UI will be enabled at the given path.
-   */
-  cronUI?: CronUIOptions;
-  /**
-   * Cache configuration for the server.
-   * When provided, enables the cache system and exposes it via `server.cache`.
-   *
-   * @example
-   * ```ts
-   * const server = new Server({
-   *   cache: { provider: 'memory', defaultTtl: 300 }
-   * });
-   * // or with Redis
-   * const server = new Server({
-   *   cache: { provider: 'redis', redis: { host: 'localhost', port: 6379 } }
-   * });
-   * ```
-   */
-  cache?: CachePluginOptions;
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -184,8 +159,6 @@ export type ResolvedServerOptions = {
   swagger: Parameters<typeof swagger>[0] | boolean;
   graphql?: GraphQLOptions;
   abortSignal?: AbortSignal;
-  cronUI?: CronUIOptions;
-  cache?: CachePluginOptions;
 };
 
 export type ServerErrorHandler = (
@@ -234,21 +207,6 @@ export interface ServerInterface {
    * Main singleton router instance of the server
    */
   router: ClientRouter;
-
-  /**
-   * Hash the given data using the native hash function of the current runtime
-   * @param data - The data to hash
-   * @returns The hashed data
-   */
-  hash: (data: string) => Promise<string>;
-
-  /**
-   * Compare the given data with the given hash using the native hash function of the current runtime
-   * @param hash - The hash to compare the data with
-   * @param data - The data to compare with the hash
-   * @returns Whether the data matches the hash
-   */
-  compareHash: (hash: string, data: string) => Promise<boolean>;
 
   /**
    * Get the environment variables of the server using the native environment variables of the current runtime
@@ -407,18 +365,6 @@ export interface ServerInterface {
    */
   disconnect: () => Promise<void>;
   /**
-   * Configure hash settings for password hashing
-   * @param options - Hash configuration options
-   * @param options.iterations - Number of PBKDF2 iterations (default: 600,000)
-   * @param options.saltLength - Salt length in bytes (default: 16)
-   * @param options.keyLength - Key length in bits (default: 256)
-   */
-  configureHash: (options: {
-    iterations?: number;
-    saltLength?: number;
-    keyLength?: number;
-  }) => void;
-  /**
    * Returns a mock server instance that can be used to test the server without starting it
    * It will import the controllers and apply the plugins to the mock server
    * @param options - The options for the mock server
@@ -453,7 +399,7 @@ export type StandardMethodOptions<
   all?: TAll;
   responses?: TResponses;
   swagger?: SwaggerRouteOptions;
-  /** Cache configuration for this route. Requires cache to be configured in ServerOptions. */
+  /** Cache configuration for this route. Requires cache to be initialized via initCacheService(). */
   cache?: TypedCacheRouteConfig<TBody, TQuery, TPath>;
 };
 

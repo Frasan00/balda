@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { Server } from "../../src/server/server.js";
 import { RedisCacheProvider } from "../../src/cache/providers/redis_cache_provider.js";
-import { getCacheService } from "../../src/cache/cache.registry.js";
+import {
+  getCacheService,
+  initCacheService,
+} from "../../src/cache/cache.registry.js";
 import {
   CACHE_STATUS_HEADER,
   CacheStatus,
+  DEFAULT_CACHE_OPTIONS,
 } from "../../src/cache/cache.constants.js";
 import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
@@ -35,12 +39,12 @@ describe("Cache (Redis) — @cache() decorator (controller)", () => {
       keyPrefix: "test:ctrl:",
     });
 
+    // Initialize cache service standalone
+    initCacheService(redisProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     const server = new Server({
       port: 4200,
       host: "localhost",
-      cache: {
-        provider: redisProvider,
-      },
       plugins: {
         bodyParser: { json: {} },
       },
@@ -123,12 +127,12 @@ describe("Cache (Redis) — inline router config", () => {
       keyPrefix: "test:inline:",
     });
 
+    // Initialize cache service standalone
+    initCacheService(redisProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     const server = new Server({
       port: 4201,
       host: "localhost",
-      cache: {
-        provider: redisProvider,
-      },
     });
 
     mockServer = await server.getMockServer();
@@ -260,7 +264,7 @@ describe("Cache (Redis) — inline router config", () => {
 });
 
 // ─── CacheService invalidation via tag ───────────────────────────────────────
-describe("Cache (Redis) — invalidation via server.cache embed", () => {
+describe("Cache (Redis) — invalidation via getCacheService", () => {
   let mockServer: MockServer;
   let redisProvider: RedisCacheProvider;
   let embedCallCount = 0;
@@ -273,10 +277,12 @@ describe("Cache (Redis) — invalidation via server.cache embed", () => {
       keyPrefix: "test:inv:",
     });
 
+    // Initialize cache service standalone
+    initCacheService(redisProvider, { ...DEFAULT_CACHE_OPTIONS });
+
     const server = new Server({
       port: 4202,
       host: "localhost",
-      cache: { provider: redisProvider },
     });
 
     mockServer = await server.getMockServer();
