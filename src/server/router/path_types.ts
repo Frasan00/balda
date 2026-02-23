@@ -1,4 +1,5 @@
 import type { Static, TSchema } from "@sinclair/typebox";
+import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { z, ZodType } from "zod";
 import type {
   RequestSchema,
@@ -23,7 +24,11 @@ export type InferSchemaType<T> = T extends ZodType
   ? z.infer<T>
   : T extends TSchema
     ? Static<T>
-    : any;
+    : T extends JSONSchema
+      ? JSONSchema extends T
+        ? Record<string, unknown>
+        : FromSchema<T>
+      : any;
 
 /**
  * Maps a responses object (e.g. { 200: ZodSchema, 404: TypeBoxSchema }) to

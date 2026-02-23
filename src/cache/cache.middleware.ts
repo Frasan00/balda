@@ -8,7 +8,10 @@ import { initCacheService } from "./cache.registry.js";
  * Accepts the same configuration as CachePluginOptions but without provider/redis
  * since the provider is passed directly as the first argument.
  */
-export type CacheMiddlewareOptions = Omit<CachePluginOptions, "provider" | "redis">;
+export type CacheMiddlewareOptions = Omit<
+  CachePluginOptions,
+  "provider" | "redis"
+>;
 
 /**
  * Creates a cache middleware that initializes the global CacheService.
@@ -45,13 +48,19 @@ export function cacheMiddleware(
 ): ServerRouteMiddleware {
   const resolvedOptions = {
     ...DEFAULT_CACHE_OPTIONS,
-    ...(options?.defaultTtl !== undefined && { defaultTtl: options.defaultTtl }),
+    ...(options?.defaultTtl !== undefined && {
+      defaultTtl: options.defaultTtl,
+    }),
     ...(options?.compressionThreshold !== undefined && {
       compressionThreshold: options.compressionThreshold,
     }),
     ...(options?.keyPrefix !== undefined && { keyPrefix: options.keyPrefix }),
-    ...(options?.enableStats !== undefined && { enableStats: options.enableStats }),
-    ...(options?.lockTimeout !== undefined && { lockTimeout: options.lockTimeout }),
+    ...(options?.enableStats !== undefined && {
+      enableStats: options.enableStats,
+    }),
+    ...(options?.lockTimeout !== undefined && {
+      lockTimeout: options.lockTimeout,
+    }),
     ...(options?.lockBehavior !== undefined && {
       lockBehavior: options.lockBehavior,
     }),

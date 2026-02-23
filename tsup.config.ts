@@ -30,6 +30,7 @@ const external = [
   "ejs",
   "mustache",
   "fast-json-stringify",
+  "json-schema-to-ts",
 ];
 
 export default defineConfig([

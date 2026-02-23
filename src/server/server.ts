@@ -180,8 +180,6 @@ export class Server<
     return nativeFs;
   }
 
-
-
   getEnvironment(): Record<string, string> {
     return this.#nativeEnv.getEnvironment();
   }

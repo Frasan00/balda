@@ -1,4 +1,5 @@
 import type { Static, TSchema } from "@sinclair/typebox";
+import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { z, ZodType } from "zod";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
@@ -8,8 +9,10 @@ export type ValidatedData<T extends RequestSchema> = T extends ZodType
   ? z.infer<T>
   : T extends TSchema
     ? Static<T>
-    : T extends AjvCompileParams[0]
-      ? unknown
+    : T extends JSONSchema
+      ? JSONSchema extends T
+        ? Record<string, unknown>
+        : FromSchema<T>
       : unknown;
 
 export interface CustomValidationError {

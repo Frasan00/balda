@@ -360,9 +360,8 @@ describe("Cache — cacheMiddleware() standalone", () => {
     });
 
     // Use cacheMiddleware to initialize cache as a standalone middleware
-    const { cacheMiddleware } = await import(
-      "../../src/cache/cache.middleware.js"
-    );
+    const { cacheMiddleware } =
+      await import("../../src/cache/cache.middleware.js");
     server.use(cacheMiddleware(new MemoryCacheProvider(), { defaultTtl: 120 }));
 
     mockServer = await server.getMockServer();

@@ -260,11 +260,27 @@ export class Request<
    * If body parser middleware is not used, this will be undefined.
    *
    * Type is `unknown` by default to enforce validation or casting before use.
+   * The body type is automatically inferred from the schema provided in the route options or decorator,
+   * supporting Zod (`z.infer<T>`), TypeBox (`Static<T>`), and plain JSON schemas (`FromSchema<T>` — requires `as const`).
    * @imperative while using router directly, when using body property, the type is inferred from the schema provided in the route options.
-   * @example
+   * @example Zod schema
    * ```typescript
    * router.post("/", { body: z.object({ name: z.string() }) }, async (req, res) => {
-   *   return res.json({ name: req.body.name });
+   *   return res.json({ name: req.body.name }); // req.body typed as { name: string }
+   * });
+   * ```
+   * @example TypeBox schema
+   * ```typescript
+   * import { Type } from "@sinclair/typebox";
+   * router.post("/", { body: Type.Object({ name: Type.String() }) }, async (req, res) => {
+   *   return res.json({ name: req.body.name }); // req.body typed as { name: string }
+   * });
+   * ```
+   * @example Plain JSON schema — `as const` is required for type inference
+   * ```typescript
+   * const bodySchema = { type: "object", properties: { name: { type: "string" } }, required: ["name"] } as const;
+   * router.post("/", { body: bodySchema }, async (req, res) => {
+   *   return res.json({ name: req.body.name }); // req.body typed as { name: string }
    * });
    * ```
    * @decorator When using the validate decorator, the validated data is appended to the function parameters.
