@@ -249,6 +249,8 @@ export {
   getCacheService,
   resetCacheService,
 } from "./cache/cache.registry.js";
+export { cacheMiddleware } from "./cache/cache.middleware.js";
+export type { CacheMiddlewareOptions } from "./cache/cache.middleware.js";
 export { MemoryCacheProvider } from "./cache/providers/memory_cache_provider.js";
 export { RedisCacheProvider } from "./cache/providers/redis_cache_provider.js";
 export type {

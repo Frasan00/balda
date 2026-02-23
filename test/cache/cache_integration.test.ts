@@ -347,3 +347,69 @@ describe("Cache — invalidation via getCacheService", () => {
     expect(embedCallCount).toBe(1);
   });
 });
+
+// ─── cacheMiddleware() standalone middleware tests ──────────────────────────
+describe("Cache — cacheMiddleware() standalone", () => {
+  let mockServer: MockServer;
+  let mwCallCount = 0;
+
+  beforeAll(async () => {
+    const server = new Server({
+      port: 4103,
+      host: "localhost",
+    });
+
+    // Use cacheMiddleware to initialize cache as a standalone middleware
+    const { cacheMiddleware } = await import(
+      "../../src/cache/cache.middleware.js"
+    );
+    server.use(cacheMiddleware(new MemoryCacheProvider(), { defaultTtl: 120 }));
+
+    mockServer = await server.getMockServer();
+
+    server.router.get(
+      "/mw-cache/items",
+      { cache: { ttl: 60 } },
+      (_req, res) => {
+        mwCallCount++;
+        res.json({ items: ["a", "b"], callCount: mwCallCount });
+      },
+    );
+  });
+
+  beforeEach(() => {
+    mwCallCount = 0;
+  });
+
+  it("initializes the global CacheService", () => {
+    expect(getCacheService()).not.toBeNull();
+  });
+
+  it("first request is a MISS", async () => {
+    const res = await mockServer.get("/mw-cache/items");
+    expect(res.statusCode()).toBe(200);
+    expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
+    expect(mwCallCount).toBe(1);
+  });
+
+  it("second identical request is a HIT", async () => {
+    await mockServer.get("/mw-cache/items");
+    mwCallCount = 0;
+
+    const res = await mockServer.get("/mw-cache/items");
+    expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Hit);
+    expect(mwCallCount).toBe(0);
+  });
+
+  it("invalidation works via getCacheService()", async () => {
+    await mockServer.get("/mw-cache/items");
+    mwCallCount = 0;
+
+    const cacheService = getCacheService();
+    await cacheService!.invalidatePattern("*");
+
+    const res = await mockServer.get("/mw-cache/items");
+    expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
+    expect(mwCallCount).toBe(1);
+  });
+});
