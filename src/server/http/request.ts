@@ -175,8 +175,8 @@ export class Request<
    * @returns The validated data.
    */
   private static compileAndValidate<T extends RequestSchema>(
-    inputSchema: RequestSchema,
-    data: T,
+    inputSchema: T,
+    data: unknown,
     throwErrorOnValidationFail: boolean,
   ): ValidatedData<T> {
     const compiled = this.getOrCompileSchema(inputSchema);

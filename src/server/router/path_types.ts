@@ -1,6 +1,3 @@
-import type { Static, TSchema } from "@sinclair/typebox";
-import type { FromSchema, JSONSchema } from "json-schema-to-ts";
-import type { z, ZodType } from "zod";
 import type {
   RequestSchema,
   ValidatedData,
@@ -20,15 +17,9 @@ export type ExtractParams<T extends string> =
 /**
  * Helper type to infer the output type from a Zod schema, TypeBox schema, or any schema with _output
  */
-export type InferSchemaType<T> = T extends ZodType
-  ? z.infer<T>
-  : T extends TSchema
-    ? Static<T>
-    : T extends JSONSchema
-      ? JSONSchema extends T
-        ? Record<string, unknown>
-        : FromSchema<T>
-      : any;
+export type InferSchemaType<T> = T extends RequestSchema
+  ? ValidatedData<T>
+  : unknown;
 
 /**
  * Maps a responses object (e.g. { 200: ZodSchema, 404: TypeBoxSchema }) to

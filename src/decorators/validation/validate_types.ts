@@ -1,26 +1,33 @@
-import type { Static, TSchema } from "@sinclair/typebox";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
-import type { z, ZodType } from "zod";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
-// Since those are peer dependencies we ensure they exist to avoid type issues
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
-type SafeTSchema = IsAny<TSchema> extends true ? never : TSchema;
+// Structural shapes for optional peer dependency schemas (zod, @sinclair/typebox).
+// Using structural matching instead of direct imports avoids module resolution
+// failures when a peer dependency is not installed.
+// json-schema-to-ts requires a direct import for FromSchema (complex type-level
+// computation that cannot be replicated structurally); IsAny guards the missing case.
+type ZodSchemaLike = { _zod: { output: any } };
+type TypeBoxSchemaLike = { static: any; params: any };
 type SafeJSONSchema = IsAny<JSONSchema> extends true ? never : JSONSchema;
-type SafeZodType = IsAny<ZodType> extends true ? never : ZodType;
 
-export type RequestSchema = SafeZodType | SafeTSchema | AjvCompileParams[0];
+export type RequestSchema =
+  | ZodSchemaLike
+  | TypeBoxSchemaLike
+  | AjvCompileParams[0];
 
-export type ValidatedData<T extends RequestSchema> = T extends SafeZodType
-  ? z.infer<T>
-  : T extends SafeTSchema
-    ? Static<T>
+export type ValidatedData<T extends RequestSchema> = T extends {
+  _zod: { output: infer O };
+}
+  ? O
+  : T extends { static: infer O }
+    ? O
     : T extends SafeJSONSchema
       ? SafeJSONSchema extends T
         ? Record<string, unknown>
         : FromSchema<T>
-      : unknown;
+      : Record<string, unknown>;
 
 export interface CustomValidationError {
   status?: number;
