@@ -3,14 +3,21 @@ import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { z, ZodType } from "zod";
 import type { AjvCompileParams } from "../../ajv/ajv_types.js";
 
-export type RequestSchema = ZodType | TSchema | AjvCompileParams[0];
+// Since those are peer dependencies we ensure they exist to avoid type issues
+type IsAny<T> = 0 extends 1 & T ? true : false;
 
-export type ValidatedData<T extends RequestSchema> = T extends ZodType
+type SafeTSchema = IsAny<TSchema> extends true ? never : TSchema;
+type SafeJSONSchema = IsAny<JSONSchema> extends true ? never : JSONSchema;
+type SafeZodType = IsAny<ZodType> extends true ? never : ZodType;
+
+export type RequestSchema = SafeZodType | SafeTSchema | AjvCompileParams[0];
+
+export type ValidatedData<T extends RequestSchema> = T extends SafeZodType
   ? z.infer<T>
-  : T extends TSchema
+  : T extends SafeTSchema
     ? Static<T>
-    : T extends JSONSchema
-      ? JSONSchema extends T
+    : T extends SafeJSONSchema
+      ? SafeJSONSchema extends T
         ? Record<string, unknown>
         : FromSchema<T>
       : unknown;
