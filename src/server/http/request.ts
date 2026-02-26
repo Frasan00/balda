@@ -198,6 +198,15 @@ export class Request<
   #nodeIncomingMessage?: IncomingMessage;
 
   /**
+   * Raw Node.js headers for lazy Headers construction
+   * @internal
+   */
+  #rawNodeHeaders?: IncomingMessage["headers"];
+  #needsHeaderFiltering = false;
+  #headers?: globalThis.Headers;
+  #headersResolved = false;
+
+  /**
    * The URL of the request
    */
   url: string = "";
@@ -208,9 +217,50 @@ export class Request<
   method: string = "GET";
 
   /**
-   * The headers of the request
+   * The headers of the request — lazily constructed from raw Node.js headers.
    */
-  headers: globalThis.Headers = new Headers();
+  get headers(): globalThis.Headers {
+    if (this.#headersResolved) {
+      return this.#headers!;
+    }
+
+    if (this.#rawNodeHeaders) {
+      const raw = this.#rawNodeHeaders;
+      const result: Record<string, string> = {};
+
+      if (this.#needsHeaderFiltering) {
+        for (const key in raw) {
+          if (key.charCodeAt(0) === 58) {
+            continue;
+          } // ':' pseudo-headers
+          const value = raw[key];
+          if (value !== undefined) {
+            result[key] = Array.isArray(value) ? value.join(", ") : value;
+          }
+        }
+      } else {
+        for (const key in raw) {
+          const value = raw[key];
+          if (value !== undefined) {
+            result[key] = Array.isArray(value) ? value.join(", ") : value;
+          }
+        }
+      }
+
+      this.#headers = new Headers(result);
+    } else {
+      this.#headers = new Headers();
+    }
+
+    this.#headersResolved = true;
+    return this.#headers;
+  }
+
+  set headers(value: globalThis.Headers) {
+    this.#headers = value;
+    this.#headersResolved = true;
+    this.#rawNodeHeaders = undefined;
+  }
 
   /**
    * The signal for aborting the request
@@ -319,9 +369,9 @@ export class Request<
    * The file of the request.
    * @fileParser middleware is required
    */
-  file: (fieldName: string) => FormFile | null = (fieldName: string) => {
+  file(fieldName: string): FormFile | null {
     return this.files.find((file) => file.formName === fieldName) ?? null;
-  };
+  }
 
   /**
    * The cookies of the request.
@@ -333,9 +383,9 @@ export class Request<
    * The cookie of the request.
    * @cookie middleware is required
    */
-  cookie: (name: string) => string | undefined = (name: string) => {
+  cookie(name: string): string | undefined {
     return this.cookies[name];
-  };
+  }
 
   /**
    * tells if the request has timed out.
@@ -351,24 +401,51 @@ export class Request<
   session?: Record<string, any> = undefined;
 
   /**
+   * Shared no-op async function to avoid per-instance closure allocation.
+   * @internal
+   */
+  private static readonly _noopAsync = async (): Promise<void> => {};
+
+  /**
    * The session of the request. Uses cookies to send the session id
    * @cookie middleware is required
    * @session middleware is required
    */
-  saveSession: () => Promise<void> = async () => {};
+  saveSession: () => Promise<void> = Request._noopAsync;
 
   /**
    * The session of the request.
    * @cookie middleware is required
    * @session middleware is required
    */
-  destroySession: () => Promise<void> = async () => {};
+  destroySession: () => Promise<void> = Request._noopAsync;
 
   /**
    * The ip address of the request.
+   * Lazily extracted — only computed on first access.
    * Tries to get the ip address from the `x-forwarded-for` header. If not available, it will use the remote address from the request.
    */
-  ip?: string;
+  #ip?: string;
+  #ipResolved = false;
+  #ipExtractor?: () => string | undefined;
+
+  get ip(): string | undefined {
+    if (this.#ipResolved) {
+      return this.#ip;
+    }
+    this.#ipResolved = true;
+    if (this.#ipExtractor) {
+      this.#ip = this.#ipExtractor();
+      this.#ipExtractor = undefined;
+    }
+    return this.#ip;
+  }
+
+  set ip(value: string | undefined) {
+    this.#ip = value;
+    this.#ipResolved = true;
+    this.#ipExtractor = undefined;
+  }
 
   /**
    * The files of the request. Only available for multipart/form-data requests and if the file parser middleware is used.
@@ -546,6 +623,72 @@ export class Request<
       },
       throwErrorOnValidationFail,
     );
+  }
+
+  /**
+   * Sets a lazy IP extractor function.
+   * IP will only be extracted when `.ip` is first accessed.
+   * @param req - The Node.js IncomingMessage
+   * @internal
+   */
+  setIpExtractor(req: IncomingMessage): void {
+    this.#ipResolved = false;
+    this.#ipExtractor = () => {
+      const forwardedFor = req.headers["x-forwarded-for"];
+      if (forwardedFor) {
+        return Array.isArray(forwardedFor)
+          ? forwardedFor[0].trim()
+          : forwardedFor.split(",")[0].trim();
+      }
+      return req.socket.remoteAddress;
+    };
+  }
+
+  /**
+   * Sets a lazy IP extractor for Bun runtime.
+   * @internal
+   */
+  setBunIpExtractor(req: globalThis.Request, server: any): void {
+    this.#ipResolved = false;
+    this.#ipExtractor = () => {
+      const forwardedFor = req.headers.get("x-forwarded-for");
+      if (forwardedFor) {
+        return forwardedFor.split(",")[0].trim();
+      }
+      return server.requestIP(req)?.address;
+    };
+  }
+
+  /**
+   * Sets a lazy IP extractor for Deno runtime.
+   * @internal
+   */
+  setDenoIpExtractor(req: globalThis.Request, info: any): void {
+    this.#ipResolved = false;
+    this.#ipExtractor = () => {
+      const forwardedFor = req.headers.get("x-forwarded-for");
+      if (forwardedFor) {
+        return forwardedFor.split(",")[0].trim();
+      }
+      return info.remoteAddr?.hostname;
+    };
+  }
+
+  /**
+   * Sets raw Node.js headers for lazy Headers construction.
+   * Avoids creating a Web API Headers object until first access.
+   * @param headers - Raw Node.js IncomingMessage headers
+   * @param needsFiltering - Whether HTTP/2 pseudo-header filtering is needed
+   * @internal
+   */
+  setRawHeaders(
+    headers: IncomingMessage["headers"],
+    needsFiltering: boolean,
+  ): void {
+    this.#rawNodeHeaders = headers;
+    this.#needsHeaderFiltering = needsFiltering;
+    this.#headersResolved = false;
+    this.#headers = undefined;
   }
 
   /**

@@ -258,7 +258,13 @@ export class Response<
    * 200 OK
    */
   ok(body?: ResponseBodyForStatus<TResponseMap, 200>): void {
-    this.status(200).send(body as TResponseMap[200]);
+    this.responseStatus = 200;
+    // Fast path: object body (most common case) goes directly to json()
+    if (body !== null && body !== undefined && typeof body === "object") {
+      this.json(body as any);
+      return;
+    }
+    this.send(body as TResponseMap[200]);
   }
 
   /**

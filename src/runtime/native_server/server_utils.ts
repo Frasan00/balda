@@ -6,29 +6,35 @@ import type {
   ServerRouteMiddleware,
 } from "./server_types.js";
 
-export const executeMiddlewareChain = async (
+export const executeMiddlewareChain = (
   middlewares: ServerRouteMiddleware[],
   handler: ServerRouteHandler,
   req: Request,
   res: Response,
-): Promise<Response> => {
+): Response | Promise<Response> => {
   const len = middlewares.length;
+  // Fast path: no middlewares — call handler directly
   if (len === 0) {
-    // we handle cases where a direct `return` statement is used in the controller
-    const optionalResult = await handler(req, res);
-    if (optionalResult) {
-      res.send(optionalResult);
-      return res;
+    const result = handler(req, res);
+    if (result && typeof (result as any).then === "function") {
+      return (result as Promise<any>).then((optionalResult: any) => {
+        if (optionalResult) {
+          res.send(optionalResult);
+        }
+        return res;
+      });
     }
-
+    if (result) {
+      res.send(result);
+    }
     return res;
   }
 
+  // Middleware path (async required)
   let index = 0;
 
   const dispatch = async (): Promise<any> => {
     if (index >= len) {
-      // we handle cases where a direct `return` statement is used in the controller
       const optionalResult = await handler(req, res);
       if (optionalResult) {
         res.send(optionalResult);
@@ -43,8 +49,7 @@ export const executeMiddlewareChain = async (
     await middleware(req, res, dispatch);
   };
 
-  await dispatch();
-  return res;
+  return dispatch().then(() => res);
 };
 
 const METHODS_WITH_BODY = new Set(["post", "put", "patch"]);

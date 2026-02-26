@@ -67,10 +67,7 @@ export class ServerDeno implements ServerInterface {
         const baldaRequest = Request.fromRequest(req);
         baldaRequest.params = match?.params ?? {};
         baldaRequest.setQueryString(search);
-        const forwardedFor = req.headers.get("x-forwarded-for");
-        baldaRequest.ip = forwardedFor
-          ? forwardedFor.split(",")[0].trim()
-          : info.remoteAddr?.hostname;
+        baldaRequest.setDenoIpExtractor(req, info);
 
         // User input handler
         const handlerResponse = await handler?.(req, info);
@@ -122,7 +119,9 @@ export class ServerDeno implements ServerInterface {
         }
 
         const baldaResponse = new Response();
-        baldaResponse.setRouteResponseSchemas(match?.responseSchemas);
+        if (match?.responseSchemas) {
+          baldaResponse.setRouteResponseSchemas(match.responseSchemas);
+        }
 
         await executeMiddlewareChain(
           match?.middleware ?? [],

@@ -140,18 +140,15 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
         const match = router.find(req.method as HttpMethod, pathname);
 
-        // Optimized header processing
-        const filteredHeaders = this.processHeaders(req.headers);
-
         const request = new Request();
         request.url = `${this.url}${urlString}`;
         request.method = req.method!;
         if (canHaveBody(req.method)) {
           request.setNodeRequest(req);
         }
-        request.headers = new Headers(filteredHeaders);
+        request.setRawHeaders(req.headers, this.needsHeaderFiltering);
 
-        request.ip = this.extractClientIp(req);
+        request.setIpExtractor(req);
 
         // Lazy query parsing - only parse when accessed
         request.setQueryString(search);
@@ -159,9 +156,11 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
         const response = new Response();
         response.nodeResponse = httpResponse;
-        response.setRouteResponseSchemas(match?.responseSchemas);
+        if (match?.responseSchemas) {
+          response.setRouteResponseSchemas(match.responseSchemas);
+        }
 
-        const responseResult = await executeMiddlewareChain(
+        const chainResult = executeMiddlewareChain(
           match?.middleware ?? [],
           match?.handler ??
             ((req, res) => {
@@ -173,44 +172,12 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           response,
         );
 
-        if (httpResponse.headersSent || httpResponse.writableEnded) {
-          return;
-        }
-
-        const body = responseResult.getBody();
-        if (body instanceof ReadableStream) {
-          httpResponse.writeHead(
-            responseResult.responseStatus,
-            responseResult.headers,
-          );
-          pipeReadableStreamToNodeResponse(
-            body as unknown as WebReadableStream,
-            httpResponse,
-          );
-          return;
-        }
-
-        httpResponse.writeHead(
-          responseResult.responseStatus,
-          responseResult.headers,
-        );
-
-        // Fast path for common body types
-        if (
-          body instanceof Buffer ||
-          body instanceof Uint8Array ||
-          typeof body === "string"
-        ) {
-          httpResponse.end(body);
-        } else if (
-          responseResult.headers["Content-Type"] === "application/json"
-        ) {
-          // Check if body is already a serialized string (from fast-json-stringify)
-          httpResponse.end(
-            typeof body === "string" ? body : JSON.stringify(body),
-          );
+        if (chainResult instanceof Response) {
+          this.writeResponse(chainResult, httpResponse);
         } else {
-          httpResponse.end(body != null ? String(body) : undefined);
+          (chainResult as Promise<Response>).then((res) =>
+            this.writeResponse(res, httpResponse),
+          );
         }
       },
     );
@@ -218,6 +185,45 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
   listen(): void {
     this.runtimeServer.listen(this.port, this.host);
+  }
+
+  private writeResponse(
+    responseResult: Response,
+    httpResponse: ServerResponse,
+  ): void {
+    if (httpResponse.headersSent || httpResponse.writableEnded) {
+      return;
+    }
+
+    const body = responseResult.getBody();
+    if (body instanceof ReadableStream) {
+      httpResponse.writeHead(
+        responseResult.responseStatus,
+        responseResult.headers,
+      );
+      pipeReadableStreamToNodeResponse(
+        body as unknown as WebReadableStream,
+        httpResponse,
+      );
+      return;
+    }
+
+    httpResponse.writeHead(
+      responseResult.responseStatus,
+      responseResult.headers,
+    );
+
+    if (
+      body instanceof Buffer ||
+      body instanceof Uint8Array ||
+      typeof body === "string"
+    ) {
+      httpResponse.end(body);
+    } else if (responseResult.headers["Content-Type"] === "application/json") {
+      httpResponse.end(typeof body === "string" ? body : JSON.stringify(body));
+    } else {
+      httpResponse.end(body != null ? String(body) : undefined);
+    }
   }
 
   async close(): Promise<void> {
