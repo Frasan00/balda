@@ -88,7 +88,9 @@ export class Request<
         redirect: this.redirect,
         integrity: this.integrity,
         keepalive: this.keepalive,
-      });
+        // Required by Node.js v24 (undici v7) when body is a stream; not yet in TS DOM types
+        duplex: "half" as const,
+      } as RequestInit);
       return this.#webApiRequest;
     }
 

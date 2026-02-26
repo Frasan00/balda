@@ -41,6 +41,7 @@ import {
   InferBodyType,
   InferQueryType,
   InferResponseMap,
+  ResponseBodyForStatus,
 } from "./router/path_types.js";
 import { nativeFs } from "../runtime/native_fs.js";
 import type {
@@ -48,7 +49,13 @@ import type {
   CachePluginOptions,
 } from "../cache/cache.types.js";
 
-export type ServerHandlerReturnType = any | Promise<any>;
+export type ServerHandlerReturnType<
+  TResponseMap extends Record<number, any> = Record<number, any>,
+> =
+  | void
+  | Promise<void>
+  | ResponseBodyForStatus<TResponseMap, 200>
+  | Promise<ResponseBodyForStatus<TResponseMap, 200>>;
 
 export type ServerPlugin = {
   bodyParser?: BodyParserOptions;
@@ -429,4 +436,4 @@ export type ControllerHandler<
       : Record<string, unknown>
   >,
   res: Response<InferResponseMap<TResponses>>,
-) => ServerHandlerReturnType;
+) => ServerHandlerReturnType<InferResponseMap<TResponses>>;
