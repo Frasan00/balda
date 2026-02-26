@@ -339,14 +339,8 @@ describe("API Response Schema Stripping", () => {
         },
       } as const;
 
-      const s1 = AjvStateManager.getOrCreateSerializer(
-        schema,
-        "cache_test",
-      );
-      const s2 = AjvStateManager.getOrCreateSerializer(
-        schema,
-        "cache_test",
-      );
+      const s1 = AjvStateManager.getOrCreateSerializer(schema, "cache_test");
+      const s2 = AjvStateManager.getOrCreateSerializer(schema, "cache_test");
 
       expect(s1).toBe(s2);
     });

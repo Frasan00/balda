@@ -55,9 +55,7 @@ describe("Response Schema Stripping", () => {
       const result = enforceSchemaStripping(schema);
 
       expect(result.additionalProperties).toBe(false);
-      expect(
-        (result.properties as any).user.additionalProperties,
-      ).toBe(false);
+      expect((result.properties as any).user.additionalProperties).toBe(false);
     });
 
     it("should handle array items with object schemas", () => {
@@ -106,9 +104,7 @@ describe("Response Schema Stripping", () => {
         $ref: "#/$defs/LinkedItem",
       });
       // But $defs definitions get stripped
-      expect(
-        (result as any).$defs.LinkedItem.additionalProperties,
-      ).toBe(false);
+      expect((result as any).$defs.LinkedItem.additionalProperties).toBe(false);
     });
 
     it("should handle oneOf / anyOf / allOf", () => {
@@ -180,7 +176,12 @@ describe("Response Schema Stripping", () => {
       );
       expect(serializer).not.toBeNull();
 
-      const input = { id: 1, name: "Alice", password: "secret123", role: "admin" };
+      const input = {
+        id: 1,
+        name: "Alice",
+        password: "secret123",
+        role: "admin",
+      };
       const output = JSON.parse(serializer!(input));
 
       expect(output).toEqual({ id: 1, name: "Alice" });
