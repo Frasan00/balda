@@ -11,6 +11,106 @@ import { ZodLoader } from "../validator/zod_loader.js";
 import { TypeBoxLoader } from "../validator/typebox_loader.js";
 
 /**
+ * Enforces `additionalProperties: false` on all object sub-schemas within
+ * a JSON Schema tree. This ensures fast-json-stringify only serializes
+ * schema-defined properties — non-schema properties are never sent to the client.
+ *
+ * Runs once at serializer compile time (cached), so zero runtime overhead.
+ * Does not mutate the original schema — returns a structurally shared copy.
+ * Skips `$ref` nodes (resolved by fast-json-stringify itself).
+ */
+export function enforceSchemaStripping(schema: JSONSchema): JSONSchema {
+  if (!schema || typeof schema !== "object") {
+    return schema;
+  }
+
+  let result: JSONSchema | undefined;
+
+  if (schema.properties && typeof schema.properties === "object") {
+    result = { ...schema, additionalProperties: false };
+
+    const props = schema.properties as Record<string, JSONSchema>;
+    const newProps: Record<string, JSONSchema> = {};
+    let propsChanged = false;
+
+    for (const key in props) {
+      const prop = props[key];
+      if (prop && typeof prop === "object" && !("$ref" in prop)) {
+        const stripped = enforceSchemaStripping(prop);
+        if (stripped !== prop) propsChanged = true;
+        newProps[key] = stripped;
+      } else {
+        newProps[key] = prop;
+      }
+    }
+
+    if (propsChanged) {
+      result.properties = newProps;
+    }
+  }
+
+  // Handle array items
+  if (
+    schema.items &&
+    typeof schema.items === "object" &&
+    !("$ref" in schema.items)
+  ) {
+    const strippedItems = enforceSchemaStripping(schema.items as JSONSchema);
+    if (strippedItems !== schema.items) {
+      result = result ?? { ...schema };
+      result.items = strippedItems;
+    }
+  }
+
+  // Handle oneOf / anyOf / allOf
+  for (const keyword of ["oneOf", "anyOf", "allOf"] as const) {
+    const arr = (schema as any)[keyword];
+    if (Array.isArray(arr)) {
+      const newArr: JSONSchema[] = [];
+      let arrChanged = false;
+      for (const sub of arr) {
+        if (sub && typeof sub === "object" && !("$ref" in sub)) {
+          const stripped = enforceSchemaStripping(sub);
+          if (stripped !== sub) arrChanged = true;
+          newArr.push(stripped);
+        } else {
+          newArr.push(sub);
+        }
+      }
+      if (arrChanged) {
+        result = result ?? { ...schema };
+        (result as any)[keyword] = newArr;
+      }
+    }
+  }
+
+  // Handle $defs / definitions
+  for (const defsKey of ["$defs", "definitions"] as const) {
+    const defs = (schema as any)[defsKey];
+    if (defs && typeof defs === "object") {
+      const newDefs: Record<string, JSONSchema> = {};
+      let defsChanged = false;
+      for (const key in defs) {
+        const def = defs[key];
+        if (def && typeof def === "object") {
+          const stripped = enforceSchemaStripping(def);
+          if (stripped !== def) defsChanged = true;
+          newDefs[key] = stripped;
+        } else {
+          newDefs[key] = def;
+        }
+      }
+      if (defsChanged) {
+        result = result ?? { ...schema };
+        (result as any)[defsKey] = newDefs;
+      }
+    }
+  }
+
+  return result ?? schema;
+}
+
+/**
  * Global state for the AJV instance used for JSON Schema validation.
  *
  * ## Custom AJV Instance
@@ -168,7 +268,8 @@ export class AjvStateManager {
     }
 
     try {
-      const serializer = fastJson(jsonSchema as AnySchema, {
+      const strippedSchema = enforceSchemaStripping(jsonSchema);
+      const serializer = fastJson(strippedSchema as AnySchema, {
         ajv: this.ajv.opts,
       });
 
