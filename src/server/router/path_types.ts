@@ -45,14 +45,29 @@ export type InferQueryType<T> = T extends RequestSchema
 
 /**
  * Extracts the body type for a specific HTTP status code from a response map.
- * When the status code has a schema defined, enforces exact type matching.
+ * When the status code has a schema defined, enforces type matching with widened
+ * literals (string literals → string, number literals → number, etc.) so that
+ * natural TypeScript return values like `{ status: "ok" }` are accepted without
+ * requiring `as const`.
  * Defaults to `any` when the status code is not present in the map.
  */
+type WidenLiterals<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends (infer U)[]
+        ? WidenLiterals<U>[]
+        : T extends object
+          ? { [K in keyof T]: WidenLiterals<T[K]> }
+          : T;
+
 export type ResponseBodyForStatus<
   TMap,
   TStatus extends number,
 > = TStatus extends keyof TMap
   ? 0 extends 1 & TMap[TStatus]
     ? any
-    : { [K in keyof TMap[TStatus]]: TMap[TStatus][K] }
+    : WidenLiterals<{ [K in keyof TMap[TStatus]]: TMap[TStatus][K] }>
   : any;
