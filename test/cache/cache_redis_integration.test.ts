@@ -138,7 +138,7 @@ describe("Cache (Redis) — inline router config", () => {
     mockServer = await server.getMockServer();
 
     server.router.get(
-      "/inline-cache/products",
+      "/redis-inline-cache/products",
       { cache: { ttl: 60 } },
       (_req, res) => {
         routerCallCount++;
@@ -147,7 +147,7 @@ describe("Cache (Redis) — inline router config", () => {
     );
 
     server.router.get(
-      "/inline-cache/products/:id",
+      "/redis-inline-cache/products/:id",
       { cache: { ttl: 60 } },
       (req, res) => {
         routerCallCount++;
@@ -156,7 +156,7 @@ describe("Cache (Redis) — inline router config", () => {
     );
 
     server.router.get(
-      "/inline-cache/search",
+      "/redis-inline-cache/search",
       { cache: { ttl: 60, include: { query: true } } },
       (req, res) => {
         routerCallCount++;
@@ -165,7 +165,7 @@ describe("Cache (Redis) — inline router config", () => {
     );
 
     server.router.get(
-      "/inline-cache/headers",
+      "/redis-inline-cache/headers",
       { cache: { ttl: 60, include: { headers: ["x-tenant-id"] } } },
       (req, res) => {
         routerCallCount++;
@@ -184,7 +184,7 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("first request is a MISS and handler is called", async () => {
-    const res = await mockServer.get("/inline-cache/products");
+    const res = await mockServer.get("/redis-inline-cache/products");
 
     expect(res.statusCode()).toBe(200);
     expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
@@ -192,10 +192,10 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("second identical request is a HIT and handler is NOT called", async () => {
-    await mockServer.get("/inline-cache/products");
+    await mockServer.get("/redis-inline-cache/products");
     routerCallCount = 0;
 
-    const res = await mockServer.get("/inline-cache/products");
+    const res = await mockServer.get("/redis-inline-cache/products");
 
     expect(res.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Hit);
     expect(routerCallCount).toBe(0);
@@ -203,8 +203,8 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("different route params produce different cache keys", async () => {
-    const res1 = await mockServer.get("/inline-cache/products/10");
-    const res2 = await mockServer.get("/inline-cache/products/20");
+    const res1 = await mockServer.get("/redis-inline-cache/products/10");
+    const res2 = await mockServer.get("/redis-inline-cache/products/20");
 
     expect(res1.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
     expect(res2.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
@@ -212,10 +212,10 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("query string variations produce different cache keys", async () => {
-    const res1 = await mockServer.get("/inline-cache/search", {
+    const res1 = await mockServer.get("/redis-inline-cache/search", {
       query: { q: "alpha" },
     });
-    const res2 = await mockServer.get("/inline-cache/search", {
+    const res2 = await mockServer.get("/redis-inline-cache/search", {
       query: { q: "beta" },
     });
 
@@ -224,10 +224,12 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("same query string hits cache on repeat", async () => {
-    await mockServer.get("/inline-cache/search", { query: { q: "gamma" } });
+    await mockServer.get("/redis-inline-cache/search", {
+      query: { q: "gamma" },
+    });
     routerCallCount = 0;
 
-    const res = await mockServer.get("/inline-cache/search", {
+    const res = await mockServer.get("/redis-inline-cache/search", {
       query: { q: "gamma" },
     });
 
@@ -236,10 +238,10 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("different header values produce different cache keys (include.headers)", async () => {
-    const res1 = await mockServer.get("/inline-cache/headers", {
+    const res1 = await mockServer.get("/redis-inline-cache/headers", {
       headers: { "x-tenant-id": "tenant-A" },
     });
-    const res2 = await mockServer.get("/inline-cache/headers", {
+    const res2 = await mockServer.get("/redis-inline-cache/headers", {
       headers: { "x-tenant-id": "tenant-B" },
     });
 
@@ -249,12 +251,12 @@ describe("Cache (Redis) — inline router config", () => {
   });
 
   it("same header value hits cache on repeat", async () => {
-    await mockServer.get("/inline-cache/headers", {
+    await mockServer.get("/redis-inline-cache/headers", {
       headers: { "x-tenant-id": "tenant-C" },
     });
     routerCallCount = 0;
 
-    const res = await mockServer.get("/inline-cache/headers", {
+    const res = await mockServer.get("/redis-inline-cache/headers", {
       headers: { "x-tenant-id": "tenant-C" },
     });
 
@@ -288,7 +290,7 @@ describe("Cache (Redis) — invalidation via getCacheService", () => {
     mockServer = await server.getMockServer();
 
     server.router.get(
-      "/inv/data",
+      "/redis-inv/data",
       { cache: { ttl: 60, tags: ["data"] } },
       (_req, res) => {
         embedCallCount++;
@@ -308,12 +310,12 @@ describe("Cache (Redis) — invalidation via getCacheService", () => {
 
   it("invalidating a tag clears the cached entry", async () => {
     // Prime the cache
-    const first = await mockServer.get("/inv/data");
+    const first = await mockServer.get("/redis-inv/data");
     expect(first.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Miss);
     embedCallCount = 0;
 
     // Verify HIT
-    const cached = await mockServer.get("/inv/data");
+    const cached = await mockServer.get("/redis-inv/data");
     expect(cached.headers()[CACHE_STATUS_HEADER]).toBe(CacheStatus.Hit);
     expect(embedCallCount).toBe(0);
 
@@ -324,7 +326,7 @@ describe("Cache (Redis) — invalidation via getCacheService", () => {
     embedCallCount = 0;
 
     // Should be a MISS again
-    const afterInvalidation = await mockServer.get("/inv/data");
+    const afterInvalidation = await mockServer.get("/redis-inv/data");
     expect(afterInvalidation.headers()[CACHE_STATUS_HEADER]).toBe(
       CacheStatus.Miss,
     );

@@ -43,18 +43,15 @@ describe("Router - Static Route Cache", () => {
     expect(result!.params).toEqual({ id: "123" });
   });
 
-  it("should handle cache invalidation when updating static routes", () => {
+  it("should throw error when registering duplicate static route", () => {
     const handler1 = (req: Request, res: Response) => {};
     const handler2 = (req: Request, res: Response) => {};
 
     router.get("/api/test", handler1);
-    const result1 = router.find("GET", "/api/test");
-    expect(result1!.handler).toBe(handler1);
 
-    // Update the same route
-    router.get("/api/test", handler2);
-    const result2 = router.find("GET", "/api/test");
-    expect(result2!.handler).toBe(handler2);
+    expect(() => router.get("/api/test", handler2)).toThrow(
+      "Duplicate route detected: GET /api/test is already registered. Each route must be unique.",
+    );
   });
 
   it("should cache routes with different methods separately", () => {

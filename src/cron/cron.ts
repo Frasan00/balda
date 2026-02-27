@@ -110,7 +110,16 @@ export const cronUi = async (cronUIOptions?: CronUIOptions) => {
 
   const html = await cronUIInstance.generate();
 
-  router.addOrUpdate("GET", cronUIOptions.path, [], (_req, res) => {
-    res.html(html);
-  });
+  router.addOrUpdate(
+    "GET",
+    cronUIOptions.path,
+    [],
+    (_req, res) => {
+      res.html(html);
+    },
+    undefined,
+    undefined,
+    undefined,
+    true,
+  );
 };

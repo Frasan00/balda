@@ -58,6 +58,8 @@ export const serveStatic = (
       service: "StaticFiles",
       ...swaggerOptions,
     },
+    undefined,
+    true,
   );
 
   return async (_req: Request, _res: Response, next: NextFunction) => {

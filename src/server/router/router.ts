@@ -102,6 +102,7 @@ export class Router {
     },
     swaggerOptions?: SwaggerRouteOptions,
     responses?: Record<number, RequestSchema>,
+    allowUpdate: boolean = false,
   ): void {
     method = method.toUpperCase() as HttpMethod;
     const clean = path.split("?")[0];
@@ -205,6 +206,12 @@ export class Router {
       (r) => r.method === method && r.path === path,
     );
     if (idx !== -1) {
+      if (!allowUpdate) {
+        throw new Error(
+          `Duplicate route detected: ${method} ${path} is already registered. Each route must be unique.`,
+        );
+      }
+
       this.routes[idx].middleware = middleware;
       this.routes[idx].handler = finalHandler;
       this.routes[idx].swaggerOptions = swaggerOptions;
@@ -785,6 +792,10 @@ export class Router {
         route.path,
         updatedMiddleware,
         route.handler,
+        undefined,
+        undefined,
+        undefined,
+        true,
       );
     }
   }

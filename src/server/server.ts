@@ -353,11 +353,19 @@ export class Server<
       });
   }
 
-  async waitUntilListening(): Promise<void> {
+  async waitUntilListening(): Promise<{
+    port: number;
+    host: string;
+    url: string;
+  }> {
     return new Promise((resolve, reject) => {
       try {
         this.listen(() => {
-          resolve();
+          resolve({
+            port: this.port,
+            host: this.host,
+            url: this.url,
+          });
         });
       } catch (error) {
         reject(error);
@@ -622,6 +630,8 @@ export class Server<
         {
           excludeFromSwagger: true,
         },
+        undefined,
+        true,
       );
     }
   }

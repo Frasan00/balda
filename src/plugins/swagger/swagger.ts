@@ -58,13 +58,31 @@ export const swagger = (
     uiContent = generateSwaggerUI(jsonPath, swaggerOptions);
   }
 
-  router.addOrUpdate("GET", uiPath, [], (_req, res) => {
-    res.html(uiContent);
-  });
+  router.addOrUpdate(
+    "GET",
+    uiPath,
+    [],
+    (_req, res) => {
+      res.html(uiContent);
+    },
+    undefined,
+    undefined,
+    undefined,
+    true,
+  );
 
-  router.addOrUpdate("GET", jsonPath, [], (_req, res) => {
-    res.json(spec);
-  });
+  router.addOrUpdate(
+    "GET",
+    jsonPath,
+    [],
+    (_req, res) => {
+      res.json(spec);
+    },
+    undefined,
+    undefined,
+    undefined,
+    true,
+  );
 };
 
 /**

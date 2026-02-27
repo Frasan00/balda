@@ -362,7 +362,11 @@ export interface ServerInterface {
    * Use `listen` instead if you want to initialize the server without blocking the event loop
    * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
    */
-  waitUntilListening: () => Promise<void>;
+  waitUntilListening: () => Promise<{
+    port: number;
+    host: string;
+    url: string;
+  }>;
   /**
    * Closes the server and frees the port
    * This method is idempotent and can be called multiple times safely
