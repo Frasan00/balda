@@ -269,9 +269,12 @@ export class AjvStateManager {
 
     try {
       const strippedSchema = enforceSchemaStripping(jsonSchema);
-      const serializer = fastJson(strippedSchema as AnySchema, {
-        ajv: this.ajv.opts,
-      });
+      const serializer = fastJson(
+        strippedSchema as Parameters<typeof fastJson>[0],
+        {
+          ajv: this.ajv.opts as any,
+        },
+      );
 
       prefixMap.set(prefix, serializer);
       return serializer;

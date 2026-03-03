@@ -1,8 +1,8 @@
 import { MemorySessionStore } from "./session_store.js";
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import type { TypedMiddleware } from "../../server/http/typed_middleware.js";
 import type { SessionOptions, SessionStore } from "./session_types.js";
 import { nativeCrypto } from "../../runtime/native_crypto.js";
 
@@ -16,7 +16,13 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
  * @param options.store The store to use for the session
  * @param options.cookie The cookie options
  */
-export const session = (options?: SessionOptions): ServerRouteMiddleware => {
+export const session = (
+  options?: SessionOptions,
+): TypedMiddleware<{
+  session: Record<string, any>;
+  saveSession: () => Promise<void>;
+  destroySession: () => Promise<void>;
+}> => {
   const name = options?.name ?? "sid";
   const ttl = options?.ttl ?? 60 * 60 * 24; // 1 day
   const store: SessionStore = options?.store ?? new MemorySessionStore();

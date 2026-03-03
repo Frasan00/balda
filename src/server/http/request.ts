@@ -376,12 +376,29 @@ export class Request<
   /**
    * The cookies of the request.
    * @cookie middleware is required
+   * @throws Error if cookie middleware is not registered
    */
-  cookies: Record<string, string> = {};
+  #cookies?: Record<string, string>;
+  #cookiesSet = false;
+
+  get cookies(): Record<string, string> {
+    if (!this.#cookiesSet) {
+      throw new Error(
+        "Cookie middleware is required. Register the cookie plugin to access request cookies.",
+      );
+    }
+    return this.#cookies!;
+  }
+
+  set cookies(value: Record<string, string>) {
+    this.#cookies = value;
+    this.#cookiesSet = true;
+  }
 
   /**
    * The cookie of the request.
    * @cookie middleware is required
+   * @throws Error if cookie middleware is not registered
    */
   cookie(name: string): string | undefined {
     return this.cookies[name];
@@ -397,28 +414,56 @@ export class Request<
    * The session of the request. Uses cookies to send the session id
    * @cookie middleware is required
    * @session middleware is required
+   * @throws Error if session middleware is not registered
    */
-  session?: Record<string, any> = undefined;
+  #session?: Record<string, any>;
+  #sessionSet = false;
+
+  get session(): Record<string, any> | undefined {
+    if (!this.#sessionSet) {
+      throw new Error(
+        "Session middleware is required. Register the session plugin to access request session.",
+      );
+    }
+    return this.#session;
+  }
+
+  set session(value: Record<string, any> | undefined) {
+    this.#session = value;
+    this.#sessionSet = true;
+  }
 
   /**
-   * Shared no-op async function to avoid per-instance closure allocation.
+   * Shared throwing functions to avoid per-instance closure allocation.
    * @internal
    */
-  private static readonly _noopAsync = async (): Promise<void> => {};
+  private static readonly _throwSaveSession = async (): Promise<void> => {
+    throw new Error(
+      "Session middleware is required. Register the session plugin to use saveSession.",
+    );
+  };
+
+  private static readonly _throwDestroySession = async (): Promise<void> => {
+    throw new Error(
+      "Session middleware is required. Register the session plugin to use destroySession.",
+    );
+  };
 
   /**
-   * The session of the request. Uses cookies to send the session id
+   * Save the current session data.
    * @cookie middleware is required
    * @session middleware is required
+   * @throws Error if session middleware is not registered
    */
-  saveSession: () => Promise<void> = Request._noopAsync;
+  saveSession: () => Promise<void> = Request._throwSaveSession;
 
   /**
-   * The session of the request.
+   * Destroy the current session.
    * @cookie middleware is required
    * @session middleware is required
+   * @throws Error if session middleware is not registered
    */
-  destroySession: () => Promise<void> = Request._noopAsync;
+  destroySession: () => Promise<void> = Request._throwDestroySession;
 
   /**
    * The ip address of the request.

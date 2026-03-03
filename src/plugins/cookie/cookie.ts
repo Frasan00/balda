@@ -1,7 +1,7 @@
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import type { TypedMiddleware } from "../../server/http/typed_middleware.js";
 import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types.js";
 
 /**
@@ -11,7 +11,7 @@ import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types.js";
  */
 export const cookie = (
   options?: CookieMiddlewareOptions,
-): ServerRouteMiddleware => {
+): TypedMiddleware<{ cookies: Record<string, string> }> => {
   const opts: Required<CookieMiddlewareOptions> = {
     secret: options?.secret ?? "",
     defaults: {

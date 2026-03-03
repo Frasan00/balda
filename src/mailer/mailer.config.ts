@@ -1,5 +1,6 @@
 import { createTransport } from "nodemailer";
-import { Mailer, EjsAdapter } from "balda";
+import { EjsAdapter } from "./adapters/ejs_adapter.js";
+import { Mailer } from "./mailer.js";
 
 /**
  * Configure your email transporter
@@ -38,7 +39,9 @@ export const mailer = new Mailer(
     default: {
       transporter,
       templateAdapter: adapter,
-      from: process.env.DEFAULT_FROM_EMAIL || "noreply@example.com",
+      from:
+        (process.env.DEFAULT_FROM_EMAIL as `${string}@${string}`) ||
+        "noreply@example.com",
     },
     // Add more providers as needed
     // transactional: { transporter: transactionalTransporter, from: "..." },

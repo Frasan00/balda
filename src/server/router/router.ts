@@ -25,12 +25,16 @@ import {
 } from "../../cache/cache.registry.js";
 import { createCacheMiddleware } from "../../cache/cache.plugin.js";
 import { resolveCacheConfig } from "../../cache/cache.utils.js";
+import type {
+  TypedMiddleware,
+  InferMiddlewareExtensions,
+} from "../http/typed_middleware.js";
 
 class Node {
   staticChildren: Map<string, Node>;
   paramChild: { node: Node; name: string } | null;
   wildcardChild: Node | null;
-  middleware: ServerRouteMiddleware[] | null;
+  middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[] | null;
   handler: ((req: Request, res: Response) => void) | null;
   paramName: string | null;
 
@@ -45,7 +49,7 @@ class Node {
 }
 
 type CachedRoute = {
-  middleware: ServerRouteMiddleware[];
+  middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[];
   handler: ServerRouteHandler;
   params: Params;
   responseSchemas?: RouteResponseSchemas;
@@ -57,7 +61,7 @@ type CachedRoute = {
 export class Router {
   private trees: Map<string, Node>;
   private routes: Route[];
-  private middlewares: ServerRouteMiddleware[];
+  private middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[];
   private basePath: string;
   private staticRouteCache: Map<string, CachedRoute>;
   private handlerResponseSchemas: Map<ServerRouteHandler, RouteResponseSchemas>;
@@ -71,7 +75,7 @@ export class Router {
    */
   constructor(
     basePath: string = "",
-    middlewares: ServerRouteMiddleware[] = [],
+    middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[] = [],
   ) {
     this.trees = new Map();
     this.routes = [];
@@ -93,7 +97,7 @@ export class Router {
   addOrUpdate(
     method: HttpMethod,
     path: string,
-    middleware: ServerRouteMiddleware[],
+    middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[],
     handler: ServerRouteHandler,
     validationSchemas?: {
       body?: RequestSchema;
@@ -242,7 +246,7 @@ export class Router {
     method: string,
     rawPath: string,
   ): {
-    middleware: ServerRouteMiddleware[];
+    middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[];
     handler: ServerRouteHandler;
     params: Params;
     responseSchemas?: RouteResponseSchemas;
@@ -316,10 +320,12 @@ export class Router {
    * @internal
    */
   private extractOptionsAndHandler(
-    optionsOrHandler: StandardMethodOptions | ServerRouteHandler,
-    maybeHandler?: ServerRouteHandler,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ((...args: any[]) => any),
+    maybeHandler?: (...args: any[]) => any,
   ): {
-    middlewares: ServerRouteMiddleware[];
+    middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[];
     handler: ServerRouteHandler;
     body?: RequestSchema;
     query?: RequestSchema;
@@ -335,7 +341,14 @@ export class Router {
       };
     }
 
-    const options = optionsOrHandler as StandardMethodOptions;
+    const options = optionsOrHandler as StandardMethodOptions<
+      any,
+      any,
+      any,
+      any,
+      any,
+      any
+    >;
     const middlewares = Array.isArray(options.middlewares)
       ? options.middlewares
       : options.middlewares
@@ -383,14 +396,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -434,14 +465,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   post<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -485,14 +534,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   patch<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -536,14 +603,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   put<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -587,14 +672,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -638,14 +741,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   options<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -689,14 +810,32 @@ export class Router {
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<TResponses, TBody, TQuery, TPath, TAll>,
-    handler: ControllerHandler<TPath, TResponses, TBody, TQuery, TAll>,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
   ): void;
   head<TPath extends string = string>(
     path: TPath,
-    optionsOrHandler: StandardMethodOptions | ControllerHandler<TPath>,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -731,7 +870,10 @@ export class Router {
    */
   group(
     path: string,
-    middleware: ServerRouteMiddleware[] | ServerRouteMiddleware,
+    middleware:
+      | (ServerRouteMiddleware | TypedMiddleware<any>)[]
+      | ServerRouteMiddleware
+      | TypedMiddleware<any>,
     cb: (router: Router) => void,
   ): void;
   group(path: string, cb: (router: Router) => void): void;
@@ -783,7 +925,7 @@ export class Router {
    * @internal
    */
   applyGlobalMiddlewaresToAllRoutes(
-    middlewares: ServerRouteMiddleware[],
+    middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[],
   ): void {
     for (const route of this.routes) {
       const updatedMiddleware = [...middlewares, ...(route.middleware || [])];

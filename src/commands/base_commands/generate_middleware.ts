@@ -57,17 +57,23 @@ export default class GenerateMiddlewareCommand extends Command {
 
   static getMiddlewareTemplate() {
     const middlewareName = toPascalCase(this.middlewareName);
-    return `import type { Request, Response, NextFunction, ServerRouteMiddleware } from "balda";
+    return `import { defineMiddleware } from "balda";
+import type { TypedMiddleware } from "balda";
 
 /**
  * ${middlewareName} middleware
  * @description Add your middleware logic here
  */
-export const ${middlewareName}: ServerRouteMiddleware = async () => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+// Define the properties this middleware adds to the request
+type ${middlewareName}Extension = {
+  // example: userId: number;
+};
+
+export const ${middlewareName}: TypedMiddleware<${middlewareName}Extension> = defineMiddleware<${middlewareName}Extension>(
+  async (req, res, next) => {
     // Add your middleware logic here
     return next();
-  };
-};`;
+  },
+);`;
   }
 }

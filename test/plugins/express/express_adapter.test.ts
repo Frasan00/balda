@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createExpressAdapter } from "../../../src/plugins/express/express.js";
 import type { ServerRouteMiddleware } from "../../../src/runtime/native_server/server_types.js";
 import { router } from "../../../src/server/router/router.js";
+import { TypedMiddleware } from "../../../src/server/http/typed_middleware.js";
 
 describe("Express Adapter Integration", () => {
   beforeEach(() => {
@@ -25,7 +26,7 @@ describe("Express Adapter Integration", () => {
     let middlewareCalled = false;
     const mockServer = {
       middlewares: [] as ServerRouteMiddleware[],
-      use(...middlewares: ServerRouteMiddleware[]) {
+      use(...middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[]) {
         this.middlewares.push(...middlewares);
       },
     };

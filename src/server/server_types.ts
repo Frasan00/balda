@@ -34,6 +34,7 @@ import { SyncOrAsync } from "../type_util.js";
 import type { NextFunction } from "./http/next.js";
 import type { Request } from "./http/request.js";
 import type { Response } from "./http/response.js";
+import type { TypedMiddleware } from "./http/typed_middleware.js";
 import type { ClientRouter } from "./router/router_type.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
 import {
@@ -319,7 +320,7 @@ export interface ServerInterface {
   /**
    * Register a global middleware to be applied to all routes after the listener is bound, the middleware is applied in the order it is registered
    */
-  use: (middleware: ServerRouteMiddleware) => void;
+  use: (middleware: ServerRouteMiddleware | TypedMiddleware<any>) => void;
 
   /**
    * Set the error handler for the server
@@ -407,8 +408,10 @@ export type StandardMethodOptions<
   TQuery extends RequestSchema | unknown = unknown,
   TPath extends string = string,
   TAll extends RequestSchema | unknown = unknown,
+  TMiddlewares extends readonly TypedMiddleware<any>[] =
+    readonly TypedMiddleware<any>[],
 > = {
-  middlewares?: ServerRouteMiddleware[] | ServerRouteMiddleware;
+  middlewares?: TMiddlewares | TypedMiddleware<any>;
   body?: TBody;
   query?: TQuery;
   all?: TAll;
@@ -431,6 +434,7 @@ export type ControllerHandler<
   TBody extends RequestSchema | unknown = unknown,
   TQuery extends RequestSchema | unknown = unknown,
   TAll extends RequestSchema | unknown = unknown,
+  TMiddlewareExt extends Record<string, any> = Record<string, never>,
 > = (
   req: Request<
     ExtractParams<TPath>,
@@ -438,6 +442,7 @@ export type ControllerHandler<
     InferQueryType<TQuery> extends Record<string, any>
       ? InferQueryType<TQuery>
       : Record<string, unknown>
-  >,
+  > &
+    TMiddlewareExt,
   res: Response<InferResponseMap<TResponses>>,
 ) => ServerHandlerReturnType<InferResponseMap<TResponses>>;

@@ -1,7 +1,7 @@
-import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
+import type { TypedMiddleware } from "../../server/http/typed_middleware.js";
 import type { TimeoutOptions } from "./timeout_types.js";
 
 /**
@@ -12,7 +12,9 @@ import type { TimeoutOptions } from "./timeout_types.js";
  * @param options.status The status code to return if the request times out
  * @param options.message The message to return if the request times out
  */
-export const timeout = (options: TimeoutOptions): ServerRouteMiddleware => {
+export const timeout = (
+  options: TimeoutOptions,
+): TypedMiddleware<{ timeout: boolean }> => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     req.timeout = false;
     const timer = setTimeout(() => {

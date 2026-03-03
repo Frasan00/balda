@@ -63,6 +63,7 @@ import { runtime } from "../runtime/runtime.js";
 import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
+import type { TypedMiddleware } from "./http/typed_middleware.js";
 import type {
   NodeHttpClient,
   ResolvedServerOptions,
@@ -73,6 +74,7 @@ import type {
   ServerPlugin,
   SignalEvent,
 } from "./server_types.js";
+import { NextFunction } from "./http/next.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -283,7 +285,7 @@ export class Server<
     }
   }
 
-  use(...middlewares: ServerRouteMiddleware[]): void {
+  use(...middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[]): void {
     this.#globalMiddlewares.push(...middlewares);
   }
 

@@ -5,6 +5,7 @@ import type {
 import type { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import type { Router } from "./router.js";
+import { TypedMiddleware } from "../http/typed_middleware.js";
 
 export type Params = Record<string, string>;
 
@@ -17,7 +18,7 @@ export type RouteResponseSchemas = Record<number, RequestSchema>;
 export interface Route {
   method: string;
   path: string;
-  middleware: ServerRouteMiddleware[];
+  middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[];
   handler: ServerRouteHandler;
   swaggerOptions?: SwaggerRouteOptions;
   /**

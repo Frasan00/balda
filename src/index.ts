@@ -106,6 +106,12 @@ export type {
 export type { NextFunction } from "./server/http/next.js";
 export type { Request } from "./server/http/request.js";
 export type { Response } from "./server/http/response.js";
+export {
+  defineMiddleware,
+  type TypedMiddleware,
+  type InferMiddlewareExtension,
+  type InferMiddlewareExtensions,
+} from "./server/http/typed_middleware.js";
 export type {
   ExtractParams,
   InferResponseMap,

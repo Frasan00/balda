@@ -1,13 +1,14 @@
 import type { GraphQL } from "../../graphql/graphql.js";
 import type { Request } from "../../server/http/request.js";
 import { Response } from "../../server/http/response.js";
+import { TypedMiddleware } from "../../server/http/typed_middleware.js";
 import type {
   ServerRouteHandler,
   ServerRouteMiddleware,
 } from "./server_types.js";
 
 export const executeMiddlewareChain = (
-  middlewares: ServerRouteMiddleware[],
+  middlewares: (ServerRouteMiddleware | TypedMiddleware<any>)[],
   handler: ServerRouteHandler,
   req: Request,
   res: Response,

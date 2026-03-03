@@ -25,7 +25,7 @@ export class CronService {
    *   timezone: 'Europe/Istanbul',
    * });
    */
-  static register(name: string, ...args: CronScheduleParams): void {
+  static register(name: string, ...args: CronScheduleParams) {
     args[2] = {
       name,
       ...args[2],
