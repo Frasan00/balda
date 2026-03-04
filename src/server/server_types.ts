@@ -351,6 +351,19 @@ export interface ServerInterface {
    */
   beforeStart: (hook: ServerHook) => void;
   /**
+   * Register a hook to be called before the server closes (after it stops accepting requests).
+   * Multiple hooks are called in the order they are registered.
+   * Useful for cleanup tasks like disconnecting from databases or flushing logs.
+   * @param hook - The hook function to call, can be sync or async
+   * @example
+   * ```ts
+   * server.beforeClose(async () => {
+   *   await disconnectFromDatabase();
+   * });
+   * ```
+   */
+  beforeClose: (hook: ServerHook) => void;
+  /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    * It initializes the server without blocking the event loop, you can pass a callback to be called when the server is listening
    * Use `waitUntilListening` instead if you want to wait for the server to be listening for requests before returning

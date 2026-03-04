@@ -99,6 +99,7 @@ export class Server<
   #notFoundHandler?: ServerRouteHandler;
   #httpsOptions?: HttpsServerOptions;
   #beforeStartHooks: ServerHook[] = [];
+  #beforeCloseHooks: ServerHook[] = [];
 
   /**
    * The constructor for the server
@@ -323,6 +324,10 @@ export class Server<
     this.#beforeStartHooks.push(hook);
   }
 
+  beforeClose(hook: ServerHook): void {
+    this.#beforeCloseHooks.push(hook);
+  }
+
   listen(cb?: ServerListenCallback): void {
     if (this.isListening) {
       throw new Error(
@@ -399,6 +404,9 @@ export class Server<
     }
 
     try {
+      for (const hook of this.#beforeCloseHooks) {
+        await hook();
+      }
       await this.#serverConnector.close();
     } catch (error) {
       this.logger.error({ error }, "Error closing server connector");

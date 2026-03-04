@@ -112,6 +112,7 @@ export {
   type InferMiddlewareExtension,
   type InferMiddlewareExtensions,
 } from "./server/http/typed_middleware.js";
+export type { GroupRouter } from "./server/router/group_router.js";
 export type {
   ExtractParams,
   InferResponseMap,

@@ -29,6 +29,7 @@ import type {
   TypedMiddleware,
   InferMiddlewareExtensions,
 } from "../http/typed_middleware.js";
+import type { GroupRouter } from "./group_router.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -865,25 +866,28 @@ export class Router {
 
   /**
    * Create a grouped router that shares a base path and middlewares.
-   * The callback receives a child router where routes are defined; routes
+   * The callback receives a typed child router where routes are defined; routes
    * are then merged back into the parent with the composed base path and middlewares.
+   * TypedMiddleware extensions flow into the callback's router for full type inference.
    */
-  group(
-    path: string,
-    middleware:
-      | (ServerRouteMiddleware | TypedMiddleware<any>)[]
+  group<
+    const TMiddlewares extends readonly (
       | ServerRouteMiddleware
-      | TypedMiddleware<any>,
-    cb: (router: Router) => void,
+      | TypedMiddleware<any>
+    )[] = readonly (ServerRouteMiddleware | TypedMiddleware<any>)[],
+  >(
+    path: string,
+    middleware: TMiddlewares,
+    cb: (router: GroupRouter<InferMiddlewareExtensions<TMiddlewares>>) => void,
   ): void;
-  group(path: string, cb: (router: Router) => void): void;
+  group(path: string, cb: (router: GroupRouter<{}>) => void): void;
   group(
     path: string,
     middlewareOrCb:
-      | ServerRouteMiddleware[]
+      | (ServerRouteMiddleware | TypedMiddleware<any>)[]
       | ServerRouteMiddleware
-      | ((router: Router) => void),
-    maybeCb?: (router: Router) => void,
+      | ((router: GroupRouter<any>) => void),
+    maybeCb?: (router: GroupRouter<any>) => void,
   ): void {
     const groupMiddlewares = Array.isArray(middlewareOrCb)
       ? middlewareOrCb
@@ -896,16 +900,16 @@ export class Router {
       Array.isArray(middlewareOrCb)
         ? maybeCb
         : typeof middlewareOrCb === "function"
-          ? (middlewareOrCb as (router: Router) => void)
+          ? (middlewareOrCb as (router: GroupRouter<any>) => void)
           : undefined
-    ) as ((router: Router) => void) | undefined;
+    ) as ((router: GroupRouter<any>) => void) | undefined;
 
     const childBase = this.joinPath(path);
     const child = new Router(childBase, [
       ...this.middlewares,
       ...groupMiddlewares,
     ]);
-    cb?.(child);
+    cb?.(child as unknown as GroupRouter<any>);
     for (const r of child.getRoutes()) {
       this.addOrUpdate(
         r.method as HttpMethod,
