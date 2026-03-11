@@ -239,7 +239,10 @@ export { PolicyManager } from "./server/policy/policy_manager.js";
 export type {
   PolicyDecorator,
   PolicyProvider,
+  PolicyRouteConfig,
 } from "./server/policy/policy_types.js";
+export type { PolicyErrorHandler } from "./server/policy/policy_error_handler_registry.js";
+export type { ValidationErrorHandler } from "./server/router/validation_error_handler_registry.js";
 
 // Router
 import { router as routerInstance } from "./server/router/router.js";

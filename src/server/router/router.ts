@@ -30,6 +30,8 @@ import type {
   InferMiddlewareExtensions,
 } from "../http/typed_middleware.js";
 import type { GroupRouter } from "./group_router.js";
+import type { PolicyMetadata } from "../policy/policy_types.js";
+import { createPolicyMiddleware } from "../policy/policy_middleware.js";
 
 class Node {
   staticChildren: Map<string, Node>;
@@ -355,6 +357,19 @@ export class Router {
       : options.middlewares
         ? [options.middlewares]
         : [];
+
+    // Inject policy middleware before route middlewares if policy config is provided
+    if (options.policy) {
+      const policyConfigs = Array.isArray(options.policy)
+        ? options.policy
+        : [options.policy];
+      const policyMetas: PolicyMetadata[] = policyConfigs.map((cfg) => ({
+        scope: cfg.scope,
+        handler: cfg.handler,
+        manager: cfg.manager,
+      }));
+      middlewares.unshift(createPolicyMiddleware(policyMetas));
+    }
 
     // Inject cache middleware if cache config is provided
     if (options.cache) {

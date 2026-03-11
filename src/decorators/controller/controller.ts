@@ -6,6 +6,7 @@ import type {
   ServerRouteMiddleware,
 } from "../../runtime/native_server/server_types.js";
 import type { PolicyMetadata } from "../../server/policy/policy_types.js";
+import { createPolicyMiddleware } from "../../server/policy/policy_middleware.js";
 import { router } from "../../server/router/router.js";
 import {
   getCacheService,
@@ -14,28 +15,6 @@ import {
 import { createCacheMiddleware } from "../../cache/cache.plugin.js";
 import { resolveCacheConfig } from "../../cache/cache.utils.js";
 import type { CacheRouteConfig } from "../../cache/cache.types.js";
-
-/**
- * Creates a middleware that enforces policies before allowing the request to proceed.
- * Returns 401 Unauthorized if any policy check fails.
- */
-const createPolicyMiddleware = (
-  policies: PolicyMetadata[],
-): ServerRouteMiddleware => {
-  return async (req, res, next) => {
-    for (const policy of policies) {
-      const allowed = await policy.manager.canAccess(
-        policy.scope,
-        policy.handler,
-        req,
-      );
-      if (!allowed) {
-        return res.unauthorized({ error: "Unauthorized" });
-      }
-    }
-    return next();
-  };
-};
 
 /**
  * Decorator to mark a class as a controller, routes defined in the controller will be registered at import time when calling the `listen` method.

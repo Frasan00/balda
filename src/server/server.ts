@@ -75,6 +75,10 @@ import type {
   SignalEvent,
 } from "./server_types.js";
 import { NextFunction } from "./http/next.js";
+import { setPolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
+import type { PolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
+import { setValidationErrorHandler } from "./router/validation_error_handler_registry.js";
+import type { ValidationErrorHandler } from "./router/validation_error_handler_registry.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -318,6 +322,14 @@ export class Server<
 
   setNotFoundHandler(notFoundHandler?: ServerRouteHandler): void {
     this.#notFoundHandler = notFoundHandler?.bind(this);
+  }
+
+  setValidationErrorHandler(handler: ValidationErrorHandler): void {
+    setValidationErrorHandler(handler);
+  }
+
+  setPolicyErrorHandler(handler: PolicyErrorHandler): void {
+    setPolicyErrorHandler(handler);
   }
 
   beforeStart(hook: ServerHook): void {

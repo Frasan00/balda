@@ -2,6 +2,7 @@ import type { RequestSchema } from "../../decorators/validation/validate_types.j
 import type { ServerRouteHandler } from "../../runtime/native_server/server_types.js";
 import type { Request } from "../http/request.js";
 import type { Response } from "../http/response.js";
+import { getValidationErrorHandler } from "./validation_error_handler_registry.js";
 
 /**
  * Wraps a route handler with validation logic for body, query, or all request data.
@@ -38,6 +39,10 @@ export const wrapHandlerWithValidation = (
 
       return handler(req, res, ...args);
     } catch (error) {
+      const customHandler = getValidationErrorHandler();
+      if (customHandler) {
+        return customHandler(req, res, error);
+      }
       return res.badRequest(error);
     }
   };

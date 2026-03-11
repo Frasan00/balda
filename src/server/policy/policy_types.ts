@@ -21,3 +21,15 @@ export type PolicyDecorator<T extends Record<string, PolicyProvider>> = <
   propertyKey?: string,
   descriptor?: PropertyDescriptor,
 ) => any;
+
+/**
+ * Configuration for applying a policy to a route via the options object.
+ * Provides the same type-safe scope/handler selection as the decorator approach.
+ */
+export type PolicyRouteConfig<
+  T extends Record<string, PolicyProvider> = Record<string, PolicyProvider>,
+> = {
+  manager: PolicyManager<T>;
+  scope: keyof T & string;
+  handler: string;
+};

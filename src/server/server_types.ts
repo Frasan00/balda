@@ -49,6 +49,9 @@ import type {
   TypedCacheRouteConfig,
   CachePluginOptions,
 } from "../cache/cache.types.js";
+import type { PolicyRouteConfig } from "./policy/policy_types.js";
+import type { PolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
+import type { ValidationErrorHandler } from "./router/validation_error_handler_registry.js";
 
 export type ServerHandlerReturnType<
   TResponseMap extends Record<number, any> = Record<number, any>,
@@ -339,6 +342,30 @@ export interface ServerInterface {
    */
   setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**
+   * Set a custom handler for validation errors (body/query validation failures).
+   * When set, replaces the default `res.badRequest(error)` response.
+   * @param handler - The handler to invoke when validation fails
+   * @example
+   * ```ts
+   * server.setValidationErrorHandler((req, res, error) => {
+   *   res.status(422).json({ code: "VALIDATION_FAILED", details: error });
+   * });
+   * ```
+   */
+  setValidationErrorHandler: (handler: ValidationErrorHandler) => void;
+  /**
+   * Set a custom handler for policy authorization failures.
+   * When set, replaces the default `res.unauthorized({ error: "Unauthorized" })` response.
+   * @param handler - The handler to invoke when a policy check fails
+   * @example
+   * ```ts
+   * server.setPolicyErrorHandler((req, res) => {
+   *   res.status(403).json({ code: "FORBIDDEN", message: "Access denied" });
+   * });
+   * ```
+   */
+  setPolicyErrorHandler: (handler: PolicyErrorHandler) => void;
+  /**
    * Register a hook to be called after bootstrap (controllers imported, plugins applied) but before the server starts accepting requests.
    * Multiple hooks are called in the order they are registered.
    * @param hook - The hook function to call, can be sync or async
@@ -432,6 +459,8 @@ export type StandardMethodOptions<
   swagger?: SwaggerRouteOptions;
   /** Cache configuration for this route. Requires cache to be initialized via initCacheService(). */
   cache?: TypedCacheRouteConfig<TBody, TQuery, TPath>;
+  /** Policy configuration for this route. Accepts a single policy or an array of policies. */
+  policy?: PolicyRouteConfig | PolicyRouteConfig[];
 };
 
 export type ServerHook = () => SyncOrAsync;
