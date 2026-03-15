@@ -5,12 +5,27 @@ import type { RequestSchema } from "../../decorators/validation/validate_types.j
 import { logger } from "../../logger/logger.js";
 import type {
   JSONSchema,
+  SwaggerBodyType,
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
 } from "../../plugins/swagger/swagger_types.js";
 import { router } from "../../server/router/router.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+
+const BODY_TYPE_MIME_MAP: Record<string, string> = {
+  json: "application/json",
+  "form-data": "multipart/form-data",
+  urlencoded: "application/x-www-form-urlencoded",
+  binary: "application/octet-stream",
+  text: "text/plain",
+  "event-stream": "text/event-stream",
+};
+
+function getMimeType(bodyType: SwaggerBodyType | undefined): string {
+  if (!bodyType) return "application/json";
+  return BODY_TYPE_MIME_MAP[bodyType] ?? bodyType;
+}
 
 /**
  * Swagger plugin that serves the swagger UI and JSON specification, by default the UI will be available at /docs and the JSON specification at /docs/json
@@ -262,12 +277,7 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     const bodySchema =
       route.validationSchemas?.body || route.validationSchemas?.all;
     if (bodySchema) {
-      let routeBodyContentType = "application/json";
-      if (swaggerOptions?.bodyType === "form-data") {
-        routeBodyContentType = "multipart/form-data";
-      } else if (swaggerOptions?.bodyType === "urlencoded") {
-        routeBodyContentType = "application/x-www-form-urlencoded";
-      }
+      const routeBodyContentType = getMimeType(swaggerOptions?.bodyType);
       operation.requestBody = {
         content: {
           [routeBodyContentType]: {
@@ -276,14 +286,11 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
         },
         required: true,
       };
-    } else if (
-      swaggerOptions?.bodyType &&
-      (swaggerOptions.bodyType.includes("form-data") ||
-        swaggerOptions.bodyType.includes("urlencoded"))
-    ) {
+    } else if (swaggerOptions?.bodyType) {
+      const routeBodyContentType = getMimeType(swaggerOptions.bodyType);
       operation.requestBody = {
         content: {
-          [swaggerOptions.bodyType]: {
+          [routeBodyContentType]: {
             schema: { type: "object" },
           },
         },
@@ -292,25 +299,11 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     }
 
     operation.responses = {};
-    const routeResponses = route.responses || swaggerOptions?.responses;
+    const routeResponses = route.responses;
     if (routeResponses) {
       for (const [statusCode, schema] of Object.entries(routeResponses)) {
         operation.responses[statusCode] = {
           description: `Response for ${statusCode}`,
-          content: {
-            "application/json": {
-              schema: getOrConvertToJSONSchema(schema),
-            },
-          },
-        };
-      }
-    }
-    if (swaggerOptions?.errors) {
-      for (const [statusCode, schema] of Object.entries(
-        swaggerOptions.errors,
-      )) {
-        operation.responses[statusCode] = {
-          description: `Error response for ${statusCode}`,
           content: {
             "application/json": {
               schema: getOrConvertToJSONSchema(schema),

@@ -1,5 +1,3 @@
-import { RequestSchema } from "../../decorators/validation/validate_types.js";
-
 /**
  * Type of Swagger UI to use
  */
@@ -21,9 +19,18 @@ export type CustomUIGenerator = (
 ) => HTMLString;
 
 /**
- * Type of request body for a route
+ * Type of request body for a route.
+ * Common MIME types are provided as literals withintellisense,
+ * custom MIME types can be specified as strings.
  */
-export type SwaggerBodyType = "json" | "form-data" | "urlencoded";
+export type SwaggerBodyType =
+  | "json"
+  | "form-data"
+  | "urlencoded"
+  | "binary"
+  | "text"
+  | "event-stream"
+  | (string & {});
 
 /**
  * JSONSchema type for OpenAPI/AJV-compatible schemas
@@ -117,17 +124,24 @@ export type SwaggerGlobalOptions =
     });
 
 /**
- * Route-specific documentation options (for individual endpoints)
+ * Route-specific documentation options for OpenAPI/Swagger generation.
+ *
+ * These options are for DOCUMENTATION PURPOSES ONLY and are NOT validated or enforced at runtime.
+ * For validated schemas, use the route-level `body`, `query`, and `responses` options.
+ *
+ * @example
+ * // Document route with custom body type
+ * router.get("/download", { swagger: { bodyType: "binary" } }, handler);
+ *
+ * @example
+ * // Document authentication requirements
+ * router.get("/protected", { swagger: { security: { type: "bearer" } } }, handler);
  */
 export type SwaggerRouteOptions = {
   /** Service category where the route belongs to */
   service?: string;
   /** Name of the route */
   name?: string;
-  /** Responses for this route (used by decorators) */
-  responses?: Record<number, RequestSchema>;
-  /** Errors for this route */
-  errors?: Record<number, RequestSchema>;
   /** Security requirements for this route */
   security?: Security[] | Security;
   /** Description of the route */
@@ -137,7 +151,10 @@ export type SwaggerRouteOptions = {
   /** Exclude from swagger */
   excludeFromSwagger?: boolean;
   /**
-   * The request body type for this route. Allowed values: 'json', 'form-data', 'urlencoded'. Defaults to 'json'.
+   * The request body type for documentation purposes.
+   * Common types: 'json', 'form-data', 'urlencoded', 'binary', 'text', 'event-stream'.
+   * Custom MIME types can be specified as strings (e.g., 'application/vnd.api+json').
+   * Defaults to 'json'.
    */
   bodyType?: SwaggerBodyType;
 };
