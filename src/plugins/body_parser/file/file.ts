@@ -27,7 +27,8 @@ export const fileParser = (
     const tmpPaths: string[] = [];
     try {
       const contentType =
-        req.headers.get("content-type") ?? req.headers.get("Content-Type");
+        req.rawHeaders.get("content-type") ??
+        req.rawHeaders.get("Content-Type");
 
       if (!contentType || !contentType.startsWith("multipart/form-data")) {
         return next();
@@ -38,7 +39,7 @@ export const fileParser = (
       }
 
       // Check Content-Length BEFORE reading body
-      const contentLength = req.headers.get("content-length");
+      const contentLength = req.rawHeaders.get("content-length");
       const maxTotalSize =
         parseSizeLimit(options?.maxFileSize, DEFAULT_TOTAL_SIZE) ??
         DEFAULT_TOTAL_SIZE;

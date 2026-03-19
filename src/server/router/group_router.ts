@@ -38,6 +38,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -49,6 +50,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -58,6 +60,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -67,6 +70,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -81,6 +85,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -92,6 +97,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -101,6 +107,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -110,6 +117,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -124,6 +132,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -135,6 +144,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -144,6 +154,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -153,6 +164,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -167,6 +179,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -178,6 +191,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -187,6 +201,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -196,6 +211,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -210,6 +226,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -221,6 +238,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -230,6 +248,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -239,6 +258,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -253,6 +273,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -264,6 +285,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -273,6 +295,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -282,6 +305,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -296,6 +320,7 @@ export interface GroupRouter<
       unknown,
       unknown,
       unknown,
+      unknown,
       TGroupExt
     >,
   ): void;
@@ -307,6 +332,7 @@ export interface GroupRouter<
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -316,6 +342,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -325,6 +352,7 @@ export interface GroupRouter<
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,

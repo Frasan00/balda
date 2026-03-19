@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { compression } from "../../src/plugins/compression/compression";
-import type { Request } from "../../src/server/http/request";
-import type { Response } from "../../src/server/http/response";
+import { compression } from "../../src/plugins/compression/compression.js";
+import type { Request } from "../../src/server/http/request.js";
+import type { Response } from "../../src/server/http/response.js";
 
 describe("Compression Plugin", () => {
   it("should compress large JSON responses when gzip is supported", async () => {
     const middleware = compression({ threshold: 100, level: 6 });
 
     const mockReq = {
-      headers: new Map([["accept-encoding", "gzip, deflate"]]),
+      rawHeaders: new Headers([["accept-encoding", "gzip, deflate"]]),
       method: "GET",
     } as unknown as Request;
 
@@ -49,7 +49,7 @@ describe("Compression Plugin", () => {
     const middleware = compression({ threshold: 10000, level: 6 });
 
     const mockReq = {
-      headers: new Map([["accept-encoding", "gzip"]]),
+      rawHeaders: new Headers([["accept-encoding", "gzip"]]),
       method: "GET",
     } as unknown as Request;
 
@@ -84,7 +84,7 @@ describe("Compression Plugin", () => {
     const middleware = compression({ threshold: 100, level: 6 });
 
     const mockReq = {
-      headers: new Map(),
+      rawHeaders: new Headers(),
       method: "GET",
     } as unknown as Request;
 

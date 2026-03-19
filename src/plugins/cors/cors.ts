@@ -37,7 +37,7 @@ export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    const requestOrigin = req.headers.get("origin") || "";
+    const requestOrigin = req.rawHeaders.get("origin") || "";
 
     if (req.method === "OPTIONS") {
       return handlePreflightRequest(req, res, opts, requestOrigin, next);

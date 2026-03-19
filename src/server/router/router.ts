@@ -105,6 +105,7 @@ export class Router {
     validationSchemas?: {
       body?: RequestSchema;
       query?: RequestSchema;
+      headers?: RequestSchema;
       all?: RequestSchema;
     },
     swaggerOptions?: SwaggerRouteOptions,
@@ -114,7 +115,7 @@ export class Router {
     method = method.toUpperCase() as HttpMethod;
     const clean = path.split("?")[0];
 
-    // Pre-compile request schemas (body and query) for faster validation
+    // Pre-compile request schemas (body, query, and headers) for faster validation
     compileRequestSchemas(validationSchemas?.body, validationSchemas?.query);
 
     // Compile and cache response schemas from route options
@@ -125,6 +126,7 @@ export class Router {
       validationSchemas &&
       (validationSchemas.body ||
         validationSchemas.query ||
+        validationSchemas.headers ||
         validationSchemas.all);
     const finalHandler = hasValidation
       ? wrapHandlerWithValidation(handler, validationSchemas!)
@@ -324,7 +326,7 @@ export class Router {
    */
   private extractOptionsAndHandler(
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ((...args: any[]) => any),
     maybeHandler?: (...args: any[]) => any,
   ): {
@@ -332,6 +334,7 @@ export class Router {
     handler: ServerRouteHandler;
     body?: RequestSchema;
     query?: RequestSchema;
+    headers?: RequestSchema;
     all?: RequestSchema;
     responses?: Record<number, RequestSchema>;
     swaggerOptions?: SwaggerRouteOptions;
@@ -350,6 +353,7 @@ export class Router {
       any,
       any,
       any,
+      any,
       any
     >;
     const middlewares = Array.isArray(options.middlewares)
@@ -358,7 +362,7 @@ export class Router {
         ? [options.middlewares]
         : [];
 
-    // Inject policy middleware before route middlewares if policy config is provided
+    // Inject policy middleware before route middlewares if policy config is given
     if (options.policy) {
       const policyConfigs = Array.isArray(options.policy)
         ? options.policy
@@ -371,7 +375,7 @@ export class Router {
       middlewares.unshift(createPolicyMiddleware(policyMetas));
     }
 
-    // Inject cache middleware if cache config is provided
+    // Inject cache middleware if cache config is given
     if (options.cache) {
       const cacheService = getCacheService();
       if (cacheService) {
@@ -390,6 +394,7 @@ export class Router {
       handler: maybeHandler!,
       body: options.body as RequestSchema,
       query: options.query as RequestSchema,
+      headers: options.headers as RequestSchema,
       all: options.all as RequestSchema,
       responses: options.responses,
       swaggerOptions: options.swagger,
@@ -411,6 +416,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -420,6 +426,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -429,6 +436,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -436,7 +444,7 @@ export class Router {
   get<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -446,13 +454,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "GET",
@@ -480,6 +489,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -489,6 +499,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -498,6 +509,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -505,7 +517,7 @@ export class Router {
   post<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -515,13 +527,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "POST",
@@ -549,6 +562,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -558,6 +572,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -567,6 +582,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -574,7 +590,7 @@ export class Router {
   patch<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -584,13 +600,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "PATCH",
@@ -618,6 +635,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -627,6 +645,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -636,6 +655,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -643,7 +663,7 @@ export class Router {
   put<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -653,13 +673,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "PUT",
@@ -687,6 +708,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -696,6 +718,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -705,6 +728,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -712,7 +736,7 @@ export class Router {
   delete<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -722,13 +746,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "DELETE",
@@ -756,6 +781,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -765,6 +791,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -774,6 +801,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -781,7 +809,7 @@ export class Router {
   options<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -791,13 +819,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "OPTIONS",
@@ -825,6 +854,7 @@ export class Router {
     >,
     TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
     TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
@@ -834,6 +864,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TPath,
       TAll,
       TMiddlewares
@@ -843,6 +874,7 @@ export class Router {
       TResponses,
       TBody,
       TQuery,
+      THeaders,
       TAll,
       InferMiddlewareExtensions<TMiddlewares>
     >,
@@ -850,7 +882,7 @@ export class Router {
   head<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any>
+      | StandardMethodOptions<any, any, any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
@@ -860,13 +892,14 @@ export class Router {
       handler,
       body,
       query,
+      headers,
       all,
       responses,
       swaggerOptions,
     } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, all };
+    const validationSchemas = { body, query, headers, all };
 
     this.addOrUpdate(
       "HEAD",

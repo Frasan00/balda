@@ -25,9 +25,9 @@ function toBaldaToExpressRequest(
   basePath: string = "",
 ): ExpressRequest {
   const url = new URL(baldaReq.url);
-  const headersObj = Object.fromEntries(baldaReq.headers.entries());
+  const headersObj = Object.fromEntries(baldaReq.rawHeaders.entries());
 
-  const forwardedProto = baldaReq.headers.get("x-forwarded-proto");
+  const forwardedProto = baldaReq.rawHeaders.get("x-forwarded-proto");
   const protocol = forwardedProto || url.protocol.replace(":", "");
 
   const expressReq = {
@@ -44,10 +44,10 @@ function toBaldaToExpressRequest(
     headers: headersObj,
     url: url.pathname,
     get(name: string) {
-      return baldaReq.headers.get(name.toLowerCase()) ?? undefined;
+      return baldaReq.rawHeaders.get(name.toLowerCase()) ?? undefined;
     },
     header(name: string) {
-      return baldaReq.headers.get(name.toLowerCase()) ?? undefined;
+      return baldaReq.rawHeaders.get(name.toLowerCase()) ?? undefined;
     },
     app: {},
     res: null,

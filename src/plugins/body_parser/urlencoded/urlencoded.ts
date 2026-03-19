@@ -31,13 +31,13 @@ export const urlencoded = (
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    const contentType = req.headers.get("content-type") || "";
+    const contentType = req.rawHeaders.get("content-type") || "";
     if (!contentType.includes("application/x-www-form-urlencoded")) {
       return next();
     }
 
     // Check Content-Length header BEFORE parsing
-    const contentLength = req.headers.get("content-length");
+    const contentLength = req.rawHeaders.get("content-length");
     if (contentLength && parseInt(contentLength) > opts.limit) {
       res.status(413).json({
         error: "Payload too large",

@@ -1,10 +1,7 @@
 import { SwaggerRouteOptions } from "../../plugins/swagger/swagger_types.js";
 import { nativePath } from "../../runtime/native_path.js";
 import { MetadataStore } from "../../metadata_store.js";
-import type {
-  HttpMethod,
-  ServerRouteMiddleware,
-} from "../../runtime/native_server/server_types.js";
+import type { HttpMethod } from "../../runtime/native_server/server_types.js";
 import type { PolicyMetadata } from "../../server/policy/policy_types.js";
 import { createPolicyMiddleware } from "../../server/policy/policy_middleware.js";
 import { router } from "../../server/router/router.js";
@@ -19,6 +16,7 @@ import type { CacheRouteConfig } from "../../cache/cache.types.js";
 /**
  * Decorator to mark a class as a controller, routes defined in the controller will be registered at import time when calling the `listen` method.
  * You can customize the path pattern for controller imports in the server options `controllerPatterns`
+ * @deprecated This decorator is deprecated and class based controllers won't be supported in the future. Please use the `router` directly to define your routes in a functional way for better type-safety.
  * @param path - The path pattern for the controller.
  * @param swaggerOptions - The swagger options for the controller that will be applied to all routes defined in the controller. Controller options will override route options.
  * @swagger If swagger is enabled, the default service name for all routes defined in the controller will be the controller name.

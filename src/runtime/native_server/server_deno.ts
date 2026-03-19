@@ -92,7 +92,7 @@ export class ServerDeno implements ServerInterface {
 
         // ws upgrade handler
         if (
-          baldaRequest.headers.get("upgrade") === "websocket" &&
+          baldaRequest.rawHeaders.get("upgrade") === "websocket" &&
           this.tapOptions?.deno?.websocket
         ) {
           const webRequest = baldaRequest.toWebApi();

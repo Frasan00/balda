@@ -17,7 +17,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/users?page=1",
       method: "POST",
-      headers: new Headers([["content-type", "application/json"]]),
+      rawHeaders: new Headers([["content-type", "application/json"]]),
       body: { name: "John" },
       query: { page: "1" },
       params: { id: "123" },
@@ -61,7 +61,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/users?search=test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: { search: "test" },
       params: {},
@@ -101,7 +101,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "https://example.com/secure",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -135,7 +135,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers([["x-forwarded-proto", "https"]]),
+      rawHeaders: new Headers([["x-forwarded-proto", "https"]]),
       body: {},
       query: {},
       params: {},
@@ -169,7 +169,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers([
+      rawHeaders: new Headers([
         ["content-type", "application/json"],
         ["authorization", "Bearer token123"],
       ]),
@@ -208,7 +208,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers([["x-requested-with", "XMLHttpRequest"]]),
+      rawHeaders: new Headers([["x-requested-with", "XMLHttpRequest"]]),
       body: {},
       query: {},
       params: {},
@@ -241,7 +241,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -274,7 +274,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/users/123",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: { page: "1" },
       params: { id: "123" },
@@ -314,7 +314,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/upload",
       method: "POST",
-      headers: new Headers([["content-type", "multipart/form-data"]]),
+      rawHeaders: new Headers([["content-type", "multipart/form-data"]]),
       body: {},
       query: {},
       params: {},
@@ -351,7 +351,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/users",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -385,7 +385,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -419,7 +419,7 @@ describe("Express Request Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers([
+      rawHeaders: new Headers([
         ["host", "localhost:3000"],
         ["user-agent", "test-agent"],
       ]),

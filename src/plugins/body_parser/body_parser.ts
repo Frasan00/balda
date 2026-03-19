@@ -10,7 +10,7 @@ import { urlencoded } from "./urlencoded/urlencoded.js";
 
 const extractContentType = (req: Request): string | null => {
   const contentType =
-    req.headers.get("content-type") ?? req.headers.get("Content-Type");
+    req.rawHeaders.get("content-type") ?? req.rawHeaders.get("Content-Type");
   return contentType?.split(";")[0] ?? null;
 };
 

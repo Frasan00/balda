@@ -269,6 +269,37 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       parameters = parameters.concat(extractPathParams(route.path));
     }
 
+    // Read headers schema from route.validationSchemas
+    const headerSchema = route.validationSchemas?.headers;
+    if (headerSchema) {
+      const headerSchemaAny = headerSchema as any;
+      if (
+        headerSchemaAny.type === "object" &&
+        (headerSchemaAny as ZodObject).shape
+      ) {
+        for (const [name, schema] of Object.entries(
+          (headerSchemaAny as ZodObject).shape,
+        )) {
+          if (!schema || typeof schema !== "object") {
+            continue;
+          }
+
+          parameters.push({
+            name,
+            in: "header",
+            required: Array.isArray(
+              (headerSchemaAny as ZodObject).shape[name].required,
+            )
+              ? (headerSchemaAny as ZodObject).shape[name].required.includes(
+                  name,
+                )
+              : false,
+            schema: getOrConvertToJSONSchema(schema as ZodType),
+          });
+        }
+      }
+    }
+
     if (parameters.length > 0) {
       operation.parameters = parameters;
     }

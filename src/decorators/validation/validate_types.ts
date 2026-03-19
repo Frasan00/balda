@@ -44,6 +44,10 @@ export interface ValidationOptions {
    */
   query?: RequestSchema;
   /**
+   * The schema to validate the request headers against (Zod, TypeBox, or plain JSON schema)
+   */
+  headers?: RequestSchema;
+  /**
    * The schema to validate both body and query against (Zod, TypeBox, or plain JSON schema)
    */
   all?: RequestSchema;

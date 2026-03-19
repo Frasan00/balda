@@ -41,6 +41,7 @@ import {
   ExtractParams,
   InferBodyType,
   InferQueryType,
+  InferHeadersType,
   InferResponseMap,
   ResponseBodyForStatus,
 } from "./router/path_types.js";
@@ -446,6 +447,7 @@ export type StandardMethodOptions<
   >,
   TBody extends RequestSchema | unknown = unknown,
   TQuery extends RequestSchema | unknown = unknown,
+  THeaders extends RequestSchema | unknown = unknown,
   TPath extends string = string,
   TAll extends RequestSchema | unknown = unknown,
   TMiddlewares extends readonly TypedMiddleware<any>[] =
@@ -454,6 +456,7 @@ export type StandardMethodOptions<
   middlewares?: TMiddlewares | TypedMiddleware<any>;
   body?: TBody;
   query?: TQuery;
+  headers?: THeaders;
   all?: TAll;
   responses?: TResponses;
   swagger?: SwaggerRouteOptions;
@@ -475,6 +478,7 @@ export type ControllerHandler<
   >,
   TBody extends RequestSchema | unknown = unknown,
   TQuery extends RequestSchema | unknown = unknown,
+  THeaders extends RequestSchema | unknown = unknown,
   TAll extends RequestSchema | unknown = unknown,
   TMiddlewareExt extends Record<string, any> = Record<string, never>,
 > = (
@@ -483,7 +487,10 @@ export type ControllerHandler<
     TBody extends RequestSchema ? InferBodyType<TBody> : InferBodyType<TAll>,
     InferQueryType<TQuery> extends Record<string, any>
       ? InferQueryType<TQuery>
-      : Record<string, unknown>
+      : Record<string, unknown>,
+    THeaders extends RequestSchema
+      ? InferHeadersType<THeaders>
+      : Record<string, string | string[]>
   > &
     TMiddlewareExt,
   res: Response<InferResponseMap<TResponses>>,

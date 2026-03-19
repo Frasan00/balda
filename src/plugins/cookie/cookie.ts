@@ -27,7 +27,7 @@ export const cookie = (
 
   return async (req: Request, res: Response, next: NextFunction) => {
     if (opts.parse) {
-      const rawCookies = parseCookies(req.headers.get("cookie") || "");
+      const rawCookies = parseCookies(req.rawHeaders.get("cookie") || "");
       req.cookies = {};
 
       for (const [name, value] of Object.entries(rawCookies)) {

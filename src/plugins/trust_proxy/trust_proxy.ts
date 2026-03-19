@@ -24,7 +24,7 @@ export const trustProxy = (
       return next();
     }
 
-    const header = req.headers.get(headerName);
+    const header = req.rawHeaders.get(headerName);
     if (header && typeof header === "string") {
       const parts = header
         .split(",")

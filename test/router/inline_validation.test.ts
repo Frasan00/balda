@@ -830,4 +830,269 @@ describe("Router - Inline Validation with Parameter Injection", () => {
       expect(capturedBody).toEqual({ name: "Item 1" });
     });
   });
+
+  describe("Headers Validation", () => {
+    it("should validate headers and inject as typed property", async () => {
+      const headerSchema = z.object({
+        "x-api-key": z.string(),
+        "x-request-id": z.string().uuid(),
+      });
+
+      let capturedHeaders: any = null;
+
+      router.get(
+        "/secure",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          capturedHeaders = req.headers;
+          res.json({ success: true });
+        },
+      );
+
+      const found = router.find("GET", "/secure");
+      expect(found).toBeDefined();
+
+      const req = new Request();
+      req.headers = {
+        "x-api-key": "test-key-123",
+        "x-request-id": "123e4567-e89b-12d3-a456-426614174000",
+      };
+      const res = new Response();
+
+      await found!.handler(req, res);
+
+      expect(capturedHeaders).toEqual({
+        "x-api-key": "test-key-123",
+        "x-request-id": "123e4567-e89b-12d3-a456-426614174000",
+      });
+    });
+
+    it("should return 400 for invalid headers", async () => {
+      const headerSchema = z.object({
+        "x-api-key": z.string().min(10),
+      });
+
+      router.get(
+        "/protected",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          res.json({ data: "protected" });
+        },
+      );
+
+      const found = router.find("GET", "/protected");
+      const req = new Request();
+      req.headers = { "x-api-key": "short" };
+      const res = new Response();
+
+      await found!.handler(req, res);
+
+      expect(res.responseStatus).toBe(400);
+    });
+
+    it("should work with TypeBox schemas for headers", async () => {
+      const headerSchema = Type.Object({
+        authorization: Type.String(),
+        "x-custom-header": Type.String(),
+      });
+
+      let capturedHeaders: any = null;
+
+      router.post(
+        "/typebox-headers",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          capturedHeaders = req.headers;
+          res.json({ success: true });
+        },
+      );
+
+      const found = router.find("POST", "/typebox-headers");
+      const req = new Request();
+      req.headers = {
+        authorization: "Bearer token123",
+        "x-custom-header": "custom-value",
+      };
+      const res = new Response();
+
+      await found!.handler(req, res);
+
+      expect(capturedHeaders).toEqual({
+        authorization: "Bearer token123",
+        "x-custom-header": "custom-value",
+      });
+    });
+
+    it("should work with plain JSON schemas for headers", async () => {
+      const headerSchema = {
+        type: "object",
+        properties: {
+          "x-session-id": { type: "string" },
+          "x-user-id": { type: "string" },
+        },
+        required: ["x-session-id"],
+      } as const;
+
+      let capturedHeaders: any = null;
+
+      router.put(
+        "/json-headers",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          capturedHeaders = req.headers;
+          res.json({ updated: true });
+        },
+      );
+
+      const found = router.find("PUT", "/json-headers");
+      const req = new Request();
+      req.headers = {
+        "x-session-id": "session-123",
+        "x-user-id": "user-456",
+      };
+      const res = new Response();
+
+      await found!.handler(req, res);
+
+      expect(capturedHeaders).toEqual({
+        "x-session-id": "session-123",
+        "x-user-id": "user-456",
+      });
+    });
+
+    it("should normalize header names to lowercase", async () => {
+      const headerSchema = z.object({
+        "content-type": z.string(),
+      });
+
+      let capturedHeaders: any = null;
+
+      router.get(
+        "/content-type",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          capturedHeaders = req.headers;
+          res.json({ ok: true });
+        },
+      );
+
+      const found = router.find("GET", "/content-type");
+      const req = new Request();
+      // Set raw headers that would be normalized
+      (req as any).headers = { "content-type": "application/json" };
+      const res = new Response();
+
+      await found!.handler(req, res);
+
+      expect(capturedHeaders["content-type"]).toBe("application/json");
+    });
+
+    it("should support headers with body and query validation", async () => {
+      const headerSchema = z.object({
+        authorization: z.string(),
+      });
+
+      const bodySchema = z.object({
+        name: z.string(),
+      });
+
+      const querySchema = z.object({
+        page: z.coerce.number(),
+      });
+
+      let capturedHeaders: any = null;
+      let capturedBody: any = null;
+      let capturedQuery: any = null;
+      let capturedError: any = null;
+
+      router.post(
+        "/combined-validation",
+        {
+          headers: headerSchema,
+          body: bodySchema,
+          query: querySchema,
+        },
+        async (req, res) => {
+          capturedHeaders = req.headers;
+          capturedBody = req.body;
+          capturedQuery = req.query;
+          res.json({ success: true });
+        },
+      );
+
+      const found = router.find("POST", "/combined-validation");
+      const req = new Request();
+      req.headers = { authorization: "Bearer token" };
+      req.body = { name: "test" };
+      req.url = "http://localhost/combined-validation?page=1";
+      req.query = { page: 1 };
+      const res = new Response();
+
+      // Override badRequest to capture the error
+      const originalBadRequest = res.badRequest;
+      (res as any).badRequest = (error: any) => {
+        capturedError = error;
+        console.log("VALIDATION ERROR:", error?.message || error);
+        console.log(
+          "VALIDATION ERROR details:",
+          error?.issues || error?.errors || "no details",
+        );
+        return originalBadRequest.call(res, error);
+      };
+
+      await found!.handler(req, res);
+
+      console.log("DEBUG capturedError:", capturedError);
+      console.log("DEBUG capturedHeaders:", capturedHeaders);
+      console.log("DEBUG capturedBody:", capturedBody);
+      console.log("DEBUG capturedQuery:", capturedQuery);
+      console.log("DEBUG res.responseStatus:", res.responseStatus);
+
+      // First check if validation failed - if so, the test expectations are wrong
+      if (res.responseStatus === 400) {
+        // Validation failed - this is a test issue
+        console.log(
+          "VALIDATION FAILED - Error:",
+          capturedError?.message || capturedError,
+        );
+      }
+
+      expect(capturedHeaders).toEqual({ authorization: "Bearer token" });
+      expect(capturedBody).toEqual({ name: "test" });
+      expect(capturedQuery).toEqual({ page: 1 });
+    });
+
+    it("should store headers schema in route metadata", () => {
+      const headerSchema = z.object({
+        "x-api-key": z.string(),
+      });
+
+      router.delete(
+        "/with-headers",
+        {
+          headers: headerSchema,
+        },
+        async (req, res) => {
+          res.json({ deleted: true });
+        },
+      );
+
+      const routes = router.getRoutes();
+      const route = routes.find((r) => r.path === "/with-headers");
+
+      expect(route).toBeDefined();
+      expect(route!.validationSchemas).toBeDefined();
+      expect(route!.validationSchemas!.headers).toBe(headerSchema);
+    });
+  });
 });

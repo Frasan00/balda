@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { methodOverride } from "../../src/plugins/method_override/method_override";
-import type { Request } from "../../src/server/http/request";
-import type { Response } from "../../src/server/http/response";
+import { methodOverride } from "../../src/plugins/method_override/method_override.js";
+import type { Request } from "../../src/server/http/request.js";
+import type { Response } from "../../src/server/http/response.js";
 
 describe("Method Override Plugin", () => {
   it("should override POST to DELETE via header", async () => {
@@ -12,7 +12,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "POST",
-      headers: new Map([["X-HTTP-Method-Override", "DELETE"]]),
+      rawHeaders: new Headers([["X-HTTP-Method-Override", "DELETE"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;
@@ -31,7 +31,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "POST",
-      headers: new Map([["X-HTTP-Method-Override", "PUT"]]),
+      rawHeaders: new Headers([["X-HTTP-Method-Override", "PUT"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;
@@ -50,7 +50,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "GET",
-      headers: new Map([["X-HTTP-Method-Override", "DELETE"]]),
+      rawHeaders: new Headers([["X-HTTP-Method-Override", "DELETE"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;
@@ -69,7 +69,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "post",
-      headers: new Map([["X-HTTP-Method-Override", "delete"]]),
+      rawHeaders: new Headers([["X-HTTP-Method-Override", "delete"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;
@@ -88,7 +88,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "POST",
-      headers: new Map([["X-HTTP-Method-Override", "INVALID"]]),
+      rawHeaders: new Headers([["X-HTTP-Method-Override", "INVALID"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;
@@ -107,7 +107,7 @@ describe("Method Override Plugin", () => {
 
     const mockReq = {
       method: "POST",
-      headers: new Map([["X-HTTP-Method", "PATCH"]]),
+      rawHeaders: new Headers([["X-HTTP-Method", "PATCH"]]),
     } as unknown as Request;
 
     const mockRes = {} as Response;

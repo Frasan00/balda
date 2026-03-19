@@ -30,7 +30,7 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
       parseSizeLimit(options?.sizeLimit, DEFAULT_SIZE) ?? DEFAULT_SIZE;
 
     // Check Content-Length
-    const contentLength = req.headers.get("content-length");
+    const contentLength = req.rawHeaders.get("content-length");
     if (contentLength && Number.parseInt(contentLength) > sizeLimit) {
       const customErrorMessage = {
         status: 413,
@@ -79,7 +79,7 @@ function isJsonRequest(req: Request): boolean {
 
 function getContentType(req: Request): string | null {
   const contentType =
-    req.headers.get("content-type") ?? req.headers.get("Content-Type");
+    req.rawHeaders.get("content-type") ?? req.rawHeaders.get("Content-Type");
   if (!contentType) {
     return null;
   }

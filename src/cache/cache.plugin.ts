@@ -26,14 +26,14 @@ export function createCacheMiddleware(
     try {
       // Extract headers as plain object for cache key
       const headersObj: Record<string, string> = {};
-      if (routeConfig.includeHeaders && req.headers) {
+      if (routeConfig.includeHeaders && req.rawHeaders) {
         if (routeConfig.headerKeys) {
           for (const key of routeConfig.headerKeys) {
-            const val = req.headers.get(key);
+            const val = req.rawHeaders.get(key);
             if (val) headersObj[key] = val;
           }
         } else {
-          req.headers.forEach((val, key) => {
+          req.rawHeaders.forEach((val, key) => {
             headersObj[key] = val;
           });
         }

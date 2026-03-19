@@ -24,11 +24,13 @@ import { ZodLoader } from "../../validator/zod_loader.js";
  * @template Params - The path parameters type (automatically extracted from route)
  * @template TBody - The typed body (inferred from body schema when provided)
  * @template TQuery - The typed query (inferred from query schema when provided)
+ * @template THeaders - The typed headers (inferred from headers schema when provided)
  */
 export class Request<
-  Params extends Record<string, string> = any,
+  Params extends Record<string, string> = Record<string, string>,
   TBody = unknown,
   TQuery extends Record<string, any> = Record<string, string>,
+  THeaders extends Record<string, any> = Record<string, string | string[]>,
 > {
   /**
    * Creates a new request object from a Web API Request object.
@@ -40,7 +42,6 @@ export class Request<
     const baldaRequest = Object.assign(new Request(), {
       url: request.url,
       method: request.method,
-      headers: request.headers,
       signal: request.signal,
       referrer: request.referrer,
       referrerPolicy: request.referrerPolicy,
@@ -51,6 +52,9 @@ export class Request<
       integrity: request.integrity,
       keepalive: request.keepalive,
     });
+    // Store Web API headers directly into the raw headers field
+    baldaRequest.#headers = request.headers;
+    baldaRequest.#headersResolved = true;
     baldaRequest.#webApiRequest = request;
     return baldaRequest;
   }
@@ -78,7 +82,7 @@ export class Request<
       this.#webApiRequest = new globalThis.Request(this.url, {
         method: this.method,
         body: webStream,
-        headers: this.headers,
+        headers: this.rawHeaders,
         signal: this.signal,
         referrer: this.referrer,
         referrerPolicy: this.referrerPolicy,
@@ -100,7 +104,7 @@ export class Request<
       ...(hasBodyMethod && this.body
         ? { body: this.body as BodyInit, duplex: "half" as const }
         : {}),
-      headers: this.headers,
+      headers: this.rawHeaders,
       signal: this.signal,
       referrer: this.referrer,
       referrerPolicy: this.referrerPolicy,
@@ -205,6 +209,12 @@ export class Request<
   #needsHeaderFiltering = false;
   #headers?: globalThis.Headers;
   #headersResolved = false;
+  /**
+   * Validated headers data (typed object)
+   * @internal
+   */
+  #headersData?: THeaders;
+  #headersDataResolved = false;
 
   /**
    * The URL of the request
@@ -217,9 +227,10 @@ export class Request<
   method: string = "GET";
 
   /**
-   * The headers of the request — lazily constructed from raw Node.js headers.
+   * Raw Headers API object for low-level access.
+   * Use this for case-insensitive lookups, iteration, etc.
    */
-  get headers(): globalThis.Headers {
+  get rawHeaders(): globalThis.Headers {
     if (this.#headersResolved) {
       return this.#headers!;
     }
@@ -232,7 +243,7 @@ export class Request<
         for (const key in raw) {
           if (key.charCodeAt(0) === 58) {
             continue;
-          } // ':' pseudo-headers
+          }
           const value = raw[key];
           if (value !== undefined) {
             result[key] = Array.isArray(value) ? value.join(", ") : value;
@@ -256,10 +267,21 @@ export class Request<
     return this.#headers;
   }
 
-  set headers(value: globalThis.Headers) {
-    this.#headers = value;
-    this.#headersResolved = true;
-    this.#rawNodeHeaders = undefined;
+  /**
+   * The typed headers of the request.
+   * After validation with a headers schema, this contains the validated/typed header values.
+   * For raw Headers API access, use `rawHeaders`.
+   */
+  get headers(): THeaders {
+    if (this.#headersDataResolved) {
+      return this.#headersData as THeaders;
+    }
+    return {} as THeaders;
+  }
+
+  set headers(value: THeaders) {
+    this.#headersData = value;
+    this.#headersDataResolved = true;
   }
 
   /**
@@ -668,6 +690,53 @@ export class Request<
       },
       throwErrorOnValidationFail,
     );
+  }
+
+  /**
+   * Validates the headers of the request.
+   * @param inputSchema - The schema to validate the headers against (Zod schema, TypeBox, or JSON Schema).
+   * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original headers.
+   */
+  validateHeaders<T extends RequestSchema>(
+    inputSchema: T,
+    throwErrorOnValidationFail: boolean = false,
+  ): ValidatedData<T> {
+    // If headers were already set directly, use that data
+    // Otherwise extract from rawHeaders
+    const headersObj = this.#headersDataResolved
+      ? (this.#headersData as Record<string, string | string[]>)
+      : this.#extractHeadersAsObject();
+    return Request.compileAndValidate(
+      inputSchema,
+      headersObj,
+      throwErrorOnValidationFail,
+    );
+  }
+
+  /**
+   * Extracts headers as a plain object with lowercase keys.
+   * Multi-value headers are collected as arrays.
+   * @internal
+   */
+  #extractHeadersAsObject(): Record<string, string | string[]> {
+    const result: Record<string, string | string[]> = {};
+    const accumulator: Map<string, string[]> = new Map();
+
+    this.rawHeaders.forEach((value, key) => {
+      const lowerKey = key.toLowerCase();
+      const values = accumulator.get(lowerKey);
+      if (values) {
+        values.push(value);
+      } else {
+        accumulator.set(lowerKey, [value]);
+      }
+    });
+
+    for (const [key, values] of accumulator) {
+      result[key] = values.length === 1 ? values[0] : values;
+    }
+
+    return result;
   }
 
   /**

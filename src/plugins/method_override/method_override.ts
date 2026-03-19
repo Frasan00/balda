@@ -28,7 +28,7 @@ export const methodOverride = (
       return next();
     }
 
-    const overrideMethod = req.headers.get(headerName);
+    const overrideMethod = req.rawHeaders.get(headerName);
 
     if (!overrideMethod) {
       return next();

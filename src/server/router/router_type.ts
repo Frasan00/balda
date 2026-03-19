@@ -32,12 +32,13 @@ export interface Route {
    */
   responseSchemas?: RouteResponseSchemas;
   /**
-   * Validation schemas for request body, query parameters, or both.
+   * Validation schemas for request body, query parameters, headers, or all.
    * When provided, the handler will receive validated data as additional parameters.
    */
   validationSchemas?: {
     body?: RequestSchema;
     query?: RequestSchema;
+    headers?: RequestSchema;
     all?: RequestSchema;
   };
 }

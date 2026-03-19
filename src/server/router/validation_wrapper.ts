@@ -5,11 +5,11 @@ import type { Response } from "../http/response.js";
 import { getValidationErrorHandler } from "./validation_error_handler_registry.js";
 
 /**
- * Wraps a route handler with validation logic for body, query, or all request data.
+ * Wraps a route handler with validation logic for body, query, headers, or all request data.
  * Similar to the @validate decorator but for inline route definitions.
  *
  * @param handler - The original route handler
- * @param options - Validation schemas for body, query, or all
+ * @param options - Validation schemas for body, query, headers, or all
  * @returns Wrapped handler that validates and injects typed parameters
  */
 export const wrapHandlerWithValidation = (
@@ -17,11 +17,17 @@ export const wrapHandlerWithValidation = (
   options: {
     body?: RequestSchema;
     query?: RequestSchema;
+    headers?: RequestSchema;
     all?: RequestSchema;
   },
 ): ServerRouteHandler => {
   return async function (req: Request, res: Response, ...args: any[]) {
     try {
+      if (options.headers) {
+        const validatedHeaders = req.validateHeaders(options.headers, true);
+        (req as any).headers = validatedHeaders;
+      }
+
       if (options.body) {
         const validatedBody = req.validate(options.body, true);
         (req as any).body = validatedBody;

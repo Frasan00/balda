@@ -495,10 +495,10 @@ describe("GraphQL Integration", () => {
                 context: GraphQLContext,
               ) => {
                 const req = context.req;
-                if (req?.headers?.get?.("x-user-id")) {
+                if (req?.rawHeaders?.get?.("x-user-id")) {
                   return {
-                    id: req.headers.get("x-user-id"),
-                    name: req.headers.get("x-user-name") || "Unknown",
+                    id: req.rawHeaders.get("x-user-id"),
+                    name: req.rawHeaders.get("x-user-name") || "Unknown",
                   };
                 }
                 return null;
@@ -568,8 +568,8 @@ describe("GraphQL Integration", () => {
           csrfPrevention: false,
           context: async ({ req }: { req: Request }) => ({
             req,
-            userId: req?.headers?.get?.("x-user-id") || undefined,
-            userName: req?.headers?.get?.("x-user-name") || undefined,
+            userId: req?.rawHeaders?.get?.("x-user-id") || undefined,
+            userName: req?.rawHeaders?.get?.("x-user-name") || undefined,
           }),
         },
       },

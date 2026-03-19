@@ -85,7 +85,10 @@ export class ServerBun implements ServerInterface {
           }
         }
 
-        if (websocket && baldaRequest.headers.get("upgrade") === "websocket") {
+        if (
+          websocket &&
+          baldaRequest.rawHeaders.get("upgrade") === "websocket"
+        ) {
           const webRequest = baldaRequest.toWebApi();
           const success = server.upgrade(webRequest, { data: {} });
           if (success) {

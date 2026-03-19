@@ -36,7 +36,7 @@ export const compression = (
   const filter = options?.filter ?? DEFAULT_FILTER;
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    const acceptEncoding = req.headers.get("accept-encoding") || "";
+    const acceptEncoding = req.rawHeaders.get("accept-encoding") || "";
     const supportsGzip = acceptEncoding.includes("gzip");
     if (!supportsGzip) {
       return next();

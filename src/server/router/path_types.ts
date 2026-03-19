@@ -44,6 +44,15 @@ export type InferQueryType<T> = T extends RequestSchema
   : Record<string, string>;
 
 /**
+ * Infers the typed headers from a schema.
+ * Returns `Record<string, string | string[]>` if no schema is provided
+ * (supporting multi-value headers).
+ */
+export type InferHeadersType<T> = T extends RequestSchema
+  ? ValidatedData<T>
+  : Record<string, string | string[]>;
+
+/**
  * Extracts the body type for a specific HTTP status code from a response map.
  * When the status code has a schema defined, enforces type matching with widened
  * literals (string literals → string, number literals → number, etc.) so that

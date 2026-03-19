@@ -16,7 +16,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/data",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -50,7 +50,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/hello",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -85,7 +85,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/resource",
       method: "POST",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: { name: "New Resource" },
       query: {},
       params: {},
@@ -126,7 +126,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/async",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -162,7 +162,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/error",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -200,7 +200,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/async-error",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -240,7 +240,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/admin/dashboard",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -276,7 +276,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/users",
       method: "POST",
-      headers: new Headers([["content-type", "application/json"]]),
+      rawHeaders: new Headers([["content-type", "application/json"]]),
       body: { name: "John", email: "john@example.com" },
       query: {},
       params: {},
@@ -309,7 +309,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/search?q=test&page=1",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: { q: "test", page: "1" },
       params: {},
@@ -342,7 +342,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/api/users/123",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: { id: "123" },
@@ -376,7 +376,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -413,7 +413,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/old-location",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -457,7 +457,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -491,7 +491,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/not-found",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -530,7 +530,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
@@ -565,7 +565,7 @@ describe("Express Handler Conversion", () => {
     const mockReq = {
       url: "http://localhost:3000/test",
       method: "GET",
-      headers: new Headers(),
+      rawHeaders: new Headers(),
       body: {},
       query: {},
       params: {},
