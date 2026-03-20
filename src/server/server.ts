@@ -340,7 +340,16 @@ export class Server<
     this.#beforeCloseHooks.push(hook);
   }
 
-  listen(cb?: ServerListenCallback): void {
+  listen(cb?: ServerListenCallback): void;
+  listen(port: number, cb?: ServerListenCallback): void;
+  listen(
+    portOrCb?: number | ServerListenCallback,
+    maybeCb?: ServerListenCallback,
+  ): void {
+    if (typeof portOrCb === "number") {
+      this.#serverConnector.port = portOrCb;
+    }
+
     if (this.isListening) {
       throw new Error(
         "Server is already listening, you can't call `.listen()` multiple times",
@@ -362,13 +371,17 @@ export class Server<
         this.#serverConnector.listen();
         this.isListening = true;
 
-        cb?.({
+        if (portOrCb && typeof portOrCb === "function") {
+          portOrCb(basePayload);
+        }
+
+        maybeCb?.({
           ...basePayload,
           error: undefined,
         });
       })
       .catch((error) => {
-        cb?.({ ...basePayload, error });
+        maybeCb?.({ ...basePayload, error });
       });
   }
 

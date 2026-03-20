@@ -27,6 +27,10 @@ export class ServerConnector {
     return this.server.port;
   }
 
+  set port(port: number) {
+    this.server.port = port;
+  }
+
   get host(): string {
     return this.server.host;
   }
