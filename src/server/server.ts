@@ -175,6 +175,19 @@ export class Server<
     return this.#serverConnector.port;
   }
 
+  /**
+   * @throws if set while server is already listening
+   */
+  set port(value: number) {
+    if (this.isListening) {
+      throw new Error(
+        "Cannot change port while server is listening, please call `.close()` before changing the port",
+      );
+    }
+
+    this.#serverConnector.port = value;
+  }
+
   get host(): string {
     return this.#serverConnector.host;
   }
@@ -346,8 +359,10 @@ export class Server<
     portOrCb?: number | ServerListenCallback,
     maybeCb?: ServerListenCallback,
   ): void {
-    if (typeof portOrCb === "number") {
-      this.#serverConnector.port = portOrCb;
+    const cb = typeof portOrCb === "function" ? portOrCb : maybeCb;
+
+    if (typeof portOrCb === "number" && Number.isFinite(portOrCb)) {
+      this.port = portOrCb;
     }
 
     if (this.isListening) {
@@ -371,17 +386,10 @@ export class Server<
         this.#serverConnector.listen();
         this.isListening = true;
 
-        if (portOrCb && typeof portOrCb === "function") {
-          portOrCb(basePayload);
-        }
-
-        maybeCb?.({
-          ...basePayload,
-          error: undefined,
-        });
+        cb?.({ ...basePayload, error: undefined });
       })
       .catch((error) => {
-        maybeCb?.({ ...basePayload, error });
+        cb?.({ ...basePayload, error });
       });
   }
 
