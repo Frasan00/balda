@@ -122,7 +122,8 @@ export class Server<
     this.logger = (options?.logger ?? logger).child({ scope: "Balda" });
     this.serverOptions = {
       nodeHttpClient: options?.nodeHttpClient ?? ("http" as H),
-      port: options?.port ?? Number(this.#nativeEnv.get("PORT")) ?? 80,
+      port:
+        (options?.port ?? Number(this.#nativeEnv.get("PORT") || "80")) || 80,
       host: options?.host ?? this.#nativeEnv.get("HOST") ?? "0.0.0.0",
       controllerPatterns: options?.controllerPatterns ?? [],
       plugins: options?.plugins ?? {},

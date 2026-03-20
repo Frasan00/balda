@@ -21,7 +21,6 @@ export class ServerDeno implements ServerInterface {
   declare port: number;
   declare hostname: string;
   declare host: string;
-  declare url: string;
   declare routes: ServerRoute[];
   declare runtimeServer: ReturnType<typeof Deno.serve>;
   declare tapOptions?: ServerTapOptions;
@@ -35,10 +34,13 @@ export class ServerDeno implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
     this.graphql = input?.graphql ?? new GraphQL();
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
+  }
+
+  get url(): string {
+    return `http://${this.host}:${this.port}`;
   }
 
   listen(): void {
@@ -140,8 +142,6 @@ export class ServerDeno implements ServerInterface {
       },
       ...rest,
     });
-
-    this.url = `http://${this.host}:${this.port}`;
   }
 
   async close(): Promise<void> {

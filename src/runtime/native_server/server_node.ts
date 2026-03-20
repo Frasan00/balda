@@ -48,10 +48,9 @@ const pipeReadableStreamToNodeResponse = async (
 export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   port: number;
   host: string;
-  url: string;
   routes: ServerRoute[];
   tapOptions?: ServerTapOptions;
-  runtimeServer: NodeServer;
+  runtimeServer!: NodeServer;
   nodeHttpClient: H;
   httpsOptions?: HttpsServerOptions;
   graphql: GraphQL;
@@ -74,16 +73,23 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
 
     this.graphql = input?.graphql ?? new GraphQL();
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
-    const protocol =
-      this.nodeHttpClient === "https" || this.nodeHttpClient === "http2-secure"
-        ? "https"
-        : "http";
-    this.url = `${protocol}://${this.host}:${this.port}`;
 
     // Only HTTP/2 protocols need header filtering for pseudo-headers
     this.needsHeaderFiltering =
       this.nodeHttpClient === "http2" || this.nodeHttpClient === "http2-secure";
 
+    this.createServerWithHandler();
+  }
+
+  get url(): string {
+    const protocol =
+      this.nodeHttpClient === "https" || this.nodeHttpClient === "http2-secure"
+        ? "https"
+        : "http";
+    return `${protocol}://${this.host}:${this.port}`;
+  }
+
+  private createServerWithHandler() {
     const graphqlEnabled = this.graphql.isEnabled;
     const graphqlEndpoint = "/graphql";
 

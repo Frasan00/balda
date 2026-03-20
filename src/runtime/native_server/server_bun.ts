@@ -24,7 +24,6 @@ export class ServerBun implements ServerInterface {
   routes: ServerRoute[];
   tapOptions?: ServerTapOptions;
   graphql: GraphQL;
-  declare url: string;
   declare runtimeServer: ReturnType<typeof Bun.serve>;
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
@@ -35,10 +34,13 @@ export class ServerBun implements ServerInterface {
     this.port = input?.port ?? 80;
     this.hostname = input?.host ?? "0.0.0.0";
     this.host = input?.host ?? "0.0.0.0";
-    this.url = `http://${this.host}:${this.port}`;
     this.tapOptions = input?.tapOptions;
     this.graphql = input?.graphql ?? new GraphQL();
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
+  }
+
+  get url(): string {
+    return `http://${this.host}:${this.port}`;
   }
 
   listen(): void {
@@ -119,8 +121,6 @@ export class ServerBun implements ServerInterface {
       ...(websocket ? { websocket } : {}),
       ...rest,
     } as Parameters<typeof Bun.serve>[0]);
-
-    this.url = this.runtimeServer.url.toString();
   }
 
   async close(): Promise<void> {
