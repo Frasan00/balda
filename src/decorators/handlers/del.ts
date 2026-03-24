@@ -5,6 +5,7 @@ import type { Response } from "../../server/http/response.js";
 import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
+ * @deprecated use directly router.delete() instead, this is just a wrapper for backward compatibility and might be removed in future versions
  * Decorator to mark a handler for a DELETE request with type-safe path parameters and response body
  * DELETE requests cannot have a request body (by HTTP spec)
  * Query params must be validated with @validate decorators to be typed

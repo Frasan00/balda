@@ -1,8 +1,12 @@
+import { ValidationError } from "ajv";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import type { ServerRouteHandler } from "../../runtime/native_server/server_types.js";
 import type { Request } from "../http/request.js";
 import type { Response } from "../http/response.js";
-import { getValidationErrorHandler } from "./validation_error_handler_registry.js";
+import {
+  getValidationErrorHandler,
+  type SerializedValidationError,
+} from "./validation_error_handler_registry.js";
 
 /**
  * Wraps a route handler with validation logic for body, query, headers, or all request data.
@@ -44,12 +48,44 @@ export const wrapHandlerWithValidation = (
       }
 
       return handler(req, res, ...args);
-    } catch (error) {
-      const customHandler = getValidationErrorHandler();
-      if (customHandler) {
-        return customHandler(req, res, error);
+    } catch (error: unknown) {
+      const customOptions = getValidationErrorHandler();
+
+      if (error instanceof ValidationError) {
+        const vError = error as ValidationError;
+        const validationError: SerializedValidationError = {
+          message: vError.message,
+          errors: vError.errors as SerializedValidationError["errors"],
+          ajv: true,
+          validation: true,
+        };
+
+        if (customOptions) {
+          const status = customOptions.status ?? 422;
+          const body = customOptions.map
+            ? await customOptions.map(validationError, req)
+            : validationError;
+          return res.status(status).json(body);
+        }
+
+        return res.unprocessableEntity(validationError);
       }
-      return res.badRequest(error);
+
+      const genericError: SerializedValidationError = {
+        message: error instanceof Error ? error.message : String(error),
+        errors: [],
+        ajv: true,
+        validation: true,
+      };
+
+      if (customOptions) {
+        const status = customOptions.status ?? 422;
+        const body = customOptions.map
+          ? await customOptions.map(genericError, req)
+          : genericError;
+        return res.status(status).json(body);
+      }
+      return res.unprocessableEntity(error);
     }
   };
 };

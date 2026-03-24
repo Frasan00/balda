@@ -51,8 +51,8 @@ import type {
   CachePluginOptions,
 } from "../cache/cache.types.js";
 import type { PolicyRouteConfig } from "./policy/policy_types.js";
-import type { PolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
-import type { ValidationErrorHandler } from "./router/validation_error_handler_registry.js";
+import type { PolicyErrorHandlerOptions } from "./policy/policy_error_handler_registry.js";
+import type { ValidationErrorHandlerOptions } from "./router/validation_error_handler_registry.js";
 
 export type ServerHandlerReturnType<
   TResponseMap extends Record<number, any> = Record<number, any>,
@@ -344,28 +344,83 @@ export interface ServerInterface {
   setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**
    * Set a custom handler for validation errors (body/query validation failures).
-   * When set, replaces the default `res.badRequest(error)` response.
-   * @param handler - The handler to invoke when validation fails
-   * @example
+   * Replaces the default 422 response with a custom status and body shape.
+   *
+   * The 'map' function is required when 'schema' is provided.
+   * The schema is used for Swagger documentation, 'map' transforms the error to your shape.
+   *
+   * @param options - Configuration object
+   *
+   * @example Basic usage - custom status and map
    * ```ts
-   * server.setValidationErrorHandler((req, res, error) => {
-   *   res.status(422).json({ code: "VALIDATION_FAILED", details: error });
+   * server.setValidationErrorHandler({
+   *   status: 400,
+   *   map: (error, req) => ({
+   *     path: req.path,
+   *     errors: error.errors,
+   *   }),
+   * });
+   * ```
+   *
+   * @example With schema for Swagger docs
+   * ```ts
+   * import { z } from "zod";
+   *
+   * server.setValidationErrorHandler({
+   *   status: 422,
+   *   schema: z.object({
+   *     code: z.string(),
+   *     message: z.string(),
+   *     errors: z.array(z.object({
+   *       field: z.string(),
+   *       message: z.string(),
+   *     })),
+   *   }),
+   *   map: (error, req) => ({
+   *     code: "VALIDATION_ERROR",
+   *     message: error.message,
+   *     errors: error.errors.map(e => ({
+   *       field: e.instancePath,
+   *       message: e.message,
+   *     })),
+   *   }),
    * });
    * ```
    */
-  setValidationErrorHandler: (handler: ValidationErrorHandler) => void;
+  setValidationErrorHandler: (options: ValidationErrorHandlerOptions) => void;
   /**
    * Set a custom handler for policy authorization failures.
    * When set, replaces the default `res.unauthorized({ error: "Unauthorized" })` response.
-   * @param handler - The handler to invoke when a policy check fails
-   * @example
+   *
+   * @param options - Configuration object with status, schema, and map function
+   *
+   * @example Basic usage
    * ```ts
-   * server.setPolicyErrorHandler((req, res) => {
-   *   res.status(403).json({ code: "FORBIDDEN", message: "Access denied" });
+   * server.setPolicyErrorHandler({
+   *   status: 403,
+   *   map: (req) => ({
+   *     code: "FORBIDDEN",
+   *     message: "Access denied",
+   *   }),
+   * });
+   * ```
+   *
+   * @example With schema for Swagger docs
+   * ```ts
+   * server.setPolicyErrorHandler({
+   *   status: 401,
+   *   schema: z.object({
+   *     code: z.string(),
+   *     message: z.string(),
+   *   }),
+   *   map: (req) => ({
+   *     code: "UNAUTHORIZED",
+   *     message: "Authentication required",
+   *   }),
    * });
    * ```
    */
-  setPolicyErrorHandler: (handler: PolicyErrorHandler) => void;
+  setPolicyErrorHandler: (options: PolicyErrorHandlerOptions) => void;
   /**
    * Register a hook to be called after bootstrap (controllers imported, plugins applied) but before the server starts accepting requests.
    * Multiple hooks are called in the order they are registered.
@@ -395,14 +450,12 @@ export interface ServerInterface {
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    * It initializes the server without blocking the event loop, you can pass a callback to be called when the server is listening
    * Use `waitUntilListening` instead if you want to wait for the server to be listening for requests before returning
-   * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
    */
   listen: (cb?: ServerListenCallback) => void;
   /**
    * Binds the server to the port and hostname defined in the serverOptions, meant to be called only once
    * It initializes the server blocking the event loop, it will wait for the server to be listening for requests before returning
    * Use `listen` instead if you want to initialize the server without blocking the event loop
-   * @warning All routes defined with decorators are defined on this method just before the server starts listening for requests
    */
   waitUntilListening: () => Promise<{
     port: number;
@@ -462,6 +515,32 @@ export type StandardMethodOptions<
   swagger?: SwaggerRouteOptions;
   /** Cache configuration for this route. Requires cache to be initialized via initCacheService(). */
   cache?: TypedCacheRouteConfig<TBody, TQuery, TPath>;
+  /** Policy configuration for this route. Accepts a single policy or an array of policies. */
+  policy?: PolicyRouteConfig | PolicyRouteConfig[];
+};
+
+/**
+ * Options for routes that don't allow request body (GET, DELETE).
+ * Excludes 'body' and 'all' validation options per HTTP specification.
+ */
+export type BodylessMethodOptions<
+  TResponses extends Record<number, RequestSchema> = Record<
+    number,
+    RequestSchema
+  >,
+  TQuery extends RequestSchema | unknown = unknown,
+  THeaders extends RequestSchema | unknown = unknown,
+  TPath extends string = string,
+  TMiddlewares extends readonly TypedMiddleware<any>[] =
+    readonly TypedMiddleware<any>[],
+> = {
+  middlewares?: TMiddlewares | TypedMiddleware<any>;
+  query?: TQuery;
+  headers?: THeaders;
+  responses?: TResponses;
+  swagger?: SwaggerRouteOptions;
+  /** Cache configuration for this route. Body-based caching is not available for GET/DELETE. */
+  cache?: TypedCacheRouteConfig<unknown, TQuery, TPath>;
   /** Policy configuration for this route. Accepts a single policy or an array of policies. */
   policy?: PolicyRouteConfig | PolicyRouteConfig[];
 };

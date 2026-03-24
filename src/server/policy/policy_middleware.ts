@@ -18,9 +18,13 @@ export const createPolicyMiddleware = (
         req,
       );
       if (!allowed) {
-        const customHandler = getPolicyErrorHandler();
-        if (customHandler) {
-          return customHandler(req, res);
+        const customOptions = getPolicyErrorHandler();
+        if (customOptions) {
+          const status = customOptions.status ?? 401;
+          const body = customOptions.map
+            ? await customOptions.map(req)
+            : { error: "Unauthorized" };
+          return res.status(status).json(body);
         }
         return res.unauthorized({ error: "Unauthorized" });
       }

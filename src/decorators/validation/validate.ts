@@ -1,3 +1,4 @@
+import { ValidationError } from "ajv";
 import { MetadataStore } from "../../metadata_store.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
@@ -6,13 +7,15 @@ import type {
   RequestSchema,
   ValidationOptions,
 } from "./validate_types.js";
+import type { SerializedValidationError } from "../../server/router/validation_error_handler_registry.js";
+import { getValidationErrorHandler } from "../../server/router/validation_error_handler_registry.js";
 
 /**
  * Decorator to validate request data using Zod, TypeBox, or plain JSON schemas.
  * Each validate method injects a new parameter to the handler function with the validated data. Arguments are injected in the order of the validate methods.
  * Using this decorator will also update the Swagger documentation with the validated schema (except for the .all schema since there is no way to if using query strings or body).
  * @param options - Validation options including body, query, or all schemas
- * @warning If validation fails, a 400 error will be returned with the validation errors to the client.
+ * @warning If validation fails, a 422 Unprocessable Entity error will be returned with the validation errors to the client.
  * @warning Only synchronous Zod schemas are supported. Async refinements or transforms will throw an error.
  * @example Zod Schema
  * ```ts
@@ -122,7 +125,7 @@ const validateDecorator = (
         }
 
         return originalMethod.apply(this, newArgs);
-      } catch (error) {
+      } catch (error: unknown) {
         if (options.customError) {
           return res.status(options.customError.status || 400).json({
             received: req.body,
@@ -131,7 +134,42 @@ const validateDecorator = (
           });
         }
 
-        return res.badRequest(error);
+        const customOptions = getValidationErrorHandler();
+
+        if (error instanceof ValidationError) {
+          const vError = error as ValidationError;
+          const validationError: SerializedValidationError = {
+            message: vError.message,
+            errors: vError.errors as SerializedValidationError["errors"],
+            ajv: true,
+            validation: true,
+          };
+
+          if (customOptions) {
+            const status = customOptions.status ?? 422;
+            const body = customOptions.map
+              ? customOptions.map(validationError, req)
+              : validationError;
+            return res.status(status).json(body);
+          }
+          return res.unprocessableEntity(validationError);
+        }
+
+        const genericError: SerializedValidationError = {
+          message: error instanceof Error ? error.message : String(error),
+          errors: [],
+          ajv: true,
+          validation: true,
+        };
+
+        if (customOptions) {
+          const status = customOptions.status ?? 422;
+          const body = customOptions.map
+            ? customOptions.map(genericError, req)
+            : genericError;
+          return res.status(status).json(body);
+        }
+        return res.unprocessableEntity(error);
       }
     };
 

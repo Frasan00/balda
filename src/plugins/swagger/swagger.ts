@@ -8,8 +8,10 @@ import type {
   SwaggerBodyType,
   SwaggerGlobalOptions,
   SwaggerRouteOptions,
+  ValidationErrorResponseOptions,
 } from "../../plugins/swagger/swagger_types.js";
 import { router } from "../../server/router/router.js";
+import { getValidationErrorHandler } from "../../server/router/validation_error_handler_registry.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
 
@@ -20,6 +22,28 @@ const BODY_TYPE_MIME_MAP: Record<string, string> = {
   binary: "application/octet-stream",
   text: "text/plain",
   "event-stream": "text/event-stream",
+};
+
+const DEFAULT_VALIDATION_ERROR_SCHEMA: JSONSchema = {
+  type: "object",
+  properties: {
+    message: { type: "string" },
+    errors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          instancePath: { type: "string" },
+          schemaPath: { type: "string" },
+          keyword: { type: "string" },
+          params: { type: "object" },
+          message: { type: "string" },
+        },
+      },
+    },
+    ajv: { type: "boolean" },
+    validation: { type: "boolean" },
+  },
 };
 
 function getMimeType(bodyType: SwaggerBodyType | undefined): string {
@@ -353,6 +377,45 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
           },
         },
       };
+    }
+
+    const hasValidationSchemas =
+      route.validationSchemas?.body ||
+      route.validationSchemas?.query ||
+      route.validationSchemas?.all;
+
+    if (hasValidationSchemas) {
+      const validationErrorHandler = getValidationErrorHandler();
+
+      const mergedConfig: ValidationErrorResponseOptions = {
+        statusCode:
+          swaggerOptions?.validationErrorResponse?.statusCode ??
+          globalOptions.validationErrorResponse?.statusCode ??
+          validationErrorHandler?.status ??
+          422,
+        description:
+          swaggerOptions?.validationErrorResponse?.description ??
+          globalOptions.validationErrorResponse?.description ??
+          "Validation error",
+        schema:
+          swaggerOptions?.validationErrorResponse?.schema ??
+          globalOptions.validationErrorResponse?.schema ??
+          (validationErrorHandler?.schema
+            ? getOrConvertToJSONSchema(validationErrorHandler.schema)
+            : DEFAULT_VALIDATION_ERROR_SCHEMA),
+      };
+
+      const statusCodeStr = String(mergedConfig.statusCode);
+      if (!operation.responses[statusCodeStr]) {
+        operation.responses[statusCodeStr] = {
+          description: mergedConfig.description,
+          content: {
+            "application/json": {
+              schema: mergedConfig.schema,
+            },
+          },
+        };
+      }
     }
 
     // First we try route specific security

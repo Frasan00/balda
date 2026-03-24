@@ -15,6 +15,7 @@ import {
 import type {
   ControllerHandler,
   StandardMethodOptions,
+  BodylessMethodOptions,
 } from "../server_types.js";
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import { wrapHandlerWithValidation } from "./validation_wrapper.js";
@@ -403,6 +404,7 @@ export class Router {
 
   /**
    * Register a GET route under this router's base path with type-safe path parameters.
+   * Note: GET routes cannot have body validation per HTTP specification.
    */
   get<TPath extends string = string>(
     path: TPath,
@@ -414,54 +416,50 @@ export class Router {
       number,
       RequestSchema
     >,
-    TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     THeaders extends RequestSchema | undefined = undefined,
-    TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<
+    options: BodylessMethodOptions<
       TResponses,
-      TBody,
       TQuery,
       THeaders,
       TPath,
-      TAll,
       TMiddlewares
     >,
     handler: ControllerHandler<
       TPath,
       TResponses,
-      TBody,
+      unknown,
       TQuery,
       THeaders,
-      TAll,
+      unknown,
       InferMiddlewareExtensions<TMiddlewares>
     >,
   ): void;
   get<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any, any>
+      | BodylessMethodOptions<any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const {
-      middlewares,
-      handler,
-      body,
-      query,
-      headers,
-      all,
-      responses,
-      swaggerOptions,
-    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const { middlewares, handler, query, headers, responses, swaggerOptions } =
+      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+
+    if ("body" in optionsOrHandler || "all" in optionsOrHandler) {
+      throw new Error(
+        `Invalid route configuration for GET ${fullPath}: body/all validation is not allowed. ` +
+          `HTTP specification does not support request body for GET method. ` +
+          `Use query or headers validation instead.`,
+      );
+    }
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, headers, all };
+    const validationSchemas = { query, headers };
 
     this.addOrUpdate(
       "GET",
@@ -695,6 +693,7 @@ export class Router {
 
   /**
    * Register a DELETE route under this router's base path with type-safe path parameters.
+   * Note: DELETE routes cannot have body validation per HTTP specification.
    */
   delete<TPath extends string = string>(
     path: TPath,
@@ -706,54 +705,50 @@ export class Router {
       number,
       RequestSchema
     >,
-    TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     THeaders extends RequestSchema | undefined = undefined,
-    TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<
+    options: BodylessMethodOptions<
       TResponses,
-      TBody,
       TQuery,
       THeaders,
       TPath,
-      TAll,
       TMiddlewares
     >,
     handler: ControllerHandler<
       TPath,
       TResponses,
-      TBody,
+      unknown,
       TQuery,
       THeaders,
-      TAll,
+      unknown,
       InferMiddlewareExtensions<TMiddlewares>
     >,
   ): void;
   delete<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | StandardMethodOptions<any, any, any, any, any, any, any>
+      | BodylessMethodOptions<any, any, any, any, any>
       | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
-    const {
-      middlewares,
-      handler,
-      body,
-      query,
-      headers,
-      all,
-      responses,
-      swaggerOptions,
-    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+    const { middlewares, handler, query, headers, responses, swaggerOptions } =
+      this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+
+    if ("body" in optionsOrHandler || "all" in optionsOrHandler) {
+      throw new Error(
+        `Invalid route configuration for DELETE ${fullPath}: body/all validation is not allowed. ` +
+          `HTTP specification does not support request body for DELETE method. ` +
+          `Use query or headers validation instead.`,
+      );
+    }
 
     const combined = [...this.middlewares, ...middlewares];
-    const validationSchemas = { body, query, headers, all };
+    const validationSchemas = { query, headers };
 
     this.addOrUpdate(
       "DELETE",

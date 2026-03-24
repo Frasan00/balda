@@ -11,6 +11,19 @@ export type SwaggerUIType =
 type HTMLString = string;
 
 /**
+ * Configuration for validation error response documentation.
+ * Used to document validation errors in Swagger when routes have validation schemas.
+ */
+export type ValidationErrorResponseOptions = {
+  /** HTTP status code for validation errors. Default: 422 */
+  statusCode?: number;
+  /** Response description. Default: "Validation error" */
+  description?: string;
+  /** Response schema for the error body. Default: { type: "object", properties: { message: { type: "string" }, errors: { type: "array", items: { type: "object", properties: { instancePath: { type: "string" }, schemaPath: { type: "string" }, keyword: { type: "string" }, params: { type: "object" }, message: { type: "string" } } } }, ajv: { type: "boolean" }, validation: { type: "boolean" } } } */
+  schema?: JSONSchema;
+};
+
+/**
  * Custom UI generator function that takes the spec URL and global options and returns HTML
  */
 export type CustomUIGenerator = (
@@ -106,6 +119,13 @@ type SwaggerGlobalOptionsBase = {
    * OpenAPI models to be shown in the documentation. Must be valid OpenAPI/AJV JSONSchema objects.
    */
   models?: Record<string, JSONSchema> | JSONSchema[];
+  /**
+   * Global configuration for validation error response documentation.
+   * Applied to all routes that have validation schemas (body, query, headers, or all).
+   * Can be overridden per-route via swagger.validationErrorResponse.
+   * Default: { statusCode: 422, description: "Validation error" }
+   */
+  validationErrorResponse?: ValidationErrorResponseOptions;
 };
 
 /**
@@ -157,6 +177,12 @@ export type SwaggerRouteOptions = {
    * Defaults to 'json'.
    */
   bodyType?: SwaggerBodyType;
+  /**
+   * Override the global validation error response for this route.
+   * Only applies when the route has validation schemas (body, query, headers, or all).
+   * Overrides swagger global validationErrorResponse configuration.
+   */
+  validationErrorResponse?: ValidationErrorResponseOptions;
 };
 
 export type OAuth2Flows = {

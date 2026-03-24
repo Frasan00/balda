@@ -69,7 +69,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
     });
 
     it("should work with TypeBox schemas", async () => {
@@ -184,7 +184,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
     });
   });
 
@@ -512,7 +512,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
       const body = res.getBody();
       expect(body).toBeDefined();
     });
@@ -540,7 +540,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
     });
 
     it("should return 400 when query validation fails", async () => {
@@ -567,7 +567,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
     });
   });
 
@@ -891,7 +891,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
 
       await found!.handler(req, res);
 
-      expect(res.responseStatus).toBe(400);
+      expect(res.responseStatus).toBe(422);
     });
 
     it("should work with TypeBox schemas for headers", async () => {
@@ -1035,7 +1035,7 @@ describe("Router - Inline Validation with Parameter Injection", () => {
       req.headers = { authorization: "Bearer token" };
       req.body = { name: "test" };
       req.url = "http://localhost/combined-validation?page=1";
-      req.query = { page: 1 };
+      req.query = { page: 1 } as any;
       const res = new Response();
 
       // Override badRequest to capture the error

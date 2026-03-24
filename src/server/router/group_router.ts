@@ -2,6 +2,7 @@ import type { RequestSchema } from "../../decorators/validation/validate_types.j
 import type {
   ControllerHandler,
   StandardMethodOptions,
+  BodylessMethodOptions,
 } from "../server_types.js";
 import type {
   TypedMiddleware,
@@ -48,30 +49,26 @@ export interface GroupRouter<
       number,
       RequestSchema
     >,
-    TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     THeaders extends RequestSchema | undefined = undefined,
-    TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<
+    options: BodylessMethodOptions<
       TResponses,
-      TBody,
       TQuery,
       THeaders,
       TPath,
-      TAll,
       TMiddlewares
     >,
     handler: ControllerHandler<
       TPath,
       TResponses,
-      TBody,
+      unknown,
       TQuery,
       THeaders,
-      TAll,
+      unknown,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
   ): void;
@@ -236,30 +233,26 @@ export interface GroupRouter<
       number,
       RequestSchema
     >,
-    TBody extends RequestSchema | undefined = undefined,
     TQuery extends RequestSchema | undefined = undefined,
     THeaders extends RequestSchema | undefined = undefined,
-    TAll extends RequestSchema | undefined = undefined,
     const TMiddlewares extends readonly TypedMiddleware<any>[] =
       readonly TypedMiddleware<any>[],
   >(
     path: TPath,
-    options: StandardMethodOptions<
+    options: BodylessMethodOptions<
       TResponses,
-      TBody,
       TQuery,
       THeaders,
       TPath,
-      TAll,
       TMiddlewares
     >,
     handler: ControllerHandler<
       TPath,
       TResponses,
-      TBody,
+      unknown,
       TQuery,
       THeaders,
-      TAll,
+      unknown,
       TGroupExt & InferMiddlewareExtensions<TMiddlewares>
     >,
   ): void;

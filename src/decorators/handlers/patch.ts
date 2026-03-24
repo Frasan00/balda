@@ -5,6 +5,7 @@ import type { Response } from "../../server/http/response.js";
 import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
+ * @deprecated use directly router.post() instead, this is just a wrapper for backward compatibility and might be removed in future versions
  * Decorator to mark a handler for a PATCH request with type-safe path parameters and response body
  * Body and query must be validated with @validate decorators to be typed
  * @param path - The path of the route (path parameters will be automatically inferred)

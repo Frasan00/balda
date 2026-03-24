@@ -5,6 +5,7 @@ import type { Response } from "../../server/http/response.js";
 import type { ExtractParams } from "../../server/router/path_types.js";
 
 /**
+ * @deprecated use directly router.get() instead, this is just a wrapper for backward compatibility and might be removed in future versions
  * Decorator to mark a handler for a GET request with type-safe path parameters and response body
  * GET requests cannot have a request body (by HTTP spec)
  * Body and query must be validated with @validate decorators to be typed

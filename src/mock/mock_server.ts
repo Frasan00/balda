@@ -290,7 +290,7 @@ export class MockServer {
       return new MockResponse(res);
     }
 
-    const { headers = {}, query = {} } = options;
+    const { headers = {}, query = {}, cookies = {}, ip } = options;
     const url = new URL(
       `http://${this.server.host}:${this.server.port}${path}`,
     );
@@ -321,6 +321,8 @@ export class MockServer {
 
     const req = Request.fromRequest(webRequest);
     req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
+    req.cookies = cookies;
+    req.ip = ip;
 
     try {
       const { HeaderMap } = await import("@apollo/server");

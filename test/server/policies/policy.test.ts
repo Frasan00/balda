@@ -167,8 +167,9 @@ describe("Policy Middleware", () => {
   });
 
   it("should use custom policy error handler when set", async () => {
-    setPolicyErrorHandler((req, res) => {
-      res.status(403).json({ code: "FORBIDDEN" });
+    setPolicyErrorHandler({
+      status: 403,
+      map: (req) => ({ code: "FORBIDDEN" }),
     });
 
     const testManager = {
@@ -181,6 +182,27 @@ describe("Policy Middleware", () => {
     await mw(req, res, next);
     expect(getStatus()).toBe(403);
     expect(getBody()).toEqual({ code: "FORBIDDEN" });
+  });
+
+  it("should support async map function in policy error handler", async () => {
+    setPolicyErrorHandler({
+      status: 403,
+      map: async (req) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return { code: "ASYNC_FORBIDDEN", async: true };
+      },
+    });
+
+    const testManager = {
+      canAccess: async () => false,
+    };
+    const mw = createPolicyMiddleware([
+      { scope: "test", handler: "adminRoute", manager: testManager as any },
+    ]);
+    const { req, res, next, getStatus, getBody } = createMockReqRes("user");
+    await mw(req, res, next);
+    expect(getStatus()).toBe(403);
+    expect(getBody()).toEqual({ code: "ASYNC_FORBIDDEN", async: true });
   });
 
   it("should enforce multiple policies in order", async () => {
@@ -237,7 +259,7 @@ describe("Validation Error Handler", () => {
     resetValidationErrorHandler();
   });
 
-  it("should use default badRequest when no custom handler is set", async () => {
+  it("should use default unprocessableEntity when no custom handler is set", async () => {
     let statusCode: number | undefined;
     let sentBody: any;
     const req = {
@@ -246,8 +268,8 @@ describe("Validation Error Handler", () => {
       },
     } as any;
     const res = {
-      badRequest: (body: any) => {
-        statusCode = 400;
+      unprocessableEntity: (body: any) => {
+        statusCode = 422;
         sentBody = body;
       },
     } as any;
@@ -256,15 +278,20 @@ describe("Validation Error Handler", () => {
       body: {} as any,
     });
     await handler(req, res);
-    expect(statusCode).toBe(400);
+    expect(statusCode).toBe(422);
     expect(sentBody).toBeInstanceOf(Error);
+    expect(sentBody.message).toBe("validation failed");
   });
 
   it("should use custom validation error handler when set", async () => {
     let statusCode: number | undefined;
     let sentBody: any;
-    setValidationErrorHandler((req, res, error) => {
-      res.status(422).json({ code: "CUSTOM_VALIDATION", error: String(error) });
+    setValidationErrorHandler({
+      status: 422,
+      map: (error, req) => ({
+        code: "CUSTOM_VALIDATION",
+        error: error.message,
+      }),
     });
 
     const req = {
@@ -291,7 +318,51 @@ describe("Validation Error Handler", () => {
     expect(statusCode).toBe(422);
     expect(sentBody).toEqual({
       code: "CUSTOM_VALIDATION",
-      error: "Error: bad input",
+      error: "bad input",
+    });
+  });
+
+  it("should support async map function in validation error handler", async () => {
+    let statusCode: number | undefined;
+    let sentBody: any;
+    setValidationErrorHandler({
+      status: 400,
+      map: async (error, req) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return {
+          code: "ASYNC_VALIDATION",
+          error: error.message,
+          async: true,
+        };
+      },
+    });
+
+    const req = {
+      validate: () => {
+        throw new Error("async error");
+      },
+    } as any;
+    const res = {
+      badRequest: () => {},
+      status: (code: number) => {
+        statusCode = code;
+        return {
+          json: (body: any) => {
+            sentBody = body;
+          },
+        };
+      },
+    } as any;
+
+    const handler = wrapHandlerWithValidation(() => {}, {
+      body: {} as any,
+    });
+    await handler(req, res);
+    expect(statusCode).toBe(400);
+    expect(sentBody).toEqual({
+      code: "ASYNC_VALIDATION",
+      error: "async error",
+      async: true,
     });
   });
 });

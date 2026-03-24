@@ -1,6 +1,8 @@
 import { ValidationError } from "ajv";
 import { AjvCompileReturnType } from "../ajv/ajv_types.js";
 
+export { ValidationError } from "ajv";
+
 /**
  * Validates data against an AJV schema synchronously.
  *

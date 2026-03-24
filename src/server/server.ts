@@ -74,11 +74,11 @@ import type {
   ServerPlugin,
   SignalEvent,
 } from "./server_types.js";
-import { NextFunction } from "./http/next.js";
 import { setPolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
-import type { PolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
+import type { PolicyErrorHandlerOptions } from "./policy/policy_error_handler_registry.js";
 import { setValidationErrorHandler } from "./router/validation_error_handler_registry.js";
-import type { ValidationErrorHandler } from "./router/validation_error_handler_registry.js";
+import type { ValidationErrorHandlerOptions } from "./router/validation_error_handler_registry.js";
+import type { RequestSchema } from "../decorators/validation/validate_types.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -113,9 +113,12 @@ export class Server<
    * @param options.host - The hostname to listen on, if not provided, it will use the HOST environment variable, if not provided, it will default to 0.0.0.0
    * @param options.controllerPatterns - The patterns to match for controllers, defaults to an empty array
    * @param options.plugins - The plugins to apply to the server, by default no plugins are applied, plugins are applied in the order they are defined in the options
-   * @param options.logger - The logger to use for the server, by default a default logger is used
+   * @param options.logger - The pino logger to use for the server, by default a default logger is used
    * @param options.tapOptions - Options fetch to the runtime server before the server is up and running
    * @param options.abortSignal - An optional AbortSignal to gracefully shutdown the server when aborted
+   * @param options.ajvInstance - An optional AJV instance to use for validation, if not provided, a default instance will be used
+   * @param options.nodeHttpClient - The node http client to use, it can be "http", "https" or "http2-secure", by default it's "http", if you set it to "https" or "http2-secure" you must also provide the httpsOptions
+   * @param options.httpsOptions - The https options to use if the nodeHttpClient is set to "https" or "http2-secure"
    */
   constructor(options?: ServerOptions<H>) {
     this.#wasInitialized = false;
@@ -338,12 +341,16 @@ export class Server<
     this.#notFoundHandler = notFoundHandler?.bind(this);
   }
 
-  setValidationErrorHandler(handler: ValidationErrorHandler): void {
-    setValidationErrorHandler(handler);
+  setValidationErrorHandler<T extends RequestSchema>(
+    options: ValidationErrorHandlerOptions<T>,
+  ): void {
+    setValidationErrorHandler(options);
   }
 
-  setPolicyErrorHandler(handler: PolicyErrorHandler): void {
-    setPolicyErrorHandler(handler);
+  setPolicyErrorHandler<T extends RequestSchema>(
+    options: PolicyErrorHandlerOptions<T>,
+  ): void {
+    setPolicyErrorHandler(options);
   }
 
   beforeStart(hook: ServerHook): void {
@@ -394,14 +401,15 @@ export class Server<
       });
   }
 
-  async waitUntilListening(): Promise<{
+  async waitUntilListening(port?: number): Promise<{
     port: number;
     host: string;
     url: string;
   }> {
+    port ??= this.port;
     return new Promise((resolve, reject) => {
       try {
-        this.listen(() => {
+        this.listen(port, () => {
           resolve({
             port: this.port,
             host: this.host,

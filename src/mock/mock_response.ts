@@ -28,6 +28,32 @@ export class MockResponse<T = any> {
     return this.response.headers;
   }
 
+  cookies(): Record<string, string> {
+    const setCookieHeader =
+      this.response.headers["set-cookie"] ||
+      this.response.headers["Set-Cookie"];
+    if (!setCookieHeader) {
+      return {};
+    }
+
+    const cookies: Record<string, string> = {};
+    const cookieStrings = setCookieHeader.split(", ");
+
+    for (const cookieString of cookieStrings) {
+      const [nameValue] = cookieString.split(";");
+      if (nameValue) {
+        const eqIndex = nameValue.indexOf("=");
+        if (eqIndex > 0) {
+          const name = decodeURIComponent(nameValue.slice(0, eqIndex).trim());
+          const value = decodeURIComponent(nameValue.slice(eqIndex + 1).trim());
+          cookies[name] = value;
+        }
+      }
+    }
+
+    return cookies;
+  }
+
   // assertions
   assertStatus(status: number): this {
     if (this.response.responseStatus !== status) {
@@ -60,6 +86,34 @@ export class MockResponse<T = any> {
     if (header in this.response.headers) {
       throw new Error(
         `Expected header ${header} to not exist, but it was found with value: ${this.response.headers[header]}`,
+      );
+    }
+    return this;
+  }
+
+  assertCookie(name: string, value: string): this {
+    const cookies = this.cookies();
+    if (cookies[name] !== value) {
+      throw new Error(
+        `Expected cookie ${name} to be ${value}, but got ${cookies[name] ?? "undefined"}`,
+      );
+    }
+    return this;
+  }
+
+  assertCookieExists(name: string): this {
+    const cookies = this.cookies();
+    if (!(name in cookies)) {
+      throw new Error(`Expected cookie ${name} to exist, but it was not found`);
+    }
+    return this;
+  }
+
+  assertCookieNotExists(name: string): this {
+    const cookies = this.cookies();
+    if (name in cookies) {
+      throw new Error(
+        `Expected cookie ${name} to not exist, but it was found with value: ${cookies[name]}`,
       );
     }
     return this;
