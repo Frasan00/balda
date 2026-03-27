@@ -234,6 +234,8 @@ export { timeout as timeoutMw } from "./plugins/timeout/timeout.js";
 export type { TimeoutOptions } from "./plugins/timeout/timeout_types.js";
 export { trustProxy } from "./plugins/trust_proxy/trust_proxy.js";
 export type { TrustProxyOptions } from "./plugins/trust_proxy/trust_proxy_types.js";
+export { bodyParser } from "./plugins/body_parser/body_parser.js";
+export type { BodyParserOptions } from "./plugins/body_parser/body_parser_types.js";
 
 // Policy
 export { createPolicyDecorator } from "./server/policy/policy_decorator.js";
@@ -258,6 +260,7 @@ export type { ErrorObject } from "ajv";
 // Router
 import { router as routerInstance } from "./server/router/router.js";
 import type { ClientRouter } from "./server/router/router_type.js";
+import { bodyParser } from "./plugins/body_parser/body_parser.js";
 /**
  * Singleton main router instance that handles all route registrations inside the balda server
  */
