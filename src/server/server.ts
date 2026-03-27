@@ -2,7 +2,10 @@ import type { Router as ExpressRouter, RequestHandler } from "express";
 import { cacheMiddleware } from "../cache/cache.middleware.js";
 import { MemoryCacheProvider } from "../cache/providers/memory_cache_provider.js";
 import { RedisCacheProvider } from "../cache/providers/redis_cache_provider.js";
-import type { CachePluginOptions } from "../cache/cache.types.js";
+import type {
+  CachePluginOptions,
+  CacheProvider,
+} from "../cache/cache.types.js";
 import { AjvStateManager } from "../ajv/ajv.js";
 import { errorFactory } from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
@@ -72,6 +75,7 @@ import type {
   ServerInterface,
   ServerOptions,
   ServerPlugin,
+  ServerPluginConfig,
   SignalEvent,
 } from "./server_types.js";
 import { setPolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
@@ -514,8 +518,12 @@ export class Server<
   }
 
   private applyPlugins(plugins: ServerPlugin): void {
+    if (Array.isArray(plugins)) {
+      this.use(...plugins);
+      return;
+    }
     Object.entries(plugins).forEach(([pluginName, pluginOptions]) => {
-      switch (pluginName as keyof ServerPlugin) {
+      switch (pluginName as keyof ServerPluginConfig) {
         case "bodyParser":
           this.use(bodyParser(pluginOptions as BodyParserOptions));
           break;
@@ -564,7 +572,7 @@ export class Server<
           break;
         case "cache": {
           const opts = pluginOptions as CachePluginOptions;
-          let provider: import("../cache/cache.types.js").CacheProvider;
+          let provider: CacheProvider;
           if (
             opts.provider &&
             typeof opts.provider === "object" &&

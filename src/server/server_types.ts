@@ -62,7 +62,7 @@ export type ServerHandlerReturnType<
   | ResponseBodyForStatus<TResponseMap, 200>
   | Promise<ResponseBodyForStatus<TResponseMap, 200>>;
 
-export type ServerPlugin = {
+export type ServerPluginConfig = {
   bodyParser?: BodyParserOptions;
   cors?: CorsOptions;
   static?: StaticPluginOptions;
@@ -82,6 +82,10 @@ export type ServerPlugin = {
   cache?: CachePluginOptions;
 };
 
+export type ServerPlugin =
+  | ServerPluginConfig
+  | readonly (ServerRouteMiddleware | TypedMiddleware<any>)[];
+
 export type NodeHttpClient = "http" | "http2" | "https" | "http2-secure";
 
 export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
@@ -93,7 +97,33 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
   host?: string;
   /** Controller patterns to match, defaults to an empty array */
   controllerPatterns?: string[];
-  /** Basic plugins to apply to all requests, plugins are applied in order based on where they are defined in the `plugins` object, by default no plugins are applied */
+  /**
+   * Plugins configuration for the server. Accepts either:
+   *
+   * - An object with built-in plugin options (bodyParser, cors, helmet, etc.)
+   * - An array of middlewares to apply globally
+   *
+   * Plugins/middlewares are applied in order. By default, no plugins are applied.
+   *
+   * @example
+   * ```ts
+   * // Object form - built-in plugins
+   * const server = new Server({
+   *   plugins: {
+   *     cors: { origin: ["http://localhost:3000"] },
+   *     helmet: {},
+   *   },
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * // Array form - custom middlewares
+   * const server = new Server({
+   *   plugins: [authMiddleware, loggingMiddleware],
+   * });
+   * ```
+   */
   plugins?: ServerPlugin;
   /** The tap options to interact with the underlying server connector before it is used to listen for incoming requests */
   tapOptions?: ServerTapOptions;

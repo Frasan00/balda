@@ -125,6 +125,8 @@ export type {
   ServerHook,
   ServerInterface,
   ServerOptions,
+  ServerPlugin,
+  ServerPluginConfig,
   SignalEvent,
 } from "./server/server_types.js";
 
