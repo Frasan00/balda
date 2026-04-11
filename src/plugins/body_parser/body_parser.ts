@@ -22,7 +22,7 @@ const extractContentType = (req: Request): string | null => {
  * @param options.fileParser - The options for the file parser middleware.
  */
 export const bodyParser = (
-  options: BodyParserOptions,
+  options: BodyParserOptions = {},
 ): ServerRouteMiddleware => {
   const jsonOptions = options.json;
   const urlencodedOptions = options.urlencoded;

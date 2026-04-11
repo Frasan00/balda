@@ -2,7 +2,9 @@ import type { Ajv } from "ajv";
 import type { RequestHandler } from "express";
 import type { Logger } from "pino";
 import type { GraphQLOptions } from "../graphql/graphql_types.js";
+import type { MockResponse } from "../mock/mock_response.js";
 import type { MockServer } from "../mock/mock_server.js";
+import type { MockServerOptions } from "../mock/mock_server_types.js";
 import { AsyncLocalStorageContextSetters } from "../plugins/async_local_storage/async_local_storage_types.js";
 import type { BodyParserOptions } from "../plugins/body_parser/body_parser_types.js";
 import type { CompressionOptions } from "../plugins/compression/compression_types.js";
@@ -23,6 +25,7 @@ import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
 import type { TrustProxyOptions } from "../plugins/trust_proxy/trust_proxy_types.js";
 import type {
+  HttpMethod,
   HttpsOptions,
   RuntimeServerMap,
   ServerListenCallback,
@@ -213,6 +216,89 @@ export type ServerErrorHandler = (
   next: NextFunction,
   error: Error,
 ) => SyncOrAsync;
+
+/**
+ * A callable function with HTTP method shortcuts for injecting requests directly into the server.
+ * Similar to Fastify's `inject`, it allows testing routes without network overhead.
+ */
+export interface InjectFunction {
+  /**
+   * Simulates an HTTP request without making an actual network call
+   * @param method - The HTTP method (GET, POST, PUT, DELETE, PATCH)
+   * @param path - The request path
+   * @param options - Request options including body, headers, query params, etc.
+   */
+  <TResponse = any, TBody = any, TQuery extends Record<string, string> = any>(
+    method: HttpMethod,
+    path: string,
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>>;
+
+  /**
+   * Type-safe GET request
+   * @example
+   * const res = await server.inject.get<UserResponse>("/users");
+   */
+  get<TResponse = any, TQuery extends Record<string, string> = any>(
+    path: string,
+    options?: Omit<
+      MockServerOptions<never, TQuery>,
+      "body" | "formData" | "urlencoded"
+    >,
+  ): Promise<MockResponse<TResponse>>;
+
+  /**
+   * Type-safe POST request
+   * @example
+   * const res = await server.inject.post<UserResponse, CreateUserInput>("/users", { body: { name: "John" } });
+   */
+  post<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
+    path: string,
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>>;
+
+  /**
+   * Type-safe PUT request
+   * @example
+   * const res = await server.inject.put<UserResponse>("/users/1", { body: { name: "Jane" } });
+   */
+  put<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
+    path: string,
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>>;
+
+  /**
+   * Type-safe PATCH request
+   * @example
+   * const res = await server.inject.patch<UserResponse>("/users/1", { body: { name: "Jane" } });
+   */
+  patch<
+    TResponse = any,
+    TBody = any,
+    TQuery extends Record<string, string> = any,
+  >(
+    path: string,
+    options?: MockServerOptions<TBody, TQuery>,
+  ): Promise<MockResponse<TResponse>>;
+
+  /**
+   * Type-safe DELETE request
+   * @example
+   * const res = await server.inject.delete<DeleteResponse>("/users/1");
+   */
+  delete<TResponse = any, TQuery extends Record<string, string> = any>(
+    path: string,
+    options?: Omit<MockServerOptions<never, TQuery>, "body" | "formData">,
+  ): Promise<MockResponse<TResponse>>;
+}
 
 export interface ServerInterface {
   /**
@@ -505,12 +591,39 @@ export interface ServerInterface {
    */
   disconnect: () => Promise<void>;
   /**
-   * Returns a mock server instance that can be used to test the server without starting it
-   * It will import the controllers and apply the plugins to the mock server
+   * Returns a mock server instance that can be used to test the server without starting it.
+   * The mock server lazily bootstraps (imports controllers, applies plugins) on the first request.
    * @param options - The options for the mock server
    * @param options.controllerPatterns - Custom controller patterns to import if the mock server must not be initialized with the same controller patterns as the server
    */
-  getMockServer: () => Promise<MockServer>;
+  getMockServer: (
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ) => MockServer;
+  /**
+   * Inject requests directly into the server without network overhead.
+   * Lazily bootstraps the server on the first call.
+   * Supports both generic `inject(method, path, options)` and typed shortcuts like `inject.get()`, `inject.post()`, etc.
+   *
+   * @example
+   * ```typescript
+   * // Generic inject
+   * const res = await server.inject("GET", "/users");
+   *
+   * // Typed shortcuts
+   * const res = await server.inject.get<User[]>("/users");
+   * const res = await server.inject.post<User, CreateUserInput>("/users", { body: { name: "John" } });
+   * ```
+   */
+  inject: InjectFunction;
+  /**
+   * Ensures the server is bootstrapped (controllers imported, plugins applied).
+   * This is called lazily by `inject()` and `MockServer.request()`, but can be called explicitly to pre-bootstrap.
+   * This method is idempotent — subsequent calls after the first have no effect.
+   * @param options - Optional controller patterns to import
+   */
+  ensureBootstrapped: (
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ) => Promise<void>;
   /**
    * Exit current runtime process with the given code based on the current runtime
    * @param code - The code to exit with, defaults to 0

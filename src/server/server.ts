@@ -55,6 +55,7 @@ import { nativeFs } from "../runtime/native_fs.js";
 import { nativePath } from "../runtime/native_path.js";
 import { ServerConnector } from "../runtime/native_server/server_connector.js";
 import type {
+  HttpMethod,
   HttpsServerOptions,
   RuntimeServerMap,
   ServerListenCallback,
@@ -68,6 +69,7 @@ import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
 import type { TypedMiddleware } from "./http/typed_middleware.js";
 import type {
+  InjectFunction,
   NodeHttpClient,
   ResolvedServerOptions,
   ServerErrorHandler,
@@ -78,6 +80,8 @@ import type {
   ServerPluginConfig,
   SignalEvent,
 } from "./server_types.js";
+import type { MockServerOptions } from "../mock/mock_server_types.js";
+import type { MockResponse } from "../mock/mock_response.js";
 import { setPolicyErrorHandler } from "./policy/policy_error_handler_registry.js";
 import type { PolicyErrorHandlerOptions } from "./policy/policy_error_handler_registry.js";
 import { setValidationErrorHandler } from "./router/validation_error_handler_registry.js";
@@ -108,6 +112,9 @@ export class Server<
   #httpsOptions?: HttpsServerOptions;
   #beforeStartHooks: ServerHook[] = [];
   #beforeCloseHooks: ServerHook[] = [];
+  #mockServerInstance?: MockServer;
+
+  readonly inject: InjectFunction;
 
   /**
    * The constructor for the server
@@ -166,6 +173,7 @@ export class Server<
     });
 
     this.setupAbortSignalHandler();
+    this.inject = this.createInjectFunction();
   }
 
   get protectedKeys(): string[] {
@@ -462,11 +470,95 @@ export class Server<
     }
   }
 
-  async getMockServer(
+  getMockServer(
     options?: Pick<ServerOptions, "controllerPatterns">,
-  ): Promise<MockServer> {
+  ): MockServer {
+    return new MockServer(this, options);
+  }
+
+  async ensureBootstrapped(
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ): Promise<void> {
     await this.bootstrap(options);
-    return new MockServer(this);
+  }
+
+  private createInjectFunction(): InjectFunction {
+    const getMock = (): MockServer => {
+      if (!this.#mockServerInstance) {
+        this.#mockServerInstance = new MockServer(this);
+      }
+      return this.#mockServerInstance;
+    };
+
+    const injectFn = <
+      TResponse = any,
+      TBody = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      method: HttpMethod,
+      path: string,
+      options?: MockServerOptions<TBody, TQuery>,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().request<TResponse, TBody, TQuery>(method, path, options);
+    };
+
+    injectFn.get = <
+      TResponse = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      path: string,
+      options?: Omit<
+        MockServerOptions<never, TQuery>,
+        "body" | "formData" | "urlencoded"
+      >,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().get<TResponse, TQuery>(path, options);
+    };
+
+    injectFn.post = <
+      TResponse = any,
+      TBody = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      path: string,
+      options?: MockServerOptions<TBody, TQuery>,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().post<TResponse, TBody, TQuery>(path, options);
+    };
+
+    injectFn.put = <
+      TResponse = any,
+      TBody = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      path: string,
+      options?: MockServerOptions<TBody, TQuery>,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().put<TResponse, TBody, TQuery>(path, options);
+    };
+
+    injectFn.patch = <
+      TResponse = any,
+      TBody = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      path: string,
+      options?: MockServerOptions<TBody, TQuery>,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().patch<TResponse, TBody, TQuery>(path, options);
+    };
+
+    injectFn.delete = <
+      TResponse = any,
+      TQuery extends Record<string, string> = any,
+    >(
+      path: string,
+      options?: Omit<MockServerOptions<never, TQuery>, "body" | "formData">,
+    ): Promise<MockResponse<TResponse>> => {
+      return getMock().delete<TResponse, TQuery>(path, options);
+    };
+
+    return injectFn;
   }
 
   private async importControllers(

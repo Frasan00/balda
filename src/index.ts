@@ -120,6 +120,7 @@ export type {
   ResponseBodyForStatus,
 } from "./server/router/path_types.js";
 export type {
+  InjectFunction,
   NodeHttpClient,
   ServerErrorHandler,
   ServerHook,

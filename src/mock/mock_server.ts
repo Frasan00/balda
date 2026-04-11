@@ -9,6 +9,7 @@ import { Request } from "../server/http/request.js";
 import { Response } from "../server/http/response.js";
 import { router } from "../server/router/router.js";
 import type { Server } from "../server/server.js";
+import type { ServerOptions } from "../server/server_types.js";
 import { NodeHttpClient } from "../server/server_types.js";
 import { MockResponse } from "./mock_response.js";
 import type { MockServerOptions } from "./mock_server_types.js";
@@ -22,9 +23,14 @@ export class MockServer {
   private ensureGraphQLHandler: ReturnType<
     typeof createGraphQLHandlerInitializer
   >;
+  private readonly bootstrapOptions?: Pick<ServerOptions, "controllerPatterns">;
 
-  constructor(server: Server<NodeHttpClient>) {
+  constructor(
+    server: Server<NodeHttpClient>,
+    options?: Pick<ServerOptions, "controllerPatterns">,
+  ) {
     this.server = server;
+    this.bootstrapOptions = options;
     this.ensureGraphQLHandler = createGraphQLHandlerInitializer(
       this.server.graphql,
     );
@@ -49,6 +55,8 @@ export class MockServer {
   ): Promise<MockResponse<TResponse>> {
     const { headers = {}, query = {}, cookies = {}, ip } = options;
     this.validateOptions(options);
+
+    await this.server.ensureBootstrapped(this.bootstrapOptions);
 
     const graphqlEnabled = this.server.graphql.isEnabled;
     const isGraphQLPath = path.startsWith("/graphql");
