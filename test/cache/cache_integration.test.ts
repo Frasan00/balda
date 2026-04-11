@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeAll, beforeEach } from "vitest";
-import { Server } from "../../src/server/server.js";
-import { MemoryCacheProvider } from "../../src/cache/providers/memory_cache_provider.js";
-import {
-  getCacheService,
-  initCacheService,
-} from "../../src/cache/cache.registry.js";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   CACHE_STATUS_HEADER,
   CacheStatus,
   DEFAULT_CACHE_OPTIONS,
 } from "../../src/cache/cache.constants.js";
-import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
+import {
+  getCacheService,
+  initCacheService,
+} from "../../src/cache/cache.registry.js";
+import { MemoryCacheProvider } from "../../src/cache/providers/memory_cache_provider.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
+import { Server } from "../../src/server/server.js";
+import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
 
 // ─── Shared memory provider so we can reset it between tests ────────────────
 const memoryProvider = new MemoryCacheProvider();
@@ -33,7 +33,7 @@ describe("Cache — @cache() decorator (controller)", () => {
       controllerPatterns: ["./test/controllers/cache_test_controller.{ts,js}"],
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
   });
 
   beforeEach(() => {
@@ -152,7 +152,7 @@ describe("Cache — inline router config", () => {
 
     // getMockServer() initializes the cache registry, so routes added
     // to server.router afterwards can resolve getCacheService() correctly.
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/inline-cache/products",
@@ -306,7 +306,7 @@ describe("Cache — invalidation via getCacheService", () => {
       host: "localhost",
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/inv/data",
@@ -364,7 +364,7 @@ describe("Cache — cacheMiddleware() standalone", () => {
       await import("../../src/cache/cache.middleware.js");
     server.use(cacheMiddleware(new MemoryCacheProvider(), { defaultTtl: 120 }));
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/mw-cache/items",
@@ -430,7 +430,7 @@ describe("Cache — plugins.cache in ServerPlugin", () => {
       },
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/plugin-cache/items",

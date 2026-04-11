@@ -87,5 +87,5 @@ serverBuilder.router.get("/", (_req, res) => {
   res.redirect("/docs");
 });
 
-export const mockServer = await serverBuilder.getMockServer();
+export const mockServer = serverBuilder.getMockServer();
 export const server = serverBuilder;

@@ -36,7 +36,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const introspectionQuery = {
       query: `
@@ -88,7 +88,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -127,7 +127,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -181,7 +181,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -267,7 +267,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -316,7 +316,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -355,7 +355,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.get("/graphql", {
       query: {
@@ -408,7 +408,7 @@ describe("GraphQL Integration", () => {
       ],
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -456,7 +456,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -512,7 +512,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -575,7 +575,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {
@@ -616,7 +616,7 @@ describe("GraphQL Integration", () => {
       },
     });
 
-    const mockServer = await server.getMockServer();
+    const mockServer = server.getMockServer();
 
     const res = await mockServer.post("/graphql", {
       body: {

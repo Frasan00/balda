@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import { Server } from "../../src/server/server.js";
-import { RedisCacheProvider } from "../../src/cache/providers/redis_cache_provider.js";
-import {
-  getCacheService,
-  initCacheService,
-} from "../../src/cache/cache.registry.js";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   CACHE_STATUS_HEADER,
   CacheStatus,
   DEFAULT_CACHE_OPTIONS,
 } from "../../src/cache/cache.constants.js";
-import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
+import {
+  getCacheService,
+  initCacheService,
+} from "../../src/cache/cache.registry.js";
+import { RedisCacheProvider } from "../../src/cache/providers/redis_cache_provider.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
+import { Server } from "../../src/server/server.js";
+import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
 
 const REDIS_HOST = process.env.REDIS_HOST || "localhost";
 const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
@@ -51,7 +51,7 @@ describe("Cache (Redis) — @cache() decorator (controller)", () => {
       controllerPatterns: ["./test/controllers/cache_test_controller.{ts,js}"],
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
   });
 
   afterAll(async () => {
@@ -135,7 +135,7 @@ describe("Cache (Redis) — inline router config", () => {
       host: "localhost",
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/redis-inline-cache/products",
@@ -287,7 +287,7 @@ describe("Cache (Redis) — invalidation via getCacheService", () => {
       host: "localhost",
     });
 
-    mockServer = await server.getMockServer();
+    mockServer = server.getMockServer();
 
     server.router.get(
       "/redis-inv/data",
