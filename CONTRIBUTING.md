@@ -52,6 +52,24 @@ docker compose exec deno yarn test:deno
 docker compose down
 ```
 
+If you're working from a git worktree or already have the default stack bound to local ports, use the portless worktree compose file instead:
+
+```bash
+yarn docker:worktree:up
+yarn test:worktree
+yarn docker:worktree:down
+```
+
+For the other runtimes, start the matching worktree stack first:
+
+```bash
+yarn docker:worktree:up:bun
+yarn test:bun:worktree
+
+yarn docker:worktree:up:deno
+yarn test:deno:worktree
+```
+
 ## Development Setup
 
 ### Prerequisites
@@ -90,6 +108,23 @@ docker compose exec bun yarn test:bun
 
 # Deno tests
 docker compose exec deno yarn test:deno
+```
+
+If the default ports are already occupied, start the worktree-safe stack instead:
+
+```bash
+yarn docker:worktree:up
+yarn test:worktree
+```
+
+For Bun or Deno, swap in the matching startup command first:
+
+```bash
+yarn docker:worktree:up:bun
+yarn test:bun:worktree
+
+yarn docker:worktree:up:deno
+yarn test:deno:worktree
 ```
 
 4. Start development servers:

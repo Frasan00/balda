@@ -42,7 +42,10 @@ export const log = (options?: LogOptions): ServerRouteMiddleware => {
         logMiddleware.info({
           type: "response",
           requestId: req.id,
-          status: options?.responsePayload?.status ?? res.responseStatus,
+          status:
+            (options?.responsePayload?.status ?? true)
+              ? res.responseStatus
+              : undefined,
           duration: `${duration.toFixed(2)}ms`,
           body:
             (options?.responsePayload?.body ?? false)

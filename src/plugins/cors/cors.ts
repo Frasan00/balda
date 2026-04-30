@@ -4,13 +4,26 @@ import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
 import type { CorsOptions } from "./cors_types.js";
 
+type ResolvedCorsOptions = {
+  origin: NonNullable<CorsOptions["origin"]>;
+  methods: NonNullable<CorsOptions["methods"]>;
+  allowedHeaders?: CorsOptions["allowedHeaders"];
+  exposedHeaders?: CorsOptions["exposedHeaders"];
+  credentials: NonNullable<CorsOptions["credentials"]>;
+  maxAge?: CorsOptions["maxAge"];
+  preflightContinue: NonNullable<CorsOptions["preflightContinue"]>;
+  optionsSuccessStatus: NonNullable<CorsOptions["optionsSuccessStatus"]>;
+};
+
 /**
  * CORS plugin
  *
  * ⚠️ SECURITY WARNING: By default, this plugin allows ALL origins ('*').
  * For production environments, explicitly configure allowed origins.
  *
- * @param options CORS options (all optional)
+ * @param options CORS options (all optional). Omitted options keep Balda's defaults,
+ * including default methods and echoing `Access-Control-Request-Headers` on preflight
+ * requests unless `allowedHeaders` is explicitly overridden.
  *
  * @example
  * // Development (permissive)
@@ -24,11 +37,9 @@ import type { CorsOptions } from "./cors_types.js";
  * })
  */
 export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
-  const opts: CorsOptions = {
+  const opts: ResolvedCorsOptions = {
     origin: "*",
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
-    allowedHeaders: "",
-    exposedHeaders: "",
     credentials: false,
     maxAge: undefined,
     preflightContinue: false,
@@ -52,9 +63,9 @@ export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
  * Handle CORS preflight OPTIONS requests
  */
 function handlePreflightRequest(
-  _req: Request,
+  req: Request,
   res: Response,
-  opts: CorsOptions,
+  opts: ResolvedCorsOptions,
   requestOrigin: string,
   next: NextFunction,
 ): void {
@@ -65,7 +76,12 @@ function handlePreflightRequest(
   }
 
   // Set CORS headers for preflight
-  setCorsHeaders(res, opts, allowOrigin);
+  setCorsHeaders(
+    res,
+    opts,
+    allowOrigin,
+    req.rawHeaders.get("access-control-request-headers") || undefined,
+  );
 
   // Handle preflight continue option
   if (opts.preflightContinue) {
@@ -84,7 +100,7 @@ function handlePreflightRequest(
 function handleRegularRequest(
   _req: Request,
   res: Response,
-  opts: CorsOptions,
+  opts: ResolvedCorsOptions,
   requestOrigin: string,
 ): void {
   const allowOrigin = determineOrigin(opts, requestOrigin);
@@ -99,7 +115,7 @@ function handleRegularRequest(
  * Determine if origin is allowed and return the appropriate origin value
  */
 function determineOrigin(
-  opts: CorsOptions,
+  opts: ResolvedCorsOptions,
   requestOrigin: string,
 ): string | false {
   // String origin
@@ -115,7 +131,11 @@ function determineOrigin(
         : origin instanceof RegExp && origin.test(requestOrigin),
     );
 
-    return typeof matchedOrigin === "string" ? matchedOrigin : false;
+    if (!matchedOrigin) {
+      return false;
+    }
+
+    return typeof matchedOrigin === "string" ? matchedOrigin : requestOrigin;
   }
 
   return "*";
@@ -126,8 +146,9 @@ function determineOrigin(
  */
 function setCorsHeaders(
   res: Response,
-  opts: CorsOptions,
+  opts: ResolvedCorsOptions,
   allowOrigin: string,
+  requestAllowedHeaders?: string,
 ): void {
   res.setHeader("Access-Control-Allow-Origin", allowOrigin);
 
@@ -135,26 +156,31 @@ function setCorsHeaders(
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
-  if (opts.exposedHeaders && opts.exposedHeaders !== "") {
-    const exposedHeaders = Array.isArray(opts.exposedHeaders)
-      ? opts.exposedHeaders.join(",")
-      : opts.exposedHeaders;
+  const exposedHeaders = normalizeHeaderValue(opts.exposedHeaders);
+  if (exposedHeaders) {
     res.setHeader("Access-Control-Expose-Headers", exposedHeaders);
   }
 
-  if (opts.allowedHeaders && opts.allowedHeaders !== "") {
-    const allowedHeaders = Array.isArray(opts.allowedHeaders)
-      ? opts.allowedHeaders.join(",")
-      : opts.allowedHeaders;
+  const allowedHeaders =
+    opts.allowedHeaders === undefined
+      ? requestAllowedHeaders
+      : normalizeHeaderValue(opts.allowedHeaders);
+  if (allowedHeaders) {
     res.setHeader("Access-Control-Allow-Headers", allowedHeaders);
   }
 
-  const methodsStr = Array.isArray(opts.methods)
-    ? opts.methods.join(",")
-    : opts.methods;
+  const methodsStr = normalizeHeaderValue(opts.methods);
   res.setHeader("Access-Control-Allow-Methods", String(methodsStr || ""));
 
   if (typeof opts.maxAge === "number") {
     res.setHeader("Access-Control-Max-Age", opts.maxAge.toString());
   }
+}
+
+function normalizeHeaderValue(value?: string[] | string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return Array.isArray(value) ? value.join(",") : value;
 }

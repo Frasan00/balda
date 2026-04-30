@@ -4,14 +4,13 @@ services:
       context: .
       dockerfile: docker/node.Dockerfile
     tty: true
-    container_name: balda-node
     volumes:
       - .:/app
       - /app/node_modules
     working_dir: /app
     env_file:
       - .env.test
-    command: [ "tail", "-f", "/dev/null" ]
+    command: ["tail", "-f", "/dev/null"]
     networks:
       - local-network
 
@@ -20,14 +19,13 @@ services:
       context: .
       dockerfile: docker/bun.Dockerfile
     tty: true
-    container_name: balda-bun
     volumes:
       - .:/app
       - /app/node_modules
     working_dir: /app
     env_file:
       - .env.test
-    command: [ "tail", "-f", "/dev/null" ]
+    command: ["tail", "-f", "/dev/null"]
     networks:
       - local-network
 
@@ -36,59 +34,52 @@ services:
       context: .
       dockerfile: docker/deno.Dockerfile
     tty: true
-    container_name: balda-deno
     env_file:
       - .env.test
     volumes:
       - .:/app
       - /app/node_modules
     working_dir: /app
-    command: [ "tail", "-f", "/dev/null" ]
+    command: ["tail", "-f", "/dev/null"]
     networks:
       - local-network
 
   redis:
     image: redis:7.0
-    container_name: balda-redis
     restart: unless-stopped
     tty: true
-    ports:
-      - "6379:6379"
     command: redis-server --requirepass root
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-redis
 
   sqs:
     image: softwaremill/elasticmq
-    container_name: balda-sqs
-    ports:
-      - "9324:9324" # API
-      - "9325:9325" # UI
     environment:
       - JAVA_OPTS=-Dconfig.file=/opt/elasticmq.conf
     volumes:
       - ./elasticmq.conf:/opt/elasticmq.conf
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-sqs
 
   postgres:
     image: postgres:17.4
-    container_name: balda-postgres
     restart: unless-stopped
     tty: true
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: database
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-postgres
 
   localstack:
-    image: localstack/localstack:4.4.0
-    ports:
-      - "4566:4566"
+    image: localstack/localstack:latest
     environment:
       - SERVICES=s3,cloudfront,iam,lambda
       - DEBUG=1
@@ -102,43 +93,43 @@ services:
 
   mqtt:
     image: eclipse-mosquitto:latest
-    container_name: balda-mqtt
-    ports:
-      - "1883:1883"
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-mqtt
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: balda-azurite-blob
     restart: unless-stopped
-    ports:
-      - "10000:10000" # Blob service
     volumes:
       - azurite_data:/data
     command: >
-      azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose
+      azurite-blob
+      --blobHost 0.0.0.0
+      --blobPort 10000
+      --location /data
+      --loose
     environment:
       - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:10000/devstoreaccount1/" ]
+      test: ["CMD", "curl", "-f", "http://localhost:10000/devstoreaccount1/"]
       interval: 30s
       timeout: 10s
       retries: 3
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-azurite-blob
 
   mailcatcher:
     image: schickling/mailcatcher
-    container_name: balda-mailcatcher
     restart: unless-stopped
-    ports:
-      - "1025:1025" # SMTP
-      - "1080:1080" # Web UI
     networks:
-      - local-network
+      local-network:
+        aliases:
+          - balda-mailcatcher
 
 volumes:
   azurite_data:

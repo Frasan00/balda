@@ -418,6 +418,19 @@ export class Request<
   }
 
   /**
+   * Returns cookies when the cookie middleware has populated them, otherwise undefined.
+   * Useful for compatibility layers that should not throw when cookies are unavailable.
+   * @internal
+   */
+  getOptionalCookies(): Record<string, string> | undefined {
+    if (!this.#cookiesSet) {
+      return undefined;
+    }
+
+    return this.#cookies;
+  }
+
+  /**
    * The cookie of the request.
    * @cookie middleware is required
    * @throws Error if cookie middleware is not registered
@@ -453,6 +466,19 @@ export class Request<
   set session(value: Record<string, any> | undefined) {
     this.#session = value;
     this.#sessionSet = true;
+  }
+
+  /**
+   * Returns session data when the session middleware has populated it, otherwise undefined.
+   * Useful for compatibility layers that should not throw when sessions are unavailable.
+   * @internal
+   */
+  getOptionalSession(): Record<string, any> | undefined {
+    if (!this.#sessionSet) {
+      return undefined;
+    }
+
+    return this.#session;
   }
 
   /**

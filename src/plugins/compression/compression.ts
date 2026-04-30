@@ -63,7 +63,7 @@ export const compression = (
     };
 
     res.send = function (body: any): void {
-      const contentType = res.headers["content-type"];
+      const contentType = res.headers["Content-Type"];
       const compressedBody = compressResponse(body, contentType);
       return originalSend(compressedBody);
     };

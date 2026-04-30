@@ -1,6 +1,6 @@
-import { createHash } from "crypto";
-import { promisify } from "util";
-import { gzip, gunzip } from "zlib";
+import { createHash } from "node:crypto";
+import { promisify } from "node:util";
+import { gzip, gunzip } from "node:zlib";
 import type {
   CacheRouteConfig,
   CacheRouteConfigResolved,

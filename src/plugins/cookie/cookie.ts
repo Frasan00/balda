@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
@@ -12,6 +13,12 @@ import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types.js";
 export const cookie = (
   options?: CookieMiddlewareOptions,
 ): TypedMiddleware<{ cookies: Record<string, string> }> => {
+  if (options?.sign && !options.secret) {
+    throw new Error(
+      "Cookie signing requires a secret. Set `secret` when `sign` is enabled.",
+    );
+  }
+
   const opts: Required<CookieMiddlewareOptions> = {
     secret: options?.secret ?? "",
     defaults: {
@@ -32,7 +39,7 @@ export const cookie = (
 
       for (const [name, value] of Object.entries(rawCookies)) {
         if (opts.sign && opts.secret) {
-          const verified = await verifySignedCookie(value, opts.secret);
+          const verified = verifySignedCookie(value, opts.secret);
           if (verified !== false) {
             req.cookies[name] = verified;
           }
@@ -73,8 +80,12 @@ function parseCookies(cookieString: string): Record<string, string> {
   const pairs = cookieString.split(";");
 
   for (const pair of pairs) {
-    const [name, value] = pair.trim().split("=");
-    if (name && value) {
+    const trimmedPair = pair.trim();
+    const separatorIndex = trimmedPair.indexOf("=");
+
+    if (separatorIndex > 0) {
+      const name = trimmedPair.slice(0, separatorIndex);
+      const value = trimmedPair.slice(separatorIndex + 1);
       cookies[decodeURIComponent(name)] = decodeURIComponent(value);
     }
   }
@@ -85,14 +96,18 @@ function parseCookies(cookieString: string): Record<string, string> {
 /**
  * Set a cookie on the response
  */
-async function setCookie(
+function setCookie(
   res: Response,
   name: string,
   value: string,
   options: CookieOptions,
   middlewareOptions: Required<CookieMiddlewareOptions>,
-): Promise<void> {
-  let cookieValue = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+): void {
+  const signedValue =
+    middlewareOptions.sign && middlewareOptions.secret
+      ? signCookie(value, middlewareOptions.secret)
+      : value;
+  let cookieValue = `${encodeURIComponent(name)}=${encodeURIComponent(signedValue)}`;
 
   // Add domain
   if (options.domain) {
@@ -134,12 +149,8 @@ async function setCookie(
     cookieValue += `; Priority=${options.priority}`;
   }
 
-  if (middlewareOptions.sign && middlewareOptions.secret) {
-    cookieValue = await signCookie(cookieValue, middlewareOptions.secret);
-  }
-
   // Set the Set-Cookie header
-  const existingCookies = res.headers["set-cookie"] || "";
+  const existingCookies = res.headers["Set-Cookie"] || "";
   const newCookies = existingCookies
     ? `${existingCookies}, ${cookieValue}`
     : cookieValue;
@@ -171,65 +182,39 @@ function clearCookie(
 /**
  * Sign a cookie value with HMAC-SHA256 using the secret
  */
-async function signCookie(value: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const valueData = encoder.encode(value);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signatureBuffer = await crypto.subtle.sign("HMAC", key, valueData);
-
-  const signatureArray = new Uint8Array(signatureBuffer);
-  const signature = Array.from(signatureArray)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
+function signCookie(value: string, secret: string): string {
+  const signature = createHmac("sha256", secret).update(value).digest("hex");
   return `${value}.${signature}`;
 }
 
 /**
  * Verify a signed cookie
  */
-async function verifySignedCookie(
-  value: string,
-  secret: string,
-): Promise<string | false> {
-  const parts = value.split(".");
-  if (parts.length !== 2) {
+function verifySignedCookie(value: string, secret: string): string | false {
+  const separatorIndex = value.lastIndexOf(".");
+  if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
     return false;
   }
 
-  const [cookieValue, signature] = parts;
+  const cookieValue = value.slice(0, separatorIndex);
+  const signature = value.slice(separatorIndex + 1);
+  const expectedSignature = createHmac("sha256", secret)
+    .update(cookieValue)
+    .digest("hex");
 
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const valueData = encoder.encode(cookieValue);
+  if (signature.length !== expectedSignature.length) {
+    return false;
+  }
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const providedBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
 
-  const expectedSignatureBuffer = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    valueData,
-  );
+  if (
+    providedBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(providedBuffer, expectedBuffer)
+  ) {
+    return false;
+  }
 
-  const expectedSignatureArray = new Uint8Array(expectedSignatureBuffer);
-  const expectedSignature = Array.from(expectedSignatureArray)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-  return signature === expectedSignature ? cookieValue : false;
+  return cookieValue;
 }

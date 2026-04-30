@@ -20,35 +20,37 @@ export const asyncLocalStorage = (
     const store: Record<string, any> = {};
 
     for (const [key, setter] of Object.entries(ctxSetters)) {
-      store[key] = (setter as (req: Request) => {})(req);
+      store[key] = await (
+        setter as (req: Request) => unknown | Promise<unknown>
+      )(req);
     }
 
-    asyncStorage.run(store, () => {
-      req.ctx = new Proxy({} as AsyncLocalStorageContext, {
-        get(_, prop) {
-          const currentStore = asyncStorage.getStore();
-          return currentStore?.[prop as string];
-        },
-        set(_, prop, value) {
-          const currentStore = asyncStorage.getStore();
-          if (currentStore) {
-            currentStore[prop as string] = value;
-            return true;
-          }
+    req.ctx = new Proxy({} as AsyncLocalStorageContext, {
+      get(_, prop) {
+        const currentStore = asyncStorage.getStore();
+        return currentStore?.[prop as string];
+      },
+      set(_, prop, value) {
+        const currentStore = asyncStorage.getStore();
+        if (currentStore) {
+          currentStore[prop as string] = value;
+          return true;
+        }
 
-          return false;
-        },
-        ownKeys() {
-          const currentStore = asyncStorage.getStore();
-          return currentStore ? Object.keys(currentStore) : [];
-        },
-        has(_, prop) {
-          const currentStore = asyncStorage.getStore();
-          return currentStore ? prop in currentStore : false;
-        },
-      });
+        return false;
+      },
+      ownKeys() {
+        const currentStore = asyncStorage.getStore();
+        return currentStore ? Object.keys(currentStore) : [];
+      },
+      has(_, prop) {
+        const currentStore = asyncStorage.getStore();
+        return currentStore ? prop in currentStore : false;
+      },
+    });
 
-      next();
+    return asyncStorage.run(store, async () => {
+      await next();
     });
   };
 };

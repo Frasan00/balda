@@ -53,7 +53,7 @@ export class MockServer {
     path: string,
     options: MockServerOptions<TBody, TQuery> = {},
   ): Promise<MockResponse<TResponse>> {
-    const { headers = {}, query = {}, cookies = {}, ip } = options;
+    const { headers = {}, query = {}, cookies, ip } = options;
     this.validateOptions(options);
 
     await this.server.ensureBootstrapped(this.bootstrapOptions);
@@ -126,7 +126,9 @@ export class MockServer {
     const req = Request.fromRequest(webRequest);
     req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
     req.params = route.params;
-    req.cookies = cookies;
+    if (cookies !== undefined) {
+      req.cookies = cookies;
+    }
     req.ip = ip;
 
     try {
@@ -298,7 +300,7 @@ export class MockServer {
       return new MockResponse(res);
     }
 
-    const { headers = {}, query = {}, cookies = {}, ip } = options;
+    const { headers = {}, query = {}, cookies, ip } = options;
     const url = new URL(
       `http://${this.server.host}:${this.server.port}${path}`,
     );
@@ -329,7 +331,9 @@ export class MockServer {
 
     const req = Request.fromRequest(webRequest);
     req.query = { ...Object.fromEntries(url.searchParams.entries()), ...query };
-    req.cookies = cookies;
+    if (cookies !== undefined) {
+      req.cookies = cookies;
+    }
     req.ip = ip;
 
     try {

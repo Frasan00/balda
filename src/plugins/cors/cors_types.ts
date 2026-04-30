@@ -30,6 +30,8 @@ export type CorsOptions = {
   methods?: CorsMethods[] | string;
   /**
    * Configures the Access-Control-Allow-Headers CORS header. Defaults to allowing all requested headers.
+   * When omitted, Balda echoes `Access-Control-Request-Headers` on preflight requests.
+   * Set this explicitly to override that default behavior.
    */
   allowedHeaders?: string[] | string;
   /**

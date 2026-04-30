@@ -64,6 +64,7 @@ export const bodyParser = (
 
     if (!req.body && !req.bodyUsed) {
       req.body = await req.toWebApi().arrayBuffer();
+      req.bodyUsed = true;
     }
 
     return next();
