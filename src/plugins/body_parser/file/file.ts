@@ -58,6 +58,17 @@ export const fileParser = (
 
       const boundary = boundaryMatch[1].replace(/(^\s*"?|"?\s*$)/g, "");
 
+      // RFC 2046 §5.1.1: boundary token must not exceed 70 characters
+      if (boundary.length > 70) {
+        return res.badRequest({
+          ...errorFactory(
+            new BaldaError(
+              "Multipart boundary exceeds 70-character RFC 2046 limit",
+            ),
+          ),
+        });
+      }
+
       const bodyBuf = new Uint8Array(await req.toWebApi().arrayBuffer());
 
       // Double-check actual body size
@@ -152,8 +163,16 @@ export const fileParser = (
         const formName = formNameMatch[1];
 
         const filenameMatch = disposition.match(/filename="([^"]*)"/);
-        const originalName = filenameMatch ? filenameMatch[1] : "";
-        const isFile = Boolean(originalName);
+        const rawFilename = filenameMatch ? filenameMatch[1] : "";
+        if (rawFilename && /[/\\\0]|\.\./.test(rawFilename)) {
+          return res.badRequest({
+            ...errorFactory(
+              new BaldaError(`Unsafe filename: "${rawFilename}"`),
+            ),
+          });
+        }
+        const originalName = sanitizeFilename(rawFilename);
+        const isFile = Boolean(rawFilename);
 
         if (isFile) {
           if (options?.maxFiles && files.length >= options.maxFiles) {

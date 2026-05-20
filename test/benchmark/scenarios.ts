@@ -139,7 +139,7 @@ export const BENCHMARK_SCENARIOS: ScenarioConfig[] = [
         host: "0.0.0.0",
       });
       server.use(json());
-      server.use(cors());
+      server.use(cors({ origin: "*" }));
       server.use(helmet());
       server.use(logPlugin());
       server.use(compression());

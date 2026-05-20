@@ -31,6 +31,12 @@ type BaseRateLimiterOptions = {
    * @default "memory"
    */
   storageStrategy?: StorageStrategy;
+
+  /**
+   * When storage throws, return 429 (fail closed) instead of allowing the request (fail open).
+   * @default false
+   */
+  failClosed?: boolean;
 };
 
 /**
@@ -75,10 +81,29 @@ export type MemoryStorageStrategy = {
    * @default 60000
    */
   windowMs?: number;
+
+  /**
+   * Maximum number of unique keys to track. When full, the oldest key is evicted.
+   * Protects against memory exhaustion from attacker-controlled key cardinality.
+   * @default 100000
+   */
+  maxKeys?: number;
 };
 
 /**
- * Custom Storage Strategy
+ * Atomic increment result returned by custom storage.
+ */
+export type IncrementResult = {
+  /** Current request count for this key in the active window */
+  count: number;
+  /** Unix timestamp (ms) when the current window resets */
+  resetAt: number;
+};
+
+/**
+ * Custom Storage Strategy.
+ * Must implement an atomic increment that initialises a new fixed window on first call
+ * or after window expiry.
  */
 export type CustomStorageStrategy = {
   /**
@@ -87,14 +112,11 @@ export type CustomStorageStrategy = {
   type: "custom";
 
   /**
-   * Set a value in the storage
+   * Atomically increment the counter for `key` within a `windowMs`-wide fixed window.
+   * Should create a new window if none exists or the current one has expired.
+   * Returns the updated count and the window's reset timestamp.
    */
-  set: (key: string, value: any) => Promise<void>;
-
-  /**
-   * Get a value from the storage
-   */
-  get: (key: string) => Promise<any>;
+  increment: (key: string, windowMs: number) => Promise<IncrementResult>;
 };
 
 export type StorageOptions = MemoryStorageStrategy | CustomStorageStrategy;

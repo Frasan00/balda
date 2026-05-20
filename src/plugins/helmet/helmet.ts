@@ -9,20 +9,33 @@ import type { Response } from "../../server/http/response.js";
  * @param options Helmet options (all optional)
  */
 export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
-  const opts: Required<HelmetOptions> = {
+  const opts = {
     dnsPrefetchControl: true,
-    frameguard: { action: "SAMEORIGIN" },
-    hsts: { maxAge: 15552000, includeSubDomains: true, preload: false },
+    frameguard: { action: "SAMEORIGIN" } as boolean | { action: string },
+    hsts: { maxAge: 15552000, includeSubDomains: true, preload: false } as
+      | boolean
+      | { maxAge?: number; includeSubDomains?: boolean; preload?: boolean },
     contentTypeOptions: true,
     ieNoOpen: true,
-    xssFilter: true,
-    referrerPolicy: "no-referrer",
-    crossOriginResourcePolicy: "same-origin",
-    crossOriginOpenerPolicy: "same-origin",
-    crossOriginEmbedderPolicy: "require-corp",
-    contentSecurityPolicy: false,
+    xssLegacyHeader: false,
+    xssFilter: undefined as boolean | undefined,
+    referrerPolicy: "no-referrer" as false | string,
+    crossOriginResourcePolicy: "same-origin" as false | string,
+    crossOriginOpenerPolicy: "same-origin" as false | string,
+    crossOriginEmbedderPolicy: "require-corp" as false | string,
+    contentSecurityPolicy: "default-src 'self'" as false | string,
+    permissionsPolicy: "camera=(), microphone=(), geolocation=()" as
+      | false
+      | string,
+    originAgentCluster: true,
     ...options,
   };
+
+  // xssLegacyHeader takes precedence; xssFilter is the deprecated alias
+  const emitXssHeader =
+    opts.xssLegacyHeader !== undefined
+      ? opts.xssLegacyHeader
+      : (opts.xssFilter ?? false);
 
   return async (_req: Request, res: Response, next: NextFunction) => {
     // X-DNS-Prefetch-Control
@@ -70,8 +83,8 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     if (opts.ieNoOpen) {
       res.setHeader("X-Download-Options", "noopen");
     }
-    // X-XSS-Protection
-    if (opts.xssFilter) {
+    // X-XSS-Protection (legacy header — disabled by default; modern CSP supersedes it)
+    if (emitXssHeader) {
       res.setHeader("X-XSS-Protection", "0");
     }
     // Referrer-Policy
@@ -99,6 +112,14 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     // Content-Security-Policy
     if (opts.contentSecurityPolicy) {
       res.setHeader("Content-Security-Policy", opts.contentSecurityPolicy);
+    }
+    // Permissions-Policy
+    if (opts.permissionsPolicy) {
+      res.setHeader("Permissions-Policy", opts.permissionsPolicy);
+    }
+    // Origin-Agent-Cluster
+    if (opts.originAgentCluster) {
+      res.setHeader("Origin-Agent-Cluster", "?1");
     }
 
     await next();

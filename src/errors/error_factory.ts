@@ -4,7 +4,7 @@ import { NativeEnv } from "../runtime/native_env.js";
 const nativeEnv = new NativeEnv();
 
 export const errorFactory = (error: BaldaError) => {
-  const isDevelopment = nativeEnv.get("NODE_ENV") !== "production";
+  const isDevelopment = nativeEnv.get("NODE_ENV") === "development";
 
   return {
     code: error.name || "INTERNAL_ERROR",

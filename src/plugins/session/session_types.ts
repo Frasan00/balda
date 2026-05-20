@@ -11,7 +11,10 @@ export type SessionStore = {
 export type SessionOptions = {
   /** Cookie name used for session id */
   name?: string;
-  /** Secret used to sign session id (optional, for future) */
+  /**
+   * Secret for signing the session cookie (sets `signed: true` on the session cookie).
+   * Requires `cookie({ sign: true, secret })` with the same secret.
+   */
   secret?: string;
   /** TTL seconds for session */
   ttl?: number;

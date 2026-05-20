@@ -32,7 +32,7 @@ const PLUGIN_CONFIGS: PluginConfig[] = [
   {
     name: "cors-only",
     port: 4003,
-    plugins: [cors],
+    plugins: [() => cors({ origin: "*" })],
   },
   {
     name: "helmet-only",
@@ -47,7 +47,13 @@ const PLUGIN_CONFIGS: PluginConfig[] = [
   {
     name: "all-plugins",
     port: 4006,
-    plugins: [json, compression, cors, helmet, logPlugin],
+    plugins: [
+      json,
+      compression,
+      () => cors({ origin: "*" }),
+      helmet,
+      logPlugin,
+    ],
   },
 ];
 

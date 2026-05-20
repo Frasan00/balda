@@ -20,13 +20,11 @@ const sleep = (ms: number) =>
   });
 
 const getCookieHeader = (response: {
-  headers: () => Record<string, string>;
+  rawCookieHeaders: () => string[];
 }): string => {
-  const setCookie =
-    response.headers()["Set-Cookie"] ?? response.headers()["set-cookie"];
-
-  expect(setCookie).toBeDefined();
-  return String(setCookie).split(", ")[0].split(";")[0];
+  const cookieHeaders = response.rawCookieHeaders();
+  expect(cookieHeaders.length).toBeGreaterThan(0);
+  return cookieHeaders[0].split(";")[0];
 };
 
 describe("Built-in plugin behavior", () => {
@@ -109,6 +107,122 @@ describe("Built-in plugin behavior", () => {
     expect(secondResponse.body()).toEqual({ count: 2 });
   });
 
+  it("persists session across requests when cookie signing is enabled", async () => {
+    const server = new Server({
+      plugins: {
+        cookie: {
+          sign: true,
+          secret: "cookie-secret",
+        },
+        session: {},
+      },
+    });
+
+    server.router.get("/signed-session", (req, res) => {
+      const current = req.session!;
+      current.count = (current.count ?? 0) + 1;
+      res.json({ count: current.count });
+    });
+
+    const firstResponse = await server.inject.get("/signed-session");
+    const cookieHeader = getCookieHeader(firstResponse);
+
+    expect(cookieHeader).toMatch(/^sid=.+\..+$/);
+    expect(firstResponse.body()).toEqual({ count: 1 });
+
+    const secondResponse = await server.inject.get("/signed-session", {
+      headers: {
+        cookie: cookieHeader,
+      },
+    });
+
+    expect(secondResponse.body()).toEqual({ count: 2 });
+  });
+
+  it("regenerates the session id to mitigate fixation", async () => {
+    const server = new Server({
+      plugins: {
+        cookie: {},
+        session: {},
+      },
+    });
+
+    server.router.get("/seed", (req, res) => {
+      req.session!.seeded = true;
+      res.json({ ok: true });
+    });
+
+    server.router.post("/login", async (req, res) => {
+      await req.regenerateSession!();
+      req.session!.userId = "alice";
+      res.json({ ok: true });
+    });
+
+    server.router.get("/me", (req, res) => {
+      res.json({
+        userId: req.session?.userId,
+        seeded: req.session?.seeded,
+      });
+    });
+
+    const seedResponse = await server.inject.get("/seed");
+    const oldCookie = getCookieHeader(seedResponse);
+
+    const loginResponse = await server.inject.post("/login", {
+      headers: {
+        cookie: oldCookie,
+      },
+    });
+    const newCookie = getCookieHeader(loginResponse);
+
+    expect(newCookie).not.toBe(oldCookie);
+
+    const oldSidResponse = await server.inject.get("/me", {
+      headers: {
+        cookie: oldCookie,
+      },
+    });
+    const newSidResponse = await server.inject.get("/me", {
+      headers: {
+        cookie: newCookie,
+      },
+    });
+
+    expect(oldSidResponse.body()).toEqual({
+      userId: undefined,
+      seeded: undefined,
+    });
+    expect(newSidResponse.body()).toEqual({
+      userId: "alice",
+      seeded: true,
+    });
+  });
+
+  it("registers cookie before session when plugins are declared in reverse order", async () => {
+    const server = new Server({
+      plugins: {
+        session: {},
+        cookie: {},
+      },
+    });
+
+    server.router.get("/plugin-order", (req, res) => {
+      req.session!.seen = true;
+      res.json({ ok: true });
+    });
+
+    const firstResponse = await server.inject.get("/plugin-order");
+    const cookieHeader = getCookieHeader(firstResponse);
+
+    const secondResponse = await server.inject.get("/plugin-order", {
+      headers: {
+        cookie: cookieHeader,
+      },
+    });
+
+    expect(secondResponse.body()).toEqual({ ok: true });
+  });
+
   it("awaits async local storage setters and preserves context across awaited work", async () => {
     const middleware = asyncLocalStorage({
       requestId: async (req) => {
@@ -162,7 +276,7 @@ describe("Built-in plugin behavior", () => {
     });
   });
 
-  it("applies default helmet headers without setting a content security policy", async () => {
+  it("applies default helmet headers including content security policy", async () => {
     const middleware = helmet();
     const res = new Response();
 
@@ -172,11 +286,24 @@ describe("Built-in plugin behavior", () => {
     expect(res.headers["X-Frame-Options"]).toBe("SAMEORIGIN");
     expect(res.headers["X-Content-Type-Options"]).toBe("nosniff");
     expect(res.headers["Referrer-Policy"]).toBe("no-referrer");
+    expect(res.headers["Content-Security-Policy"]).toBe("default-src 'self'");
+    expect(res.headers["Permissions-Policy"]).toBe(
+      "camera=(), microphone=(), geolocation=()",
+    );
+    expect(res.headers["Origin-Agent-Cluster"]).toBe("?1");
+  });
+
+  it("allows disabling CSP via contentSecurityPolicy: false", async () => {
+    const middleware = helmet({ contentSecurityPolicy: false });
+    const res = new Response();
+
+    await middleware({} as Request, res, async () => {});
+
     expect(res.headers["Content-Security-Policy"]).toBeUndefined();
   });
 
-  it("respects trustProxy trust flag and hop selection", async () => {
-    const lastHopRequest = {
+  it("respects trustProxy trustedProxies allowlist and hops", async () => {
+    const trustedRequest = {
       ip: "127.0.0.1",
       rawHeaders: new Headers([
         ["x-forwarded-for", "203.0.113.10, 198.51.100.5"],
@@ -184,22 +311,21 @@ describe("Built-in plugin behavior", () => {
     } as unknown as Request;
 
     await trustProxy({
-      trust: true,
-      hop: "last",
-    })(lastHopRequest, new Response(), async () => {});
+      trustedProxies: ["127.0.0.1"],
+    })(trustedRequest, new Response(), async () => {});
 
-    expect(lastHopRequest.ip).toBe("198.51.100.5");
+    expect(trustedRequest.ip).toBe("198.51.100.5");
 
     const untrustedRequest = {
-      ip: "127.0.0.1",
+      ip: "192.168.1.1",
       rawHeaders: new Headers([["x-forwarded-for", "203.0.113.10"]]),
     } as unknown as Request;
 
     await trustProxy({
-      trust: false,
+      trustedProxies: ["10.0.0.1"],
     })(untrustedRequest, new Response(), async () => {});
 
-    expect(untrustedRequest.ip).toBe("127.0.0.1");
+    expect(untrustedRequest.ip).toBe("192.168.1.1");
   });
 
   it("enforces rate limits for repeated requests from the same IP", async () => {

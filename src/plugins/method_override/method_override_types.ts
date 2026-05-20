@@ -10,4 +10,11 @@ export type MethodOverrideOptions = {
    * Default: 'X-HTTP-Method-Override'
    */
   header?: string;
+
+  /**
+   * Disable the cross-site Origin/Referer check.
+   * ⚠️ Only set to true if you have an independent CSRF defense in place.
+   * Default: false (check is enabled)
+   */
+  disableCsrfCheck?: boolean;
 };

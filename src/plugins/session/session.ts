@@ -22,20 +22,23 @@ export const session = (
   session: Record<string, any>;
   saveSession: () => Promise<void>;
   destroySession: () => Promise<void>;
+  regenerateSession: () => Promise<void>;
 }> => {
   const name = options?.name ?? "sid";
   const ttl = options?.ttl ?? 60 * 60 * 24; // 1 day
   const store: SessionStore = options?.store ?? new MemorySessionStore();
+  const useSignedCookie = Boolean(options?.secret);
   const cookieDefaults = {
     path: "/",
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "Lax" as const,
+    ...(useSignedCookie ? { signed: true as const } : {}),
     ...(options?.cookie ?? {}),
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    const sidFromCookie = req.cookies && req.cookies[name];
+    const sidFromCookie = readSessionIdFromCookies(req, name);
     let sid = sidFromCookie;
     let sess = sid ? await store.get(sid) : undefined;
 
@@ -46,14 +49,49 @@ export const session = (
       res.cookie?.(name, sid, cookieDefaults);
     }
 
+    let destroyed = false;
+
     req.session = sess;
-    req.saveSession = async () => store.set(sid, sess, ttl);
+    req.saveSession = async () => store.set(sid as string, sess, ttl);
     req.destroySession = async () => {
+      destroyed = true;
       await store.destroy(sid!);
       res.clearCookie?.(name, cookieDefaults);
     };
+    req.regenerateSession = async () => {
+      // Invalidate old SID to prevent fixation
+      await store.destroy(sid!);
+      sid = nativeCrypto.randomUUID();
+      // sess reference stays — session data is preserved across regeneration
+      await store.set(sid, sess!, ttl);
+      res.cookie?.(name, sid, cookieDefaults);
+    };
 
     await next();
-    await store.set(sid, sess, ttl);
+
+    // Skip re-save when session was explicitly destroyed — prevents resurrection
+    if (!destroyed) {
+      await store.set(sid, sess!, ttl);
+    }
   };
 };
+
+function readSessionIdFromCookies(
+  req: Request,
+  name: string,
+): string | undefined {
+  try {
+    const signed = req.signedCookies[name];
+    if (signed !== undefined) {
+      return signed;
+    }
+  } catch {
+    // signedCookies unavailable when cookie middleware did not run
+  }
+
+  try {
+    return req.cookies[name];
+  } catch {
+    return undefined;
+  }
+}

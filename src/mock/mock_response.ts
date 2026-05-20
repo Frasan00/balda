@@ -29,29 +29,35 @@ export class MockResponse<T = any> {
   }
 
   cookies(): Record<string, string> {
-    const setCookieHeader =
-      this.response.headers["set-cookie"] ||
-      this.response.headers["Set-Cookie"];
-    if (!setCookieHeader) {
+    const cookieHeaders = this.response.cookieHeaders;
+    if (!cookieHeaders || cookieHeaders.length === 0) {
       return {};
     }
 
     const cookies: Record<string, string> = {};
-    const cookieStrings = setCookieHeader.split(", ");
-
-    for (const cookieString of cookieStrings) {
+    for (const cookieString of cookieHeaders) {
       const [nameValue] = cookieString.split(";");
       if (nameValue) {
         const eqIndex = nameValue.indexOf("=");
         if (eqIndex > 0) {
-          const name = decodeURIComponent(nameValue.slice(0, eqIndex).trim());
-          const value = decodeURIComponent(nameValue.slice(eqIndex + 1).trim());
-          cookies[name] = value;
+          try {
+            const name = decodeURIComponent(nameValue.slice(0, eqIndex).trim());
+            const value = decodeURIComponent(
+              nameValue.slice(eqIndex + 1).trim(),
+            );
+            cookies[name] = value;
+          } catch {
+            // Skip malformed cookie
+          }
         }
       }
     }
 
     return cookies;
+  }
+
+  rawCookieHeaders(): string[] {
+    return this.response.cookieHeaders ?? [];
   }
 
   // assertions

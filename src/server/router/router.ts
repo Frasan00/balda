@@ -291,13 +291,13 @@ export class Router {
       }
 
       if (node.paramChild) {
-        params[node.paramChild.name] = seg;
+        params[node.paramChild.name] = decodeRouteParam(seg);
         node = node.paramChild.node;
         continue;
       }
 
       if (node.wildcardChild) {
-        params["*"] = segments.slice(i).join("/");
+        params["*"] = decodeRouteParam(segments.slice(i).join("/"));
         node = node.wildcardChild;
         break;
       }
@@ -1036,3 +1036,31 @@ export class Router {
 
 /** Main singleton router instance */
 export const router = new Router();
+
+/**
+ * Decode a URL-encoded route parameter segment.
+ * Rejects NUL bytes and literal `..` (path traversal indicators).
+ * Returns the raw segment if decoding fails (malformed %-encoding).
+ */
+function decodeRouteParam(seg: string): string {
+  if (seg.includes("\0")) {
+    throw Object.assign(new Error("NUL byte in route parameter"), {
+      status: 400,
+    });
+  }
+
+  try {
+    const decoded = decodeURIComponent(seg);
+    if (decoded.includes("\0")) {
+      throw Object.assign(new Error("NUL byte in route parameter"), {
+        status: 400,
+      });
+    }
+
+    return decoded;
+  } catch (e: any) {
+    if (e.status === 400) throw e;
+    // Malformed percent-encoding — return raw segment; handler sees verbatim value
+    return seg;
+  }
+}

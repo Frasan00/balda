@@ -153,6 +153,42 @@ class NativeFs {
     }
   }
 
+  async lstat(path: string): Promise<{
+    isDirectory: boolean;
+    isFile: boolean;
+    isSymbolicLink: boolean;
+    size: number;
+  }> {
+    switch (runtime.type) {
+      case "node":
+        const fs = await import("fs/promises");
+        const stats = await fs.lstat(path);
+        return {
+          isDirectory: stats.isDirectory(),
+          isFile: stats.isFile(),
+          isSymbolicLink: stats.isSymbolicLink(),
+          size: stats.size,
+        };
+      case "bun":
+        const bunFs = await import("fs/promises");
+        const bunStats = await bunFs.lstat(path);
+        return {
+          isDirectory: bunStats.isDirectory(),
+          isFile: bunStats.isFile(),
+          isSymbolicLink: bunStats.isSymbolicLink(),
+          size: bunStats.size,
+        };
+      case "deno":
+        const denoStats = await Deno.lstat(path);
+        return {
+          isDirectory: denoStats.isDirectory,
+          isFile: denoStats.isFile,
+          isSymbolicLink: denoStats.isSymlink,
+          size: denoStats.size,
+        };
+    }
+  }
+
   async unlink(path: string): Promise<void> {
     switch (runtime.type) {
       case "node":

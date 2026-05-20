@@ -31,6 +31,8 @@ export const serveStatic = (
   swaggerOptions?: SwaggerRouteOptions,
 ): ServerRouteMiddleware => {
   const { source, path: urlPath } = options;
+  const dotfilesPolicy = options.dotfiles ?? "ignore";
+  const followSymlinks = options.followSymlinks ?? false;
 
   // Normalize URL path
   let normalizedPath = urlPath;
@@ -51,7 +53,13 @@ export const serveStatic = (
     `${normalizedPath}/*`,
     [],
     async (req, res) => {
-      return staticFileHandler(req, res, source);
+      return staticFileHandler(
+        req,
+        res,
+        source,
+        dotfilesPolicy,
+        followSymlinks,
+      );
     },
     {},
     {
@@ -67,7 +75,13 @@ export const serveStatic = (
   };
 };
 
-async function staticFileHandler(req: Request, res: Response, path: string) {
+async function staticFileHandler(
+  req: Request,
+  res: Response,
+  path: string,
+  dotfilesPolicy: "ignore" | "deny" | "allow",
+  followSymlinks: boolean,
+) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     return res.status(405).json({
       ...errorFactory(new MethodNotAllowedError(req.url, req.method)),
@@ -75,17 +89,52 @@ async function staticFileHandler(req: Request, res: Response, path: string) {
   }
 
   const wildcardPath = req.params["*"] || "";
-  const filePath = nativePath.join(path, wildcardPath);
-  const resolvedPath = nativePath.resolve(nativeCwd.getCwd(), filePath);
-  const sourcePath = nativePath.resolve(nativeCwd.getCwd(), path);
-  if (!resolvedPath.startsWith(sourcePath)) {
+
+  // Reject NUL bytes — some filesystems treat them as terminators
+  if (wildcardPath.includes("\0")) {
     return res.notFound({
       ...errorFactory(new RouteNotFoundError(req.url, req.method)),
     });
   }
 
+  const filePath = nativePath.join(path, wildcardPath);
+  const resolvedPath = nativePath.resolve(nativeCwd.getCwd(), filePath);
+  const sourcePath = nativePath.resolve(nativeCwd.getCwd(), path);
+
+  // Strict containment: startsWith alone matches /srv/public-secret when root is /srv/public
+  if (
+    resolvedPath !== sourcePath &&
+    !resolvedPath.startsWith(sourcePath + "/") &&
+    !resolvedPath.startsWith(sourcePath + "\\")
+  ) {
+    return res.notFound({
+      ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+    });
+  }
+
+  // Dotfile policy check (any path segment starting with ".")
+  const basename = nativePath.basename(resolvedPath);
+  if (basename.startsWith(".")) {
+    if (dotfilesPolicy === "deny") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (dotfilesPolicy === "ignore") {
+      return res.notFound({
+        ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+      });
+    }
+  }
+
   try {
-    const stats = await nativeFs.stat(resolvedPath);
+    // lstat does not follow symlinks — lets us detect and block them
+    const stats = await nativeFs.lstat(resolvedPath);
+
+    if (stats.isSymbolicLink && !followSymlinks) {
+      return res.notFound({
+        ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+      });
+    }
+
     if (!stats.isFile) {
       return res.notFound({
         ...errorFactory(new RouteNotFoundError(req.url, req.method)),

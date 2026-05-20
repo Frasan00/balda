@@ -21,7 +21,7 @@ describe("FileUploadController", () => {
     });
   });
 
-  it("sanitizes filenames with path traversal attempts", async () => {
+  it("rejects filenames with path traversal attempts", async () => {
     const uint8Array = new Uint8Array([1, 2, 3]);
     const formData = new FormData();
     formData.append("file", new Blob([uint8Array]), "../../etc/passwd");
@@ -30,9 +30,7 @@ describe("FileUploadController", () => {
       formData,
     });
 
-    expect(res.assertStatus(200));
-    const body = res.body();
-    expect(body.originalName).toBe("../../etc/passwd");
+    expect(res.statusCode()).toBe(400);
   });
 
   it("handles multiple files in single request", async () => {
@@ -47,7 +45,7 @@ describe("FileUploadController", () => {
     expect(res.assertStatus(200));
   });
 
-  it("handles files with null bytes in filename", async () => {
+  it("rejects files with null bytes in filename", async () => {
     const formData = new FormData();
     formData.append("file", new Blob([new Uint8Array([1])]), "test\0.txt");
 
@@ -55,10 +53,10 @@ describe("FileUploadController", () => {
       formData,
     });
 
-    expect(res.assertStatus(200));
+    expect(res.statusCode()).toBe(400);
   });
 
-  it("handles files with control characters in filename", async () => {
+  it("rejects files with control characters in filename", async () => {
     const formData = new FormData();
     formData.append(
       "file",
@@ -70,6 +68,6 @@ describe("FileUploadController", () => {
       formData,
     });
 
-    expect(res.assertStatus(200));
+    expect(res.statusCode()).toBe(400);
   });
 });

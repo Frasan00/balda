@@ -45,6 +45,14 @@ const pipeReadableStreamToNodeResponse = async (
   return pipeline(nodeStream, res);
 };
 
+function jsonSerialize(value: unknown): string {
+  // Escape chars unsafe in HTML/script contexts to prevent XSS via JSON in <script> tags
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
   port: number;
   host: string;
@@ -214,10 +222,16 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
       return;
     }
 
-    httpResponse.writeHead(
-      responseResult.responseStatus,
-      responseResult.headers,
-    );
+    // Merge cookieHeaders (string[]) into the outgoing headers so each
+    // Set-Cookie is emitted as a separate header field (RFC 6265 §3).
+    const outHeaders: Record<string, string | string[]> = {
+      ...responseResult.headers,
+    };
+    if (responseResult.cookieHeaders.length > 0) {
+      outHeaders["Set-Cookie"] = responseResult.cookieHeaders;
+    }
+
+    httpResponse.writeHead(responseResult.responseStatus, outHeaders);
 
     if (
       body instanceof Buffer ||
@@ -226,7 +240,8 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
     ) {
       httpResponse.end(body);
     } else if (responseResult.headers["Content-Type"] === "application/json") {
-      httpResponse.end(typeof body === "string" ? body : JSON.stringify(body));
+      const jsonStr = typeof body === "string" ? body : jsonSerialize(body);
+      httpResponse.end(jsonStr);
     } else {
       httpResponse.end(body != null ? String(body) : undefined);
     }
@@ -242,53 +257,6 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         }
       });
     });
-  }
-
-  /**
-   * Optimized header processing
-   * Only filters HTTP/2 pseudo-headers when using HTTP/2 protocol
-   */
-  private processHeaders(
-    headers: IncomingMessage["headers"],
-  ): Record<string, string> {
-    const result: Record<string, string> = {};
-
-    if (this.needsHeaderFiltering) {
-      const columnCharCode = ":".charCodeAt(0);
-      // HTTP/2: Filter pseudo-headers (start with ':')
-      for (const key in headers) {
-        if (key.charCodeAt(0) === columnCharCode) {
-          continue;
-        }
-        const value = headers[key];
-        if (value !== undefined) {
-          result[key] = Array.isArray(value) ? value.join(", ") : value;
-        }
-      }
-      return result;
-    }
-
-    // HTTP/1.1: No pseudo-headers, just normalize arrays
-    for (const key in headers) {
-      const value = headers[key];
-      if (value !== undefined) {
-        result[key] = Array.isArray(value) ? value.join(", ") : value;
-      }
-    }
-
-    return result;
-  }
-
-  private extractClientIp(req: IncomingMessage): string | undefined {
-    const forwardedFor = req.headers["x-forwarded-for"];
-
-    if (forwardedFor) {
-      return Array.isArray(forwardedFor)
-        ? forwardedFor[0].trim()
-        : forwardedFor.split(",")[0].trim();
-    }
-
-    return req.socket.remoteAddress;
   }
 
   private async readRequestBody(req: IncomingMessage): Promise<string> {
@@ -322,8 +290,14 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
           "httpsOptions (key, cert) are required when using http2-secure client",
         );
       }
+      // Apply TLS security defaults; user-provided options take precedence
+      const http2SecureOpts = {
+        minVersion: "TLSv1.2" as const,
+        honorCipherOrder: true,
+        ...this.httpsOptions,
+      };
       return http2CreateSecureServer(
-        this.httpsOptions,
+        http2SecureOpts,
         handler as unknown as (
           req: Http2ServerRequest,
           res: Http2ServerResponse,
@@ -336,6 +310,12 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
         "httpsOptions (key, cert) are required when using https client",
       );
     }
-    return httpsCreateServer(this.httpsOptions, handler);
+    // Apply TLS security defaults; user-provided options take precedence
+    const httpsOpts = {
+      minVersion: "TLSv1.2" as const,
+      honorCipherOrder: true,
+      ...this.httpsOptions,
+    };
+    return httpsCreateServer(httpsOpts, handler);
   }
 }

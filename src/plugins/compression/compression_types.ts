@@ -1,3 +1,6 @@
+import type { Request } from "../../server/http/request.js";
+import type { Response } from "../../server/http/response.js";
+
 export type CompressionOptions = {
   /**
    * Minimum response size in bytes to trigger compression
@@ -17,4 +20,10 @@ export type CompressionOptions = {
    * Default: common compressible types (text, json, xml, javascript, etc.)
    */
   filter?: RegExp[];
+
+  /**
+   * Optional predicate to opt out of compression for specific requests/responses.
+   * Return true to skip compression (e.g. for sensitive endpoints to mitigate BREACH).
+   */
+  skipFor?: (req: Request, res: Response) => boolean;
 };

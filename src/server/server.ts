@@ -91,6 +91,16 @@ import type { RequestSchema } from "../decorators/validation/validate_types.js";
 /**
  * The server class that is used to create and manage the server
  */
+/** Cookie must run before session so `req.cookies` / `req.signedCookies` exist. */
+const PLUGIN_APPLY_ORDER: Partial<Record<keyof ServerPluginConfig, number>> = {
+  cookie: 0,
+  session: 1,
+};
+
+function getPluginApplyOrder(pluginName: string): number {
+  return PLUGIN_APPLY_ORDER[pluginName as keyof ServerPluginConfig] ?? 50;
+}
+
 export class Server<
   H extends NodeHttpClient = NodeHttpClient,
 > implements ServerInterface {
@@ -104,7 +114,7 @@ export class Server<
   isProduction: boolean;
   graphql: GraphQL;
 
-  #wasInitialized: boolean;
+  #bootstrapPromise?: Promise<void>;
   #serverConnector: ServerConnector;
   #globalMiddlewares: ServerRouteMiddleware[] = [];
   #controllerImportBlacklistedPaths: string[] = ["node_modules"];
@@ -132,7 +142,6 @@ export class Server<
    * @param options.httpsOptions - The https options to use if the nodeHttpClient is set to "https" or "http2-secure"
    */
   constructor(options?: ServerOptions<H>) {
-    this.#wasInitialized = false;
     this.logger = (options?.logger ?? logger).child({ scope: "Balda" });
     this.serverOptions = {
       nodeHttpClient: options?.nodeHttpClient ?? ("http" as H),
@@ -614,7 +623,12 @@ export class Server<
       this.use(...plugins);
       return;
     }
-    Object.entries(plugins).forEach(([pluginName, pluginOptions]) => {
+    const pluginEntries = Object.entries(plugins).sort(
+      ([pluginA], [pluginB]) =>
+        getPluginApplyOrder(pluginA) - getPluginApplyOrder(pluginB),
+    );
+
+    pluginEntries.forEach(([pluginName, pluginOptions]) => {
       switch (pluginName as keyof ServerPluginConfig) {
         case "bodyParser":
           this.use(bodyParser(pluginOptions as BodyParserOptions));
@@ -690,26 +704,28 @@ export class Server<
    * Initializes the server by importing the controllers and applying the plugins, it's idempotent, it will not re-import the controllers or apply the plugins if the server was already initialized (e.g. mockServer init)
    * @internal
    */
-  private async bootstrap(
+  private bootstrap(
     options?: Pick<ServerOptions, "controllerPatterns">,
   ): Promise<void> {
-    if (this.#wasInitialized) {
-      return;
+    if (this.#bootstrapPromise) {
+      return this.#bootstrapPromise;
     }
 
-    await this.importControllers(options?.controllerPatterns);
-    this.applyPlugins(this.serverOptions.plugins);
+    this.#bootstrapPromise = (async () => {
+      await this.importControllers(options?.controllerPatterns);
+      this.applyPlugins(this.serverOptions.plugins);
 
-    if (this.serverOptions.swagger) {
-      swagger(this.serverOptions.swagger);
-    }
+      if (this.serverOptions.swagger) {
+        swagger(this.serverOptions.swagger);
+      }
 
-    this.registerNotFoundRoutes();
-    if (this.#globalMiddlewares.length) {
-      router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
-    }
+      this.registerNotFoundRoutes();
+      if (this.#globalMiddlewares.length) {
+        router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
+      }
+    })();
 
-    this.#wasInitialized = true;
+    return this.#bootstrapPromise;
   }
 
   /**

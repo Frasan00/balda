@@ -417,6 +417,23 @@ export class Request<
     this.#cookiesSet = true;
   }
 
+  #signedCookies?: Record<string, string>;
+  #signedCookiesSet = false;
+
+  get signedCookies(): Record<string, string> {
+    if (!this.#signedCookiesSet) {
+      throw new Error(
+        "Cookie middleware is required. Register the cookie plugin to access signed cookies.",
+      );
+    }
+    return this.#signedCookies!;
+  }
+
+  set signedCookies(value: Record<string, string>) {
+    this.#signedCookies = value;
+    this.#signedCookiesSet = true;
+  }
+
   /**
    * Returns cookies when the cookie middleware has populated them, otherwise undefined.
    * Useful for compatibility layers that should not throw when cookies are unavailable.
@@ -436,6 +453,13 @@ export class Request<
    * @throws Error if cookie middleware is not registered
    */
   cookie(name: string): string | undefined {
+    if (this.#signedCookiesSet) {
+      const signed = this.#signedCookies![name];
+      if (signed !== undefined) {
+        return signed;
+      }
+    }
+
     return this.cookies[name];
   }
 
@@ -497,6 +521,12 @@ export class Request<
     );
   };
 
+  private static readonly _throwRegenerateSession = async (): Promise<void> => {
+    throw new Error(
+      "Session middleware is required. Register the session plugin to use regenerateSession.",
+    );
+  };
+
   /**
    * Save the current session data.
    * @cookie middleware is required
@@ -512,6 +542,15 @@ export class Request<
    * @throws Error if session middleware is not registered
    */
   destroySession: () => Promise<void> = Request._throwDestroySession;
+
+  /**
+   * Regenerate the session: invalidates the old session ID and issues a new one.
+   * Call this after authentication to prevent session fixation attacks.
+   * @cookie middleware is required
+   * @session middleware is required
+   * @throws Error if session middleware is not registered
+   */
+  regenerateSession: () => Promise<void> = Request._throwRegenerateSession;
 
   /**
    * The ip address of the request.
@@ -773,30 +812,18 @@ export class Request<
    */
   setIpExtractor(req: IncomingMessage): void {
     this.#ipResolved = false;
-    this.#ipExtractor = () => {
-      const forwardedFor = req.headers["x-forwarded-for"];
-      if (forwardedFor) {
-        return Array.isArray(forwardedFor)
-          ? forwardedFor[0].trim()
-          : forwardedFor.split(",")[0].trim();
-      }
-      return req.socket.remoteAddress;
-    };
+    // Always return socket-level IP. XFF is consumed only by trustProxy middleware.
+    this.#ipExtractor = () => req.socket.remoteAddress;
   }
 
   /**
    * Sets a lazy IP extractor for Bun runtime.
    * @internal
    */
-  setBunIpExtractor(req: globalThis.Request, server: any): void {
+  setBunIpExtractor(_req: globalThis.Request, server: any): void {
     this.#ipResolved = false;
-    this.#ipExtractor = () => {
-      const forwardedFor = req.headers.get("x-forwarded-for");
-      if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
-      }
-      return server.requestIP(req)?.address;
-    };
+    // Always return socket-level IP. XFF is consumed only by trustProxy middleware.
+    this.#ipExtractor = () => server.requestIP(_req)?.address;
   }
 
   /**
@@ -805,13 +832,8 @@ export class Request<
    */
   setDenoIpExtractor(req: globalThis.Request, info: any): void {
     this.#ipResolved = false;
-    this.#ipExtractor = () => {
-      const forwardedFor = req.headers.get("x-forwarded-for");
-      if (forwardedFor) {
-        return forwardedFor.split(",")[0].trim();
-      }
-      return info.remoteAddr?.hostname;
-    };
+    // Always return socket-level IP. XFF is consumed only by trustProxy middleware.
+    this.#ipExtractor = () => info.remoteAddr?.hostname;
   }
 
   /**

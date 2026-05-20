@@ -1,7 +1,7 @@
 export interface JsonOptions {
   /**
    * The maximum size of the JSON body in bytes.
-   * If the body is larger than this limit, the request will be rejected.
+   * Enforced at the stream level — not reliant on Content-Length header.
    * Default: 100kb
    */
   sizeLimit?: `${number}mb` | `${number}kb`;
@@ -20,4 +20,17 @@ export interface JsonOptions {
     status?: number;
     message?: string;
   };
+
+  /**
+   * Maximum nesting depth of parsed JSON. Protects against stack-overflow via deeply-nested objects.
+   * Default: 32
+   */
+  maxDepth?: number;
+
+  /**
+   * Maximum total number of object keys across all nesting levels.
+   * Protects against hash-flooding / CPU DoS via huge key counts.
+   * Default: 10000
+   */
+  maxKeys?: number;
 }

@@ -12,11 +12,11 @@ import type {
 } from "./rate_limiter_types.js";
 
 /**
- * Rate limiter plugin
- * Rate limiter is a plugin that limits the number of requests to a resource.
- * It can be used to protect a resource from abuse.
- * @param keyOptions Rate limiter key options, tells the middleware how to retrieve the key from the request in to discriminate what to rate limit (all optional, defaults to ip)
- * @param storageOptions Rate limiter storage options, tells the middleware how to store the rate limit data (all optional, defaults to memory)
+ * Rate limiter plugin.
+ * Uses a fixed-window, atomic-increment counter keyed on IP or a custom value.
+ *
+ * @param keyOptions  How to derive the rate-limit key from the request.
+ * @param storageOptions  Where to store counters (in-memory or custom atomic store).
  */
 export const rateLimiter = (
   keyOptions?: RateLimiterKeyOptions,
@@ -35,28 +35,48 @@ export const rateLimiter = (
     ...storageOptions,
   };
 
-  if (baseStorageOptions.type === "memory" && !baseStorageOptions.windowMs) {
-    baseStorageOptions.windowMs = 60000;
-  }
+  const windowMs =
+    baseStorageOptions.type === "memory"
+      ? (baseStorageOptions.windowMs ?? 60_000)
+      : 60_000;
+
+  const failClosed = baseKeyOptions.failClosed ?? false;
 
   const storage: InMemoryStorageInterface =
     baseStorageOptions.type === "memory"
-      ? new InMemoryStorage(baseStorageOptions.windowMs!)
+      ? new InMemoryStorage(windowMs, (baseStorageOptions as any).maxKeys)
       : {
-          get: baseStorageOptions.get,
-          set: baseStorageOptions.set,
+          increment: (baseStorageOptions as any).increment,
         };
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = baseKeyOptions.type === "ip" ? req.ip : baseKeyOptions.key(req);
-    const value = await storage.get(key!);
-    if (value >= baseKeyOptions.limit!) {
+
+    if (!key) {
+      // No key available (e.g. ip is undefined without trust proxy) — pass through
+      return next();
+    }
+
+    let count: number;
+    try {
+      const result = await storage.increment(key, windowMs);
+      count = result.count;
+    } catch {
+      if (failClosed) {
+        return res.status(baseKeyOptions.statusCode!).json({
+          message: baseKeyOptions.message,
+        });
+      }
+
+      return next();
+    }
+
+    if (count > baseKeyOptions.limit!) {
       return res.status(baseKeyOptions.statusCode!).json({
         message: baseKeyOptions.message,
       });
     }
 
-    await storage.set(key!, value + 1);
     return next();
   };
 };

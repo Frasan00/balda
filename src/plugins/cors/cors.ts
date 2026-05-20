@@ -4,51 +4,86 @@ import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
 import type { CorsOptions } from "./cors_types.js";
 
+// Chars permitted in an HTTP Origin header value (scheme://host[:port])
+const SAFE_ORIGIN_CHARS = /^[A-Za-z0-9:/.\-]+$/;
+
+// Safe default allowed headers — avoids reflecting arbitrary client headers
+const DEFAULT_ALLOWED_HEADERS = ["Content-Type", "Accept", "Authorization"];
+
 type ResolvedCorsOptions = {
   origin: NonNullable<CorsOptions["origin"]>;
   methods: NonNullable<CorsOptions["methods"]>;
-  allowedHeaders?: CorsOptions["allowedHeaders"];
+  allowedHeaders: string[];
   exposedHeaders?: CorsOptions["exposedHeaders"];
   credentials: NonNullable<CorsOptions["credentials"]>;
   maxAge?: CorsOptions["maxAge"];
   preflightContinue: NonNullable<CorsOptions["preflightContinue"]>;
   optionsSuccessStatus: NonNullable<CorsOptions["optionsSuccessStatus"]>;
+  allowNullOrigin: boolean;
 };
 
 /**
  * CORS plugin
  *
- * ⚠️ SECURITY WARNING: By default, this plugin allows ALL origins ('*').
- * For production environments, explicitly configure allowed origins.
- *
- * @param options CORS options (all optional). Omitted options keep Balda's defaults,
- * including default methods and echoing `Access-Control-Request-Headers` on preflight
- * requests unless `allowedHeaders` is explicitly overridden.
+ * ⚠️ SECURITY: `origin` is now required. The old wildcard default has been removed.
+ * Using `origin: "*"` with `credentials: true` throws at construction.
  *
  * @example
- * // Development (permissive)
- * cors()
+ * // Explicit allowlist (production)
+ * cors({ origin: ['https://example.com', 'https://app.example.com'] })
  *
  * @example
- * // Production (secure)
- * cors({
- *   origin: ['https://example.com', 'https://app.example.com'],
- *   credentials: true
- * })
+ * // Public API (no credentials)
+ * cors({ origin: '*' })
  */
-export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
+export const cors = (options: CorsOptions): ServerRouteMiddleware => {
+  // js guard
+  if (!options) {
+    throw new Error(
+      "cors() requires an options object with an explicit `origin`. " +
+        "Use cors({ origin: '*' }) for public APIs or specify allowed origins.",
+    );
+  }
+
+  if (options.origin === "*" && options.credentials === true) {
+    throw new Error(
+      "cors(): `origin: '*'` and `credentials: true` cannot be combined. " +
+        "This is forbidden by the Fetch spec and browsers will reject such responses. " +
+        "Use an explicit origin list when credentials are required.",
+    );
+  }
+
   const opts: ResolvedCorsOptions = {
-    origin: "*",
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
-    credentials: false,
-    maxAge: undefined,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    ...options,
+    origin: options.origin ?? "*",
+    methods: options.methods ?? [
+      "GET",
+      "HEAD",
+      "PUT",
+      "PATCH",
+      "POST",
+      "DELETE",
+    ],
+    allowedHeaders: options.allowedHeaders
+      ? Array.isArray(options.allowedHeaders)
+        ? (options.allowedHeaders as string[])
+        : [options.allowedHeaders as string]
+      : DEFAULT_ALLOWED_HEADERS,
+    exposedHeaders: options.exposedHeaders,
+    credentials: options.credentials ?? false,
+    maxAge: options.maxAge,
+    preflightContinue: options.preflightContinue ?? false,
+    optionsSuccessStatus: options.optionsSuccessStatus ?? 204,
+    allowNullOrigin: options.allowNullOrigin ?? false,
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const requestOrigin = req.rawHeaders.get("origin") || "";
+
+    // No Origin header — skip CORS headers entirely (non-browser / same-origin)
+    if (!requestOrigin) {
+      await next();
+      return;
+    }
 
     if (req.method === "OPTIONS") {
       return handlePreflightRequest(req, res, opts, requestOrigin, next);
@@ -59,9 +94,6 @@ export const cors = (options?: CorsOptions): ServerRouteMiddleware => {
   };
 };
 
-/**
- * Handle CORS preflight OPTIONS requests
- */
 function handlePreflightRequest(
   req: Request,
   res: Response,
@@ -75,28 +107,31 @@ function handlePreflightRequest(
     return;
   }
 
-  // Set CORS headers for preflight
-  setCorsHeaders(
-    res,
-    opts,
-    allowOrigin,
-    req.rawHeaders.get("access-control-request-headers") || undefined,
-  );
+  // Validate Access-Control-Request-Method against allowed methods
+  const requestedMethod = req.rawHeaders.get("access-control-request-method");
+  if (requestedMethod) {
+    const normalizedMethods = Array.isArray(opts.methods)
+      ? (opts.methods as string[]).map((m) => m.toUpperCase())
+      : String(opts.methods)
+          .split(",")
+          .map((m) => m.trim().toUpperCase());
+    if (!normalizedMethods.includes(requestedMethod.toUpperCase())) {
+      res.forbidden("CORS method not allowed");
+      return;
+    }
+  }
 
-  // Handle preflight continue option
+  setCorsHeaders(res, opts, allowOrigin, true);
+
   if (opts.preflightContinue) {
     next();
     return;
   }
 
-  // End preflight request
   res.status(opts.optionsSuccessStatus || 204);
   res.send("");
 }
 
-/**
- * Handle regular CORS requests (non-OPTIONS)
- */
 function handleRegularRequest(
   _req: Request,
   res: Response,
@@ -108,49 +143,72 @@ function handleRegularRequest(
     return;
   }
 
-  setCorsHeaders(res, opts, allowOrigin);
+  setCorsHeaders(res, opts, allowOrigin, false);
 }
 
 /**
- * Determine if origin is allowed and return the appropriate origin value
+ * Determine if the request origin is allowed.
+ * Returns the value to put in Access-Control-Allow-Origin, or false to block.
  */
 function determineOrigin(
   opts: ResolvedCorsOptions,
   requestOrigin: string,
 ): string | false {
-  // String origin
-  if (typeof opts.origin === "string") {
-    return opts.origin;
+  // Block null origin (sandboxed iframes, file://) unless explicitly allowed
+  if (requestOrigin === "null" && !opts.allowNullOrigin) {
+    return false;
   }
 
-  // Array of origins
-  if (Array.isArray(opts.origin)) {
-    const matchedOrigin = opts.origin.find((origin) =>
-      typeof origin === "string"
-        ? origin === requestOrigin
-        : origin instanceof RegExp && origin.test(requestOrigin),
-    );
+  // Reject origins containing CRLF or other non-safe chars (header injection)
+  if (!SAFE_ORIGIN_CHARS.test(requestOrigin)) {
+    return false;
+  }
 
-    if (!matchedOrigin) {
+  if (typeof opts.origin === "string") {
+    if (opts.origin === "*") {
+      return "*";
+    }
+    return requestOrigin === opts.origin ? requestOrigin : false;
+  }
+
+  if (Array.isArray(opts.origin)) {
+    const match = opts.origin.find((origin) => {
+      if (typeof origin === "string") {
+        return origin === requestOrigin;
+      }
+      if (origin instanceof RegExp) {
+        return origin.test(requestOrigin);
+      }
+      return false;
+    });
+
+    if (!match) {
       return false;
     }
 
-    return typeof matchedOrigin === "string" ? matchedOrigin : requestOrigin;
+    // Always reflect the actual request origin (not the pattern) so ACAO is specific
+    return requestOrigin;
   }
 
-  return "*";
+  return false;
 }
 
 /**
- * Set all CORS headers on the response
+ * Set CORS headers on the response.
+ * Adds Vary headers to prevent cache poisoning.
  */
 function setCorsHeaders(
   res: Response,
   opts: ResolvedCorsOptions,
   allowOrigin: string,
-  requestAllowedHeaders?: string,
+  isPreflight: boolean,
 ): void {
   res.setHeader("Access-Control-Allow-Origin", allowOrigin);
+
+  // When the response varies on Origin, caches must key on it
+  if (allowOrigin !== "*") {
+    appendVary(res, "Origin");
+  }
 
   if (opts.credentials) {
     res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -161,19 +219,34 @@ function setCorsHeaders(
     res.setHeader("Access-Control-Expose-Headers", exposedHeaders);
   }
 
-  const allowedHeaders =
-    opts.allowedHeaders === undefined
-      ? requestAllowedHeaders
-      : normalizeHeaderValue(opts.allowedHeaders);
-  if (allowedHeaders) {
-    res.setHeader("Access-Control-Allow-Headers", allowedHeaders);
-  }
-
   const methodsStr = normalizeHeaderValue(opts.methods);
   res.setHeader("Access-Control-Allow-Methods", String(methodsStr || ""));
 
-  if (typeof opts.maxAge === "number") {
-    res.setHeader("Access-Control-Max-Age", opts.maxAge.toString());
+  if (isPreflight) {
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      opts.allowedHeaders.join(","),
+    );
+    appendVary(res, "Access-Control-Request-Headers");
+    appendVary(res, "Access-Control-Request-Method");
+
+    if (typeof opts.maxAge === "number") {
+      res.setHeader("Access-Control-Max-Age", opts.maxAge.toString());
+    }
+  }
+}
+
+function appendVary(res: Response, field: string): void {
+  const existing = res.headers["Vary"];
+  if (!existing) {
+    res.setHeader("Vary", field);
+  } else if (
+    !existing
+      .split(",")
+      .map((v) => v.trim())
+      .includes(field)
+  ) {
+    res.setHeader("Vary", `${existing}, ${field}`);
   }
 }
 

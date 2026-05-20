@@ -26,25 +26,32 @@ export class Response<
     const body = response.getBody();
     const contentType = response.headers["Content-Type"]?.toLowerCase();
 
+    // Build a Headers object so we can emit multiple Set-Cookie entries
+    const webHeaders = new globalThis.Headers(
+      response.headers as Record<string, string>,
+    );
+    for (const cookie of response.cookieHeaders) {
+      webHeaders.append("Set-Cookie", cookie);
+    }
+
     // If body is already serialized JSON string (from fast-json-stringify), use it directly
     if (contentType === "application/json") {
       if (typeof body === "string") {
-        // Already serialized by fast-json-stringify
         return new globalThis.Response(body, {
           status: response.responseStatus,
-          headers: response.headers,
+          headers: webHeaders,
         });
       }
 
       return globalThis.Response.json(body, {
         status: response.responseStatus,
-        headers: response.headers,
+        headers: webHeaders,
       });
     }
 
     return new globalThis.Response(body, {
       status: response.responseStatus,
-      headers: response.headers,
+      headers: webHeaders,
     });
   }
 
@@ -63,6 +70,13 @@ export class Response<
    * The headers of the response
    */
   headers: Record<string, string>;
+
+  /**
+   * Accumulated Set-Cookie header values.
+   * Stored separately so each cookie is emitted as its own Set-Cookie header.
+   * @internal
+   */
+  cookieHeaders: string[];
 
   /**
    * The body of the response
@@ -91,6 +105,7 @@ export class Response<
   constructor(status: number = 200) {
     this.responseStatus = status;
     this.headers = {};
+    this.cookieHeaders = [];
   }
 
   /**
@@ -104,10 +119,21 @@ export class Response<
   }
 
   /**
-   * Set a header for the response
+   * Set a header for the response.
+   * Set-Cookie values are accumulated as separate headers (RFC 6265 compliance).
+   * Throws if key or value contains CR or LF characters (header injection prevention).
    */
   setHeader(key: string, value: string): this {
-    this.headers[key] = value;
+    if (/[\r\n]/.test(key) || /[\r\n]/.test(value)) {
+      throw new Error(
+        `Invalid header: CR/LF characters are not permitted in header names or values. key=${JSON.stringify(key)}`,
+      );
+    }
+    if (key.toLowerCase() === "set-cookie") {
+      this.cookieHeaders.push(value);
+    } else {
+      this.headers[key] = value;
+    }
     return this;
   }
 
@@ -168,6 +194,12 @@ export class Response<
    */
   raw(body: any): void {
     this.body = body;
+  }
+
+  /** @internal — used by compression middleware to replace the body after async transformation */
+  setBodyDirect(body: any): void {
+    this.body = body;
+    this.#serializer = undefined;
   }
 
   /**

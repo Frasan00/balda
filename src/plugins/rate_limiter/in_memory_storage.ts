@@ -1,48 +1,53 @@
+import type { IncrementResult } from "./rate_limiter_types.js";
+
 export interface InMemoryStorageInterface {
-  get: (key: string) => Promise<number>;
-  set: (key: string, value: number) => Promise<void>;
+  increment(key: string, windowMs: number): Promise<IncrementResult>;
 }
 
+type WindowEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const DEFAULT_MAX_KEYS = 100_000;
+
 export class InMemoryStorage implements InMemoryStorageInterface {
-  private storage: Map<string, number> = new Map();
-  private timers: Map<string, NodeJS.Timeout> = new Map();
-  private windowMs: number;
+  private storage: Map<string, WindowEntry> = new Map();
+  private readonly windowMs: number;
+  private readonly maxKeys: number;
 
-  constructor(windowMs: number) {
+  constructor(windowMs: number, maxKeys: number = DEFAULT_MAX_KEYS) {
     this.windowMs = windowMs;
+    this.maxKeys = maxKeys;
   }
 
-  async set(key: string, value: number): Promise<void> {
-    const existingTimer = this.timers.get(key);
-    if (existingTimer) {
-      clearTimeout(existingTimer);
+  async increment(key: string, windowMs: number): Promise<IncrementResult> {
+    const now = Date.now();
+    const win = windowMs || this.windowMs;
+    const existing = this.storage.get(key);
+
+    if (existing && existing.resetAt > now) {
+      // Within active window — increment in place
+      existing.count += 1;
+      return { count: existing.count, resetAt: existing.resetAt };
     }
 
-    this.storage.set(key, value);
-
-    const timerId = setTimeout(() => {
-      this.storage.delete(key);
-      this.timers.delete(key);
-    }, this.windowMs);
-
-    this.timers.set(key, timerId);
-  }
-
-  async get(key: string): Promise<number> {
-    const entry = this.storage.get(key);
-    if (!entry) {
-      return 0;
+    // Expired or new key — start fresh window
+    if (!existing && this.storage.size >= this.maxKeys) {
+      // Evict the oldest entry (first key in Map insertion order)
+      const firstKey = this.storage.keys().next().value;
+      if (firstKey !== undefined) {
+        this.storage.delete(firstKey);
+      }
+    } else if (existing) {
+      // Re-use existing slot (no size change)
+      existing.count = 1;
+      existing.resetAt = now + win;
+      return { count: 1, resetAt: existing.resetAt };
     }
 
-    return entry;
-  }
-
-  protected async delete(key: string): Promise<void> {
-    const timer = this.timers.get(key);
-    if (timer) {
-      clearTimeout(timer);
-    }
-    this.storage.delete(key);
-    this.timers.delete(key);
+    const entry: WindowEntry = { count: 1, resetAt: now + win };
+    this.storage.set(key, entry);
+    return { count: 1, resetAt: entry.resetAt };
   }
 }

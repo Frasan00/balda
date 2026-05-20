@@ -145,6 +145,7 @@ export class AjvStateManager {
   static ajv: Ajv = new Ajv({
     validateSchema: false, // Required - do not change
     strict: false, // Required - do not change
+    removeAdditional: "all", // Strip unknown properties on validated request objects (mass-assignment defense)
   });
 
   /**
@@ -382,6 +383,7 @@ export class AjvStateManager {
     this.ajv = new Ajv({
       validateSchema: false,
       strict: false,
+      removeAdditional: "all",
     });
     this.serializerCache = new WeakMap<
       object,

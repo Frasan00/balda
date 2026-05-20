@@ -1,14 +1,12 @@
-import { gzipSync } from "node:zlib";
+import { gzip as gzipCb } from "node:zlib";
+import { promisify } from "node:util";
 import type { ServerRouteMiddleware } from "../../runtime/native_server/server_types.js";
 import type { NextFunction } from "../../server/http/next.js";
 import type { Request } from "../../server/http/request.js";
 import type { Response } from "../../server/http/response.js";
-import type { RequestSchema } from "../../decorators/validation/validate_types.js";
-import { AjvStateManager } from "../../ajv/ajv.js";
-import type { JSONSchema } from "../swagger/swagger_types.js";
-import { ZodLoader } from "../../validator/zod_loader.js";
-import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import type { CompressionOptions } from "./compression_types.js";
+
+const gzip = promisify(gzipCb);
 
 const DEFAULT_THRESHOLD = 1024; // 1KB
 const DEFAULT_LEVEL = 6;
@@ -24,7 +22,13 @@ const DEFAULT_FILTER = [
 ];
 
 /**
- * Compression middleware for gzip compression of response bodies
+ * Compression middleware for gzip compression of response bodies.
+ *
+ * Uses async gzip to avoid blocking the event loop on large payloads.
+ * Always emits `Vary: Accept-Encoding` to prevent cache poisoning.
+ *
+ * BREACH/CRIME note: if an endpoint reflects user-controlled data in a compressed
+ * response, use `skipFor` to opt that route out of compression.
  *
  * @param options Compression middleware options
  */
@@ -34,123 +38,66 @@ export const compression = (
   const threshold = options?.threshold ?? DEFAULT_THRESHOLD;
   const level = Math.max(0, Math.min(9, options?.level ?? DEFAULT_LEVEL));
   const filter = options?.filter ?? DEFAULT_FILTER;
+  const skipFor = options?.skipFor;
 
   return async (req: Request, res: Response, next: NextFunction) => {
+    // Always add Vary so caches don't serve compressed responses to clients that
+    // didn't send Accept-Encoding: gzip
+    res.setHeader("Vary", "Accept-Encoding");
+
     const acceptEncoding = req.rawHeaders.get("accept-encoding") || "";
-    const supportsGzip = acceptEncoding.includes("gzip");
-    if (!supportsGzip) {
+    if (!acceptsGzip(acceptEncoding)) {
       return next();
     }
 
-    const originalSend = res.send.bind(res);
-    const originalText = res.text.bind(res);
-
-    const compressResponse = (body: any, contentType?: string): any => {
-      if (!shouldCompress(body, contentType, threshold, filter)) {
-        return body;
-      }
-
-      const buffer = getBodyBuffer(body);
-      if (!buffer || buffer.length < threshold) {
-        return body;
-      }
-
-      const compressed = gzipSync(buffer, { level });
-      res.setHeader("Content-Encoding", "gzip");
-      res.setHeader("Content-Length", compressed.length.toString());
-
-      return compressed;
-    };
-
-    res.send = function (body: any): void {
-      const contentType = res.headers["Content-Type"];
-      const compressedBody = compressResponse(body, contentType);
-      return originalSend(compressedBody);
-    };
-
-    res.json = function (body: any, schema?: RequestSchema): void {
-      let serializer = null;
-      if (schema) {
-        const { jsonSchema, prefix } = getJsonSchemaWithPrefix(schema);
-        serializer = AjvStateManager.getOrCreateSerializer(jsonSchema, prefix);
-      }
-      const jsonString =
-        serializer && typeof body === "object" && body !== null
-          ? serializer(body)
-          : typeof body === "string"
-            ? body
-            : JSON.stringify(body);
-      const compressedBody = compressResponse(jsonString, "application/json");
-      if (compressedBody !== jsonString) {
-        res.setHeader("Content-Type", "application/json");
-        return originalSend(compressedBody);
-      }
-      return originalSend(jsonString);
-    };
-
-    res.text = function (body: string): void {
-      const compressedBody = compressResponse(body, "text/plain");
-      if (compressedBody !== body) {
-        res.setHeader("Content-Type", "text/plain");
-        return originalSend(compressedBody);
-      }
-      return originalText(body);
-    };
-
     await next();
+
+    // After the handler chain runs, check skipFor predicate
+    if (skipFor?.(req, res)) {
+      return;
+    }
+
+    // getBody() runs lazy serialization (fast-json-stringify) and returns the body
+    const body = res.getBody();
+    if (body == null) {
+      return;
+    }
+
+    const contentType = res.headers["Content-Type"];
+    if (!contentType || !filter.some((p) => p.test(contentType))) {
+      return;
+    }
+
+    const buffer = getBodyBuffer(body);
+    if (!buffer || buffer.length < threshold) {
+      return;
+    }
+
+    const compressed = await gzip(buffer, { level });
+    res.setHeader("Content-Encoding", "gzip");
+    res.setHeader("Content-Length", compressed.length.toString());
+    // Replace the body with the compressed buffer; clears the lazy serializer
+    res.setBodyDirect(compressed);
   };
 };
 
-const getJsonSchemaWithPrefix = (
-  schema: RequestSchema,
-): {
-  jsonSchema: JSONSchema;
-  prefix: string;
-} => {
-  if (ZodLoader.isZodSchema(schema)) {
-    return {
-      jsonSchema: ZodLoader.toJSONSchema(schema),
-      prefix: "fast_stringify_zod",
-    };
+/**
+ * Returns true if the Accept-Encoding header expresses a non-zero preference for gzip.
+ * Handles q-values: `gzip;q=0` means the client explicitly rejects gzip.
+ */
+function acceptsGzip(acceptEncoding: string): boolean {
+  for (const part of acceptEncoding.split(",")) {
+    const [enc, ...params] = part.trim().split(";");
+    if (enc.trim().toLowerCase() !== "gzip") continue;
+    const qParam = params.find((p) => p.trim().startsWith("q="));
+    if (qParam) {
+      const q = parseFloat(qParam.trim().slice(2));
+      return !Number.isNaN(q) && q > 0;
+    }
+    return true; // no q= means q=1.0
   }
-
-  if (TypeBoxLoader.isTypeBoxSchema(schema)) {
-    return {
-      jsonSchema: schema as JSONSchema,
-      prefix: "fast_stringify_typebox",
-    };
-  }
-
-  if (typeof schema === "object" && schema !== null) {
-    return {
-      jsonSchema: schema as JSONSchema,
-      prefix: "fast_stringify_json",
-    };
-  }
-
-  return {
-    jsonSchema: { type: typeof schema } as JSONSchema,
-    prefix: `fast_stringify_primitive_${JSON.stringify(schema)}`,
-  };
-};
-
-const shouldCompress = (
-  body: any,
-  contentType: string | undefined,
-  threshold: number,
-  filter: RegExp[],
-): boolean => {
-  if (!body || !contentType) {
-    return false;
-  }
-
-  const buffer = getBodyBuffer(body);
-  if (!buffer || buffer.length < threshold) {
-    return false;
-  }
-
-  return filter.some((pattern) => pattern.test(contentType));
-};
+  return false;
+}
 
 const getBodyBuffer = (body: any): Buffer | null => {
   if (typeof body === "string") {

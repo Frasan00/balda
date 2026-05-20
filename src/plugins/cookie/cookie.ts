@@ -5,192 +5,238 @@ import type { Response } from "../../server/http/response.js";
 import type { TypedMiddleware } from "../../server/http/typed_middleware.js";
 import type { CookieMiddlewareOptions, CookieOptions } from "./cookie_types.js";
 
+// RFC 6265 cookie-name token chars: US-ASCII visible chars except delimiters
+const COOKIE_NAME_RE = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/;
+// Safe attribute value chars: printable ASCII except ; and \r\n
+const SAFE_ATTR_RE = /^[\x20-\x7E]*$/;
+const ATTR_FORBIDDEN = /[;\r\n]/;
+// Names that, if decoded, would alter Object prototype
+const RESERVED_NAMES = new Set(["__proto__", "prototype", "constructor"]);
+// Hard limits to prevent DoS
+const MAX_COOKIE_HEADER_BYTES = 8192;
+const MAX_COOKIE_PAIRS = 50;
+
 /**
- * Cookie middleware for parsing and setting cookies, must be used in order to use the cookie methods on the request and response objects
- *
- * @param options Cookie middleware options
+ * Cookie middleware for parsing and setting cookies.
+ * Must be used before any handler that accesses `req.cookies` or `req.signedCookies`.
  */
 export const cookie = (
   options?: CookieMiddlewareOptions,
-): TypedMiddleware<{ cookies: Record<string, string> }> => {
-  if (options?.sign && !options.secret) {
+): TypedMiddleware<{
+  cookies: Record<string, string>;
+  signedCookies: Record<string, string>;
+}> => {
+  const secrets = normalizeSecrets(options?.secret);
+
+  if (options?.sign && secrets.length === 0) {
     throw new Error(
       "Cookie signing requires a secret. Set `secret` when `sign` is enabled.",
     );
   }
 
-  const opts: Required<CookieMiddlewareOptions> = {
-    secret: options?.secret ?? "",
-    defaults: {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "Lax",
-      ...options?.defaults,
-    },
-    parse: options?.parse ?? true,
-    sign: options?.sign ?? false,
+  const globalSign = options?.sign ?? false;
+  const defaults: CookieOptions = {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+    ...options?.defaults,
   };
+  const shouldParse = options?.parse ?? true;
 
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (opts.parse) {
+    req.cookies = Object.create(null) as Record<string, string>;
+    req.signedCookies = Object.create(null) as Record<string, string>;
+
+    if (shouldParse) {
       const rawCookies = parseCookies(req.rawHeaders.get("cookie") || "");
-      req.cookies = {};
 
       for (const [name, value] of Object.entries(rawCookies)) {
-        if (opts.sign && opts.secret) {
-          const verified = verifySignedCookie(value, opts.secret);
+        if (globalSign && secrets.length > 0) {
+          const verified = verifySignedCookie(value, secrets);
           if (verified !== false) {
-            req.cookies[name] = verified;
+            req.signedCookies[name] = verified;
           }
+          // Do not expose signed cookies in req.cookies to prevent downgrade confusion
           continue;
         }
-
         req.cookies[name] = value;
       }
     }
 
-    // Add cookie methods to response
     res.cookie = (
       name: string,
       value: string,
       cookieOptions?: CookieOptions,
     ) => {
-      setCookie(res, name, value, { ...opts.defaults, ...cookieOptions }, opts);
+      const merged: CookieOptions = { ...defaults, ...cookieOptions };
+      // Per-cookie signed override: respect if explicitly set
+      const shouldSign =
+        cookieOptions?.signed !== undefined ? cookieOptions.signed : globalSign;
+      setCookie(res, name, value, merged, shouldSign, secrets);
     };
 
     res.clearCookie = (name: string, cookieOptions?: CookieOptions) => {
-      clearCookie(res, name, { ...opts.defaults, ...cookieOptions });
+      const merged: CookieOptions = {
+        ...defaults,
+        ...cookieOptions,
+        maxAge: 0,
+        expires: new Date(0),
+      };
+      setCookie(res, name, "", merged, false, []);
     };
 
     await next();
   };
 };
 
+function normalizeSecrets(secret?: string | string[]): string[] {
+  if (!secret) return [];
+  return Array.isArray(secret) ? secret.filter(Boolean) : [secret];
+}
+
 /**
- * Parse cookie string into an object
+ * Parse Cookie header into a null-prototype object.
+ * Enforces size/count limits and drops malformed or reserved-name pairs.
  */
 function parseCookies(cookieString: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
+  const cookies = Object.create(null) as Record<string, string>;
 
   if (!cookieString) {
     return cookies;
   }
 
-  const pairs = cookieString.split(";");
+  // Hard cap on total header size to prevent DoS
+  const input = cookieString.slice(0, MAX_COOKIE_HEADER_BYTES);
+  const pairs = input.split(";");
+  let count = 0;
 
   for (const pair of pairs) {
-    const trimmedPair = pair.trim();
-    const separatorIndex = trimmedPair.indexOf("=");
+    if (count >= MAX_COOKIE_PAIRS) break;
 
-    if (separatorIndex > 0) {
-      const name = trimmedPair.slice(0, separatorIndex);
-      const value = trimmedPair.slice(separatorIndex + 1);
-      cookies[decodeURIComponent(name)] = decodeURIComponent(value);
+    const trimmed = pair.trim();
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex <= 0) continue;
+
+    let name: string;
+    let value: string;
+    try {
+      name = decodeURIComponent(trimmed.slice(0, separatorIndex));
+      value = decodeURIComponent(trimmed.slice(separatorIndex + 1));
+    } catch {
+      // Malformed percent-encoding — skip pair instead of throwing 500
+      continue;
     }
+
+    if (RESERVED_NAMES.has(name)) continue;
+
+    cookies[name] = value;
+    count++;
   }
 
   return cookies;
 }
 
+function validateAttrString(label: string, value: string): void {
+  if (!SAFE_ATTR_RE.test(value) || ATTR_FORBIDDEN.test(value)) {
+    throw new Error(
+      `Cookie ${label} contains invalid characters (CR, LF, or semicolons are not permitted): ${JSON.stringify(value)}`,
+    );
+  }
+}
+
 /**
- * Set a cookie on the response
+ * Build and append a Set-Cookie header string to the response.
  */
 function setCookie(
   res: Response,
   name: string,
   value: string,
   options: CookieOptions,
-  middlewareOptions: Required<CookieMiddlewareOptions>,
+  shouldSign: boolean,
+  secrets: string[],
 ): void {
-  const signedValue =
-    middlewareOptions.sign && middlewareOptions.secret
-      ? signCookie(value, middlewareOptions.secret)
-      : value;
-  let cookieValue = `${encodeURIComponent(name)}=${encodeURIComponent(signedValue)}`;
+  if (!COOKIE_NAME_RE.test(name)) {
+    throw new Error(
+      `Invalid cookie name ${JSON.stringify(name)}: must be a valid RFC 6265 token.`,
+    );
+  }
 
-  // Add domain
+  if (options.sameSite === "None" && !options.secure) {
+    throw new Error(
+      `Cookie ${JSON.stringify(name)}: sameSite "None" requires secure: true.`,
+    );
+  }
+
+  const rawValue =
+    shouldSign && secrets.length > 0 ? signCookie(value, secrets[0]) : value;
+
+  let cookieStr = `${encodeURIComponent(name)}=${encodeURIComponent(rawValue)}`;
+
   if (options.domain) {
-    cookieValue += `; Domain=${options.domain}`;
+    validateAttrString("domain", options.domain);
+    cookieStr += `; Domain=${options.domain}`;
   }
 
-  // Add path
   if (options.path) {
-    cookieValue += `; Path=${options.path}`;
+    validateAttrString("path", options.path);
+    cookieStr += `; Path=${options.path}`;
   }
 
-  // Add expires
-  if (options.expires) {
-    cookieValue += `; Expires=${options.expires.toUTCString()}`;
+  if (options.expires !== undefined) {
+    if (Number.isNaN(options.expires.getTime())) {
+      throw new Error(
+        `Cookie ${JSON.stringify(name)}: expires is an Invalid Date.`,
+      );
+    }
+    cookieStr += `; Expires=${options.expires.toUTCString()}`;
   }
 
-  // Add maxAge
-  if (options.maxAge) {
-    cookieValue += `; Max-Age=${options.maxAge}`;
+  if (options.maxAge !== undefined) {
+    if (!Number.isInteger(options.maxAge) || options.maxAge < 0) {
+      throw new Error(
+        `Cookie ${JSON.stringify(name)}: maxAge must be a non-negative integer, got ${options.maxAge}.`,
+      );
+    }
+    cookieStr += `; Max-Age=${options.maxAge}`;
   }
 
-  // Add secure
   if (options.secure) {
-    cookieValue += "; Secure";
+    cookieStr += "; Secure";
   }
 
-  // Add httpOnly
   if (options.httpOnly) {
-    cookieValue += "; HttpOnly";
+    cookieStr += "; HttpOnly";
   }
 
-  // Add sameSite
   if (options.sameSite) {
-    cookieValue += `; SameSite=${options.sameSite}`;
+    // sameSite is a known enum; no need to re-validate chars
+    cookieStr += `; SameSite=${options.sameSite}`;
   }
 
-  // Add priority
   if (options.priority) {
-    cookieValue += `; Priority=${options.priority}`;
+    if (!["Low", "Medium", "High"].includes(options.priority)) {
+      throw new Error(
+        `Cookie ${JSON.stringify(name)}: priority must be "Low", "Medium", or "High".`,
+      );
+    }
+    cookieStr += `; Priority=${options.priority}`;
   }
 
-  // Set the Set-Cookie header
-  const existingCookies = res.headers["Set-Cookie"] || "";
-  const newCookies = existingCookies
-    ? `${existingCookies}, ${cookieValue}`
-    : cookieValue;
-  res.setHeader("Set-Cookie", newCookies);
+  // Push to array — response.ts accumulates these as separate Set-Cookie headers
+  res.setHeader("Set-Cookie", cookieStr);
 }
 
-/**
- * Clear a cookie by setting it to expire in the past
- */
-function clearCookie(
-  res: Response,
-  name: string,
-  options: CookieOptions,
-): void {
-  const clearOptions: CookieOptions = {
-    ...options,
-    expires: new Date(0),
-    maxAge: 0,
-  };
-
-  setCookie(res, name, "", clearOptions, {
-    secret: "",
-    defaults: {},
-    parse: true,
-    sign: false,
-  });
-}
-
-/**
- * Sign a cookie value with HMAC-SHA256 using the secret
- */
 function signCookie(value: string, secret: string): string {
   const signature = createHmac("sha256", secret).update(value).digest("hex");
   return `${value}.${signature}`;
 }
 
 /**
- * Verify a signed cookie
+ * Verify a signed cookie against any of the provided secrets (key rotation).
+ * Uses timing-safe comparison to prevent timing attacks.
  */
-function verifySignedCookie(value: string, secret: string): string | false {
+function verifySignedCookie(value: string, secrets: string[]): string | false {
   const separatorIndex = value.lastIndexOf(".");
   if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
     return false;
@@ -198,23 +244,21 @@ function verifySignedCookie(value: string, secret: string): string | false {
 
   const cookieValue = value.slice(0, separatorIndex);
   const signature = value.slice(separatorIndex + 1);
-  const expectedSignature = createHmac("sha256", secret)
-    .update(cookieValue)
-    .digest("hex");
-
-  if (signature.length !== expectedSignature.length) {
-    return false;
-  }
-
   const providedBuffer = Buffer.from(signature, "hex");
-  const expectedBuffer = Buffer.from(expectedSignature, "hex");
 
-  if (
-    providedBuffer.length !== expectedBuffer.length ||
-    !timingSafeEqual(providedBuffer, expectedBuffer)
-  ) {
-    return false;
+  for (const secret of secrets) {
+    const expectedSignature = createHmac("sha256", secret)
+      .update(cookieValue)
+      .digest("hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+    if (
+      providedBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(providedBuffer, expectedBuffer)
+    ) {
+      return cookieValue;
+    }
   }
 
-  return cookieValue;
+  return false;
 }

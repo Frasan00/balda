@@ -9,6 +9,17 @@ export type StaticPluginOptions = {
    * @example "/assets" or "/public"
    */
   path: string;
+  /**
+   * Policy for dotfiles (files starting with `.`).
+   * - "ignore": return 404 (default)
+   * - "deny": return 403
+   * - "allow": serve normally
+   */
+  dotfiles?: "ignore" | "deny" | "allow";
+  /**
+   * Allow following symlinks. Disabled by default for security.
+   */
+  followSymlinks?: boolean;
 };
 
 export type FileAllowedMimeType =
