@@ -24,6 +24,13 @@ export type {
   ValidatedData,
 } from "./decorators/validation/validate_types.js";
 
+export { serializer } from "./serializer/serializer.js";
+export type {
+  SerializerBuilder,
+  VariantHandler,
+  VariantConfig,
+} from "./serializer/serializer_types.js";
+
 // Cron
 export { BaseCron } from "./cron/base_cron.js";
 export { CronService, setCronGlobalErrorHandler, cronUi } from "./cron/cron.js";
