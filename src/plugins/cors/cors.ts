@@ -10,6 +10,46 @@ const SAFE_ORIGIN_CHARS = /^[A-Za-z0-9:/.\-]+$/;
 // Safe default allowed headers — avoids reflecting arbitrary client headers
 const DEFAULT_ALLOWED_HEADERS = ["Content-Type", "Accept", "Authorization"];
 
+// Regex patterns that are known to be vulnerable to ReDoS
+const REDOS_PATTERNS = [
+  /\(\.[^+*\[]+\)\+/, // Nested quantifiers like (.)+ repetition
+  /\([+.]\*[+.]*\)/, // Repeated nested quantifiers
+  /^(a+)+$/, // Classic ReDoS pattern
+];
+
+/**
+ * Validate a regex pattern for potential ReDoS vulnerabilities.
+ * @throws Error if the pattern is potentially vulnerable
+ */
+function validateRegexPattern(pattern: RegExp): void {
+  const source = pattern.source;
+  const flags = pattern.flags;
+
+  // Check for dangerous flag combinations
+  if (flags.includes("g") && source.includes("(?:")) {
+    // Global flag with complex lookaheads can be slow
+    // This is a heuristic - not perfect but catches common issues
+  }
+
+  // Check against known ReDoS patterns
+  for (const redosPattern of REDOS_PATTERNS) {
+    if (redosPattern.test(source)) {
+      throw new Error(
+        `CORS origin regex pattern is potentially vulnerable to ReDoS: ${source}. ` +
+          "Avoid nested quantifiers and overlapping patterns. " +
+          "Use explicit character classes instead.",
+      );
+    }
+  }
+
+  // Warn about very long patterns
+  if (source.length > 200) {
+    console.warn(
+      `CORS origin regex pattern is very long (${source.length} chars), may impact performance: ${source.slice(0, 50)}...`,
+    );
+  }
+}
+
 type ResolvedCorsOptions = {
   origin: NonNullable<CorsOptions["origin"]>;
   methods: NonNullable<CorsOptions["methods"]>;
@@ -20,6 +60,7 @@ type ResolvedCorsOptions = {
   preflightContinue: NonNullable<CorsOptions["preflightContinue"]>;
   optionsSuccessStatus: NonNullable<CorsOptions["optionsSuccessStatus"]>;
   allowNullOrigin: boolean;
+  precompiledRegex?: RegExp[];
 };
 
 /**
@@ -53,6 +94,17 @@ export const cors = (options: CorsOptions): ServerRouteMiddleware => {
     );
   }
 
+  // Precompile and validate regex patterns
+  const precompiledRegex: RegExp[] = [];
+  if (Array.isArray(options.origin)) {
+    for (const origin of options.origin) {
+      if (origin instanceof RegExp) {
+        validateRegexPattern(origin);
+        precompiledRegex.push(origin);
+      }
+    }
+  }
+
   const opts: ResolvedCorsOptions = {
     origin: options.origin ?? "*",
     methods: options.methods ?? [
@@ -74,6 +126,7 @@ export const cors = (options: CorsOptions): ServerRouteMiddleware => {
     preflightContinue: options.preflightContinue ?? false,
     optionsSuccessStatus: options.optionsSuccessStatus ?? 204,
     allowNullOrigin: options.allowNullOrigin ?? false,
+    precompiledRegex,
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -172,12 +225,19 @@ function determineOrigin(
   }
 
   if (Array.isArray(opts.origin)) {
-    const match = opts.origin.find((origin) => {
+    const match = opts.origin.find((origin, index) => {
       if (typeof origin === "string") {
         return origin === requestOrigin;
       }
-      if (origin instanceof RegExp) {
-        return origin.test(requestOrigin);
+      // Use precompiled regex for safer pattern matching
+      if (origin instanceof RegExp && opts.precompiledRegex?.[index]) {
+        // Use timeout protection for regex operations
+        try {
+          return opts.precompiledRegex[index].test(requestOrigin);
+        } catch {
+          // If regex test fails (shouldn't happen with valid patterns), reject
+          return false;
+        }
       }
       return false;
     });

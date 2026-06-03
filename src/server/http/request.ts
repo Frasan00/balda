@@ -14,6 +14,8 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import { SessionStore } from "../../plugins/session/session_types.js";
+import { CookieOptions } from "../../plugins/cookie/cookie_types.js";
 
 /**
  * The request object with type-safe path parameters.
@@ -477,6 +479,42 @@ export class Request<
    */
   #session?: Record<string, any>;
   #sessionSet = false;
+
+  /**
+   * Session dirty tracking - true if session was modified and needs to be saved.
+   * @internal
+   */
+  _sessionDirty = false;
+
+  /**
+   * Session ID for the current request.
+   * @internal
+   */
+  _sessionId?: string;
+
+  /**
+   * Session TTL in seconds.
+   * @internal
+   */
+  _sessionTtl?: number;
+
+  /**
+   * Session store instance.
+   * @internal
+   */
+  _sessionStore?: SessionStore;
+
+  /**
+   * Session cookie name.
+   * @internal
+   */
+  _sessionCookieName?: string;
+
+  /**
+   * Session cookie defaults.
+   * @internal
+   */
+  _sessionCookieDefaults?: CookieOptions;
 
   get session(): Record<string, any> | undefined {
     if (!this.#sessionSet) {

@@ -96,8 +96,45 @@ function normalizeSecrets(secret?: string | string[]): string[] {
 }
 
 /**
+ * Check if a cookie value contains prototype pollution patterns.
+ * Returns true if the value is potentially dangerous.
+ */
+function isValuePolluted(value: string): boolean {
+  // Check for JSON-like values with prototype properties
+  if (
+    value.includes("__proto__") ||
+    value.includes("constructor") ||
+    value.includes("prototype")
+  ) {
+    return true;
+  }
+  // Check for JavaScript object patterns
+  if (value.startsWith("{") || value.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(value);
+      // Check nested properties
+      const checkNested = (obj: any, depth = 0): boolean => {
+        if (depth > 3) return false; // Limit recursion depth
+        if (typeof obj !== "object" || obj === null) return false;
+        for (const key in obj) {
+          if (RESERVED_NAMES.has(key)) return true;
+          if (checkNested(obj[key], depth + 1)) return true;
+        }
+        return false;
+      };
+      return checkNested(parsed);
+    } catch {
+      // Invalid JSON, treat as plain string
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
  * Parse Cookie header into a null-prototype object.
  * Enforces size/count limits and drops malformed or reserved-name pairs.
+ * Validates both cookie names AND values for prototype pollution.
  */
 function parseCookies(cookieString: string): Record<string, string> {
   const cookies = Object.create(null) as Record<string, string>;
@@ -129,6 +166,9 @@ function parseCookies(cookieString: string): Record<string, string> {
     }
 
     if (RESERVED_NAMES.has(name)) continue;
+
+    // Validate cookie value for prototype pollution
+    if (isValuePolluted(value)) continue;
 
     cookies[name] = value;
     count++;

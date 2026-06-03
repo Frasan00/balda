@@ -171,5 +171,6 @@
     "bun",
     "deno",
     "backend"
-  ]
+  ],
+  "packageManager": "yarn@1.22.1"
 }

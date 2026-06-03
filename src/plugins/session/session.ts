@@ -40,38 +40,101 @@ export const session = (
   return async (req: Request, res: Response, next: NextFunction) => {
     const sidFromCookie = readSessionIdFromCookies(req, name);
     let sid = sidFromCookie;
-    let sess = sid ? await store.get(sid) : undefined;
+    const storedSession = sid ? await store.get(sid) : undefined;
 
-    if (!sid || !sess) {
-      sid ||= nativeCrypto.randomUUID();
-      sess ||= {};
-      await store.set(sid, sess, ttl);
+    // Create new session if none exists or expired
+    if (!sid || !storedSession) {
+      sid = nativeCrypto.randomUUID();
+      const newSession = {};
+      await store.set(sid, newSession, ttl);
       res.cookie?.(name, sid, cookieDefaults);
+
+      // Clone for request isolation
+      req.session = { ...newSession };
+      // Session is new, mark as dirty for save
+      req._sessionDirty = true;
+      req._sessionId = sid;
+      req._sessionTtl = ttl;
+      req._sessionStore = store;
+      req._sessionCookieName = name;
+      req._sessionCookieDefaults = cookieDefaults;
+    } else {
+      // Clone existing session for request isolation
+      req.session = { ...storedSession };
+      req._sessionDirty = false; // Mark as clean initially
+      req._sessionId = sid;
+      req._sessionTtl = ttl;
+      req._sessionStore = store;
+      req._sessionCookieName = name;
+      req._sessionCookieDefaults = cookieDefaults;
     }
 
     let destroyed = false;
 
-    req.session = sess;
-    req.saveSession = async () => store.set(sid as string, sess, ttl);
-    req.destroySession = async () => {
-      destroyed = true;
-      await store.destroy(sid!);
-      res.clearCookie?.(name, cookieDefaults);
+    // Use cloned session reference with proper null checks
+    req.saveSession = async () => {
+      if (!req._sessionId || !req._sessionStore) {
+        throw new Error(
+          "Cannot save session: no session ID or store available",
+        );
+      }
+      if (!req.session) {
+        throw new Error("Cannot save session: session data is undefined");
+      }
+      await req._sessionStore.set(req._sessionId, req.session, req._sessionTtl);
+      req._sessionDirty = false; // Mark as clean after save
     };
+
+    req.destroySession = async () => {
+      if (!req._sessionId || !req._sessionStore) {
+        throw new Error(
+          "Cannot destroy session: no session ID or store available",
+        );
+      }
+      destroyed = true;
+      await req._sessionStore.destroy(req._sessionId);
+      res.clearCookie?.(
+        req._sessionCookieName ?? "sid",
+        req._sessionCookieDefaults,
+      );
+      req._sessionDirty = false; // No need to save destroyed session
+    };
+
     req.regenerateSession = async () => {
+      if (!req._sessionId || !req._sessionStore) {
+        throw new Error(
+          "Cannot regenerate session: no session ID or store available",
+        );
+      }
+      if (!req.session) {
+        throw new Error("Cannot regenerate session: session data is undefined");
+      }
       // Invalidate old SID to prevent fixation
-      await store.destroy(sid!);
-      sid = nativeCrypto.randomUUID();
-      // sess reference stays — session data is preserved across regeneration
-      await store.set(sid, sess!, ttl);
-      res.cookie?.(name, sid, cookieDefaults);
+      await req._sessionStore.destroy(req._sessionId);
+      const newSid = nativeCrypto.randomUUID();
+      // Preserve session data across regeneration
+      await req._sessionStore.set(newSid, req.session, req._sessionTtl);
+      res.cookie?.(
+        req._sessionCookieName ?? "sid",
+        newSid,
+        req._sessionCookieDefaults,
+      );
+      req._sessionId = newSid;
+      req._sessionDirty = true; // Mark as dirty since we updated the store
     };
 
     await next();
 
     // Skip re-save when session was explicitly destroyed — prevents resurrection
-    if (!destroyed) {
-      await store.set(sid, sess!, ttl);
+    // Only save if session was modified (dirty tracking)
+    if (
+      !destroyed &&
+      req._sessionDirty &&
+      req._sessionId &&
+      req._sessionStore &&
+      req.session
+    ) {
+      await req._sessionStore.set(req._sessionId, req.session, req._sessionTtl);
     }
   };
 };
