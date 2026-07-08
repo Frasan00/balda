@@ -7,8 +7,9 @@ export interface JsonOptions {
   sizeLimit?: `${number}mb` | `${number}kb`;
 
   /**
-   * If true, the JSON body will be parsed as an empty object if it is empty.
-   * Default: false (body will be undefined)
+   * If true, the JSON body will be parsed as an empty object (`{}`) if it is empty.
+   * If false, an empty body leaves `req.body` as `undefined`.
+   * Default: true
    */
   parseEmptyBodyAsObject?: boolean;
 

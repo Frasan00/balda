@@ -69,6 +69,16 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
         });
       }
 
+      // Empty (or whitespace-only) body: skip JSON.parse("") which would
+      // otherwise throw "Unexpected end of JSON input" -> "Invalid JSON syntax".
+      // parseEmptyBodyAsObject defaults to true so req.body is a safe-to-
+      // destructure {} instead of undefined; set it to false to leave undefined.
+      if (text.trim() === "") {
+        req.body = options?.parseEmptyBodyAsObject === false ? undefined : {};
+        req.bodyUsed = true;
+        return next();
+      }
+
       const parsed: unknown = JSON.parse(text);
       validateDepthAndKeys(parsed, maxDepth, maxKeys, 0, { count: 0 });
       req.body = parsed;
