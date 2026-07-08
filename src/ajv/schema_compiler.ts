@@ -7,6 +7,42 @@ import type { JSONSchema } from "../plugins/swagger/swagger_types.js";
 import { logger } from "../logger/logger.js";
 
 /**
+ * Tracks schema-compile failures that have already been logged so we don't spam
+ * the logs with the same warning once per route registration. Compile failures
+ * are non-fatal (runtime validation still works), so they're logged at `debug`
+ * level and de-duplicated by context + schema type + error message.
+ */
+const compileFailuresLogged = new Set<string>();
+
+/**
+ * Logs a schema-compile failure at `debug` level, at most once per unique
+ * (context, schemaType, error message) combination.
+ *
+ * The error is passed under the `err` key so pino applies its Error serializer
+ * (message + stack). Previously it was logged under `error`, which pino serializes
+ * as `{}` because Error properties are non-enumerable — hiding the actual cause.
+ */
+const logCompileFailure = (
+  payload: {
+    context: string;
+    schemaType: string;
+    err: unknown;
+    cacheKey?: string;
+  },
+  message: string,
+): void => {
+  const err = payload.err;
+  const errMessage =
+    err instanceof Error ? err.message : err == null ? "" : String(err);
+  const dedupKey = `${payload.context}:${payload.schemaType}:${payload.cacheKey ?? ""}:${errMessage}`;
+  if (compileFailuresLogged.has(dedupKey)) {
+    return;
+  }
+  compileFailuresLogged.add(dedupKey);
+  logger.debug(payload, message);
+};
+
+/**
  * Compiles and caches a schema validator using Ajv's internal storage.
  * Handles Zod, TypeBox, and plain JSON schemas.
  * Also caches the JSON Schema (OpenAPI format) and fast-json-stringify serializer.
@@ -24,9 +60,9 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
       AjvStateManager.storeJsonSchema(jsonSchema, "serialize_zod");
       AjvStateManager.getOrCompileValidator(jsonSchema, "serialize_zod");
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "zod",
           context: "serialize_decorator",
         },
@@ -48,9 +84,9 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
         "serialize_typebox",
       );
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "typebox",
           context: "serialize_decorator",
         },
@@ -69,9 +105,9 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
         "serialize_json",
       );
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "json",
           context: "serialize_decorator",
         },
@@ -95,9 +131,9 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
       `serialize_primitive_${cacheKey}`,
     );
   } catch (error) {
-    logger.warn(
+    logCompileFailure(
       {
-        error,
+        err: error,
         schemaType: "primitive",
         cacheKey,
         context: "serialize_decorator",
@@ -122,9 +158,9 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
       AjvStateManager.storeJsonSchema(jsonSchema, "zod_schema");
       AjvStateManager.getOrCompileValidator(jsonSchema, "zod_schema");
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "zod",
           context: "request_validation",
         },
@@ -143,9 +179,9 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
         "typebox_schema",
       );
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "typebox",
           context: "request_validation",
         },
@@ -164,9 +200,9 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
         "json_schema",
       );
     } catch (error) {
-      logger.warn(
+      logCompileFailure(
         {
-          error,
+          err: error,
           schemaType: "json",
           context: "request_validation",
         },
@@ -190,9 +226,9 @@ export const compileRequestValidator = (schema: RequestSchema): void => {
       `primitive_${cacheKey}`,
     );
   } catch (error) {
-    logger.warn(
+    logCompileFailure(
       {
-        error,
+        err: error,
         schemaType: "primitive",
         cacheKey,
         context: "request_validation",

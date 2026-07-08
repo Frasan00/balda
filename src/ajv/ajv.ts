@@ -146,6 +146,12 @@ export class AjvStateManager {
     validateSchema: false, // Required - do not change
     strict: false, // Required - do not change
     removeAdditional: "all", // Strip unknown properties on validated request objects (mass-assignment defense)
+    // Zod string formats (e.g. z.string().url() -> format: "uri") are not registered
+    // in AJV by default, so it would console.warn "unknown format ignored" for every
+    // compiled schema, flooding startup logs. Disabling format codegen removes the
+    // spam with no validation regression (unregistered formats were already skipped).
+    // To enable real format validation, pass a custom ajvInstance with ajv-formats.
+    validateFormats: false,
   });
 
   /**
