@@ -65,9 +65,9 @@ export const getPackageManager = async (): Promise<
     return ["npm", "install", "-D"];
   }
 
-  const hasBunLock = await nativeFs.exists(
-    nativePath.join(process.cwd(), "bun.lockb"),
-  );
+  const hasBunLock =
+    (await nativeFs.exists(nativePath.join(process.cwd(), "bun.lockb"))) ||
+    (await nativeFs.exists(nativePath.join(process.cwd(), "bun.lock")));
 
   if (hasBunLock) {
     return ["bun", "add", "-D"];

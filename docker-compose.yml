@@ -72,7 +72,7 @@ services:
       - local-network
 
   postgres:
-    image: postgres:17.4
+    image: postgres:17.5
     container_name: balda-postgres
     restart: unless-stopped
     tty: true
