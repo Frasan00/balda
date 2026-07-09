@@ -185,12 +185,7 @@ export class Request<
    * @internal
    */
   private static zodIssuesToAjvErrors(
-    issues: readonly {
-      path?: (string | number)[];
-      message?: string;
-      code?: string;
-      [k: string]: unknown;
-    }[],
+    issues: readonly any[],
   ): Partial<ErrorObject>[] {
     // Matches @fastify/type-provider-zod's createValidationError format:
     //   { keyword, instancePath, schemaPath, message, params }
