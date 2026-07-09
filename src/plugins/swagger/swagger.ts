@@ -14,6 +14,7 @@ import { router } from "../../server/router/router.js";
 import { getValidationErrorHandler } from "../../server/router/validation_error_handler_registry.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import type { ZodToJSONSchemaOptions } from "../../validator/zod_loader.js";
 
 const BODY_TYPE_MIME_MAP: Record<string, string> = {
   json: "application/json",
@@ -151,6 +152,7 @@ function getOrConvertToJSONSchema(
     | ZodType
     | AjvCompileReturnType
     | Record<string, unknown>,
+  options?: ZodToJSONSchemaOptions,
 ): JSONSchema {
   if (!schema || typeof schema !== "object") {
     return { type: "string" };
@@ -174,7 +176,7 @@ function getOrConvertToJSONSchema(
   // This handles edge cases like global swagger models that weren't pre-compiled
   if (ZodLoader.isZodSchema(schema)) {
     try {
-      const jsonSchema = ZodLoader.toJSONSchema(schema as ZodType);
+      const jsonSchema = ZodLoader.toJSONSchema(schema as ZodType, options);
       AjvStateManager.storeJsonSchema(jsonSchema, prefix);
       return jsonSchema;
     } catch (error) {
@@ -277,7 +279,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
                   name,
                 )
               : false,
-            schema: getOrConvertToJSONSchema(schema as ZodType),
+            schema: getOrConvertToJSONSchema(schema as ZodType, {
+              io: "input",
+            }),
           });
         }
       }
@@ -318,7 +322,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
                   name,
                 )
               : false,
-            schema: getOrConvertToJSONSchema(schema as ZodType),
+            schema: getOrConvertToJSONSchema(schema as ZodType, {
+              io: "input",
+            }),
           });
         }
       }
@@ -336,7 +342,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
       operation.requestBody = {
         content: {
           [routeBodyContentType]: {
-            schema: getOrConvertToJSONSchema(bodySchema as ZodType),
+            schema: getOrConvertToJSONSchema(bodySchema as ZodType, {
+              io: "input",
+            }),
           },
         },
         required: true,
@@ -674,6 +682,7 @@ function extractPathParams(path: string, paramSchema?: ZodType): any[] {
     ) {
       schema = getOrConvertToJSONSchema(
         (paramSchema as ZodObject).shape[name] as ZodType,
+        { io: "input" },
       ) || {
         type: "string",
       };

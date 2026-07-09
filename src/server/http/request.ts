@@ -14,6 +14,8 @@ import { nativeCrypto } from "../../runtime/native_crypto.js";
 import { TypeBoxLoader } from "../../validator/typebox_loader.js";
 import { validateSchema } from "../../validator/validator.js";
 import { ZodLoader } from "../../validator/zod_loader.js";
+import { ValidationError } from "ajv";
+import type { ErrorObject } from "ajv";
 import { SessionStore } from "../../plugins/session/session_types.js";
 import { CookieOptions } from "../../plugins/cookie/cookie_types.js";
 
@@ -131,7 +133,7 @@ export class Request<
   } {
     if (ZodLoader.isZodSchema(schema)) {
       return {
-        jsonSchema: ZodLoader.toJSONSchema(schema as ZodType),
+        jsonSchema: ZodLoader.toJSONSchema(schema as ZodType, { io: "input" }),
         prefix: "zod_schema",
       };
     }
@@ -176,17 +178,79 @@ export class Request<
   }
 
   /**
+   * Maps Zod validation issues to AJV-compatible ErrorObject[] so that the
+   * existing catch blocks (which check `error instanceof ValidationError`)
+   * produce structured, JSON-serializable error responses instead of `{}`.
+   *
+   * @internal
+   */
+  private static zodIssuesToAjvErrors(
+    issues: readonly {
+      path?: (string | number)[];
+      message?: string;
+      code?: string;
+      [k: string]: unknown;
+    }[],
+  ): Partial<ErrorObject>[] {
+    // Matches @fastify/type-provider-zod's createValidationError format:
+    //   { keyword, instancePath, schemaPath, message, params }
+    // where params omits path/code/message (same as Fastify's omit).
+    return issues.map((issue) => {
+      const pathStr = (issue.path ?? []).map(String).join("/");
+      const { path, code, message, ...rest } = issue;
+      return {
+        keyword: issue.code ?? "validation",
+        instancePath: pathStr ? `/${pathStr}` : "",
+        schemaPath: `#/${pathStr}/${issue.code ?? "validation"}`,
+        params: rest,
+        message: issue.message ?? "Validation failed",
+      } as Partial<ErrorObject>;
+    });
+  }
+
+  /**
    * Compiles and validates the request data against the input schema.
+   *
+   * **Zod schemas** are validated with Zod's native `safeParse()` instead of
+   * the AJV path.  This correctly applies transforms (`.transform(Number)`),
+   * coercions (`z.coerce.number()`, `z.coerce.date()`), and refinements — all
+   * of which the AJV path cannot handle because `z.toJSONSchema()` throws for
+   * these constructs.  The returned `data` is the fully parsed/coerced value.
+   *
+   * **TypeBox and plain JSON schemas** continue to use the AJV path.
+   *
    * @param inputSchema - The schema to validate the request data against (Zod, TypeBox, or plain JSON schema).
    * @param data - The request data to validate.
    * @param throwErrorOnValidationFail - If true, throws ValidationError on validation failure. If false, returns the original data.
-   * @returns The validated data.
+   * @returns The validated (and potentially transformed/coerced) data.
    */
   private static compileAndValidate<T extends RequestSchema>(
     inputSchema: T,
     data: unknown,
     throwErrorOnValidationFail: boolean,
   ): ValidatedData<T> {
+    // ── Zod path: native safeParse ──────────────────────────────
+    // Using safeParse ensures transforms, coercions, and refinements are
+    // applied, and avoids the toJSONSchema() throw that breaks the AJV path
+    // for schemas containing z.date(), z.bigint(), or .transform().
+    if (ZodLoader.isZodSchema(inputSchema)) {
+      const result = (inputSchema as ZodType).safeParse(data);
+
+      if (result.success) {
+        return result.data as ValidatedData<T>;
+      }
+
+      if (!throwErrorOnValidationFail) {
+        return data as ValidatedData<T>;
+      }
+
+      // Map Zod issues to AJV ErrorObjects so the existing catch blocks
+      // (which check `instanceof ValidationError`) produce structured responses.
+      const errors = this.zodIssuesToAjvErrors(result.error.issues);
+      throw new ValidationError(errors);
+    }
+
+    // ── AJV path: TypeBox & plain JSON schemas ──────────────────
     const compiled = this.getOrCompileSchema(inputSchema);
     return validateSchema(compiled, data, throwErrorOnValidationFail);
   }

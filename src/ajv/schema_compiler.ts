@@ -154,7 +154,7 @@ export const compileAndCacheValidator = (schema: RequestSchema): void => {
 export const compileRequestValidator = (schema: RequestSchema): void => {
   if (ZodLoader.isZodSchema(schema)) {
     try {
-      const jsonSchema = ZodLoader.toJSONSchema(schema);
+      const jsonSchema = ZodLoader.toJSONSchema(schema, { io: "input" });
       AjvStateManager.storeJsonSchema(jsonSchema, "zod_schema");
       AjvStateManager.getOrCompileValidator(jsonSchema, "zod_schema");
     } catch (error) {

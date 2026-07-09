@@ -169,7 +169,7 @@ const validateDecorator = (
             : genericError;
           return res.status(status).json(body);
         }
-        return res.unprocessableEntity(error);
+        return res.unprocessableEntity(genericError);
       }
     };
 

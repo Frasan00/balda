@@ -279,8 +279,13 @@ describe("Validation Error Handler", () => {
     });
     await handler(req, res);
     expect(statusCode).toBe(422);
-    expect(sentBody).toBeInstanceOf(Error);
+    // After the fix, generic errors produce a structured SerializedValidationError
+    // object (not a raw Error whose JSON.stringify is "{}")
+    expect(sentBody).not.toBeInstanceOf(Error);
     expect(sentBody.message).toBe("validation failed");
+    expect(sentBody.errors).toEqual([]);
+    expect(sentBody.ajv).toBe(true);
+    expect(sentBody.validation).toBe(true);
   });
 
   it("should use custom validation error handler when set", async () => {

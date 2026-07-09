@@ -8,6 +8,67 @@ import { Zod4NotInstalledError } from "../errors/zod4_not_installed_error.js";
 import { requireFn } from "../package.js";
 import type { JSONSchema } from "../plugins/swagger/swagger_types.js";
 
+/**
+ * Override callback for `z.toJSONSchema` — mirrors the `getOverride` function
+ * from `@fastify/type-provider-zod` so that balda produces the same JSON
+ * Schema representation as the Fastify Zod type provider (the de-facto
+ * standard).
+ *
+ * Fixes types that Zod's `toJSONSchema` leaves as `{}` when
+ * `unrepresentable: "any"` is used:
+ *
+ * - `z.date()` / `z.coerce.date()` → `{ type: "string", format: "date-time" }`
+ * - `z.undefined()`             → `{ type: "null" }`
+ * - `z.union` (empty members)    → filtered `anyOf` array
+ *
+ * @internal
+ */
+function zodToJSONOverride(
+  io: "input" | "output",
+): (ctx: { zodSchema: any; jsonSchema: any }) => void {
+  return (ctx) => {
+    const def = ctx.zodSchema?._zod?.def;
+
+    // Date → string with date-time format (only for output, matching Fastify)
+    if (def?.type === "date" && io === "output") {
+      ctx.jsonSchema.type = "string";
+      ctx.jsonSchema.format = "date-time";
+    }
+
+    // Undefined → null (only for output, matching Fastify)
+    if (def?.type === "undefined" && io === "output") {
+      ctx.jsonSchema.type = "null";
+    }
+
+    // Union — remove empty members left by unrepresentable: "any"
+    if (def?.type === "union") {
+      ctx.jsonSchema.anyOf = ctx.jsonSchema.anyOf?.filter(
+        (s: object) => Object.keys(s).length > 0,
+      );
+    }
+  };
+}
+
+/**
+ * Options for {@link ZodLoader.toJSONSchema}.
+ */
+export interface ZodToJSONSchemaOptions {
+  /**
+   * Whether to extract the `"input"` or `"output"` type.
+   *
+   * - `"output"` (default) — The post-transform output type. Used for
+   *   response schemas and response serializers.
+   * - `"input"` — The pre-transform input type. Used for request schemas
+   *   (body, query, headers) so the Swagger docs show what the client
+   *   should send, not what the handler receives after transforms.
+   *
+   * This matches `@fastify/type-provider-zod`, which uses `"input"` for
+   * request schemas and `"output"` for response schemas in its JSON
+   * Schema transform.
+   */
+  io?: "input" | "output";
+}
+
 export class ZodLoader {
   private static zodModule: typeof import("zod") | null = null;
 
@@ -95,13 +156,31 @@ export class ZodLoader {
   }
 
   /**
-   * Converts a Zod schema to JSON Schema using Zod v4's toJSONSchema method
+   * Converts a Zod schema to JSON Schema.
+   *
+   * This method follows the same approach as `@fastify/type-provider-zod`
+   * (the de-facto standard for Zod + JSON Schema integration):
+   *
+   * 1. Uses `z.toJSONSchema()` with `unrepresentable: "any"` so that types
+   *    Zod can't natively represent (dates, transforms, etc.) produce `{}`
+   *    instead of throwing.
+   * 2. Uses an `override` callback to patch the `{}` placeholders for known
+   *    types (date → `{ type: "string", format: "date-time" }`, undefined →
+   *    `{ type: "null" }`, unions → filtered `anyOf`).
+   * 3. Accepts an `io` option (`"input"` | `"output"`) so callers can
+   *    extract the pre-transform input type (for request schemas in Swagger)
+   *    or the post-transform output type (for response schemas).
+   *
    * @param schema - The Zod schema to convert
+   * @param options - Optional configuration (e.g. `io: "input"` for request schemas)
    * @returns The JSON Schema representation
    * @throws Zod4NotInstalledError if Zod v4 is not installed or toJSONSchema is not available
    * @throws Error if the schema is invalid or incompatible (Example using zod/v3)
    */
-  static toJSONSchema(schema: ZodType): JSONSchema {
+  static toJSONSchema(
+    schema: ZodType,
+    options?: ZodToJSONSchemaOptions,
+  ): JSONSchema {
     this.load();
     this.ensureZodV4();
 
@@ -117,8 +196,15 @@ export class ZodLoader {
       );
     }
 
+    const io = options?.io ?? "output";
+
     try {
-      return zodModule.toJSONSchema(schema) as JSONSchema;
+      return zodModule.toJSONSchema(schema, {
+        io,
+        target: "openapi-3.0",
+        unrepresentable: "any",
+        override: zodToJSONOverride(io),
+      }) as JSONSchema;
     } catch (error) {
       if (
         error instanceof Error &&
