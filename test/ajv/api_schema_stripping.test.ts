@@ -330,6 +330,65 @@ describe("API Response Schema Stripping", () => {
     });
   });
 
+  describe("Dynamic routes with request validation", () => {
+    it("should still resolve response schemas when the route also has query validation", async () => {
+      router.get(
+        "/users/:id",
+        {
+          query: {
+            type: "object",
+            properties: { page: { type: "string" } },
+          },
+          responses: {
+            200: {
+              type: "object",
+              properties: {
+                id: { type: "number" },
+              },
+            },
+          },
+        },
+        async (_req, res) => {
+          res.ok({ id: 1, passwordHash: "leaked" });
+        },
+      );
+
+      const found = router.find("GET", "/users/1?page=1");
+      // Regression: the schema map used to be keyed by the pre-validation
+      // handler while lookup used the validation-wrapped one, so this was
+      // silently undefined and the response leaked passwordHash.
+      expect(found!.responseSchemas).toBeDefined();
+
+      const req = new Request();
+      req.query = { page: "1" };
+      const res = new Response();
+      res.setRouteResponseSchemas(found!.responseSchemas);
+
+      await found!.handler(req, res);
+
+      const body = JSON.parse(res.getBody());
+      expect(body).toEqual({ id: 1 });
+      expect(body).not.toHaveProperty("passwordHash");
+    });
+
+    it("should still resolve response schemas on dynamic routes without validation", async () => {
+      router.get(
+        "/plain/:id",
+        {
+          responses: {
+            200: { type: "object", properties: { id: { type: "number" } } },
+          },
+        },
+        async (_req, res) => {
+          res.ok({ id: 1, secret: "leaked" });
+        },
+      );
+
+      const found = router.find("GET", "/plain/1");
+      expect(found!.responseSchemas).toBeDefined();
+    });
+  });
+
   describe("Caching behavior", () => {
     it("should return same serializer on repeated calls (cache hit)", () => {
       const schema = {

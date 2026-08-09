@@ -189,9 +189,10 @@ export class Router {
     }
 
     // Store response schemas in O(1) lookup map for dynamic routes
-    // Use the original handler as key (before wrapping) for consistency
+    // Keyed by finalHandler (the one actually stored on the node and looked
+    // up in find()) so validation-wrapped handlers still resolve their schemas
     if (responseSchemas) {
-      this.handlerResponseSchemas.set(handler, responseSchemas);
+      this.handlerResponseSchemas.set(finalHandler, responseSchemas);
     }
 
     if (isStaticRoute) {

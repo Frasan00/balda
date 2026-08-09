@@ -137,13 +137,18 @@ export class MockServer {
     req.ip = ip;
 
     try {
-      const res = await executeMiddlewareChain(
+      const res = new Response();
+      if (route.responseSchemas) {
+        res.setRouteResponseSchemas(route.responseSchemas);
+      }
+
+      const result = await executeMiddlewareChain(
         route.middleware,
         route.handler,
         req,
-        new Response(),
+        res,
       );
-      return new MockResponse(res);
+      return new MockResponse(result);
     } catch (error) {
       this.logger.error(
         { error },

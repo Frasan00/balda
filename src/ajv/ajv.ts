@@ -396,6 +396,10 @@ export class AjvStateManager {
       Map<string, FastJsonStringifyFunction>
     >();
     this.schemaKeyCache = new WeakMap<object, Map<string, string>>();
+    this.responseSerializersCache = new WeakMap<
+      Record<number, RequestSchema>,
+      Map<number, FastJsonStringifyFunction>
+    >();
     this.refCounter = 0;
   }
 
