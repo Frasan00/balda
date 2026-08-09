@@ -5,6 +5,13 @@ import { AjvStateManager } from "../../src/ajv/ajv.js";
 import { Router } from "../../src/server/router/router.js";
 import { Request } from "../../src/server/http/request.js";
 import { Response } from "../../src/server/http/response.js";
+import { ServerRouteMiddleware } from "../../src/index.js";
+
+const noopMiddleware = async (
+  _req: Request,
+  _res: Response,
+  next: () => Promise<void>,
+) => next();
 
 describe("API Response Schema Stripping", () => {
   let router: Router;
@@ -386,6 +393,68 @@ describe("API Response Schema Stripping", () => {
 
       const found = router.find("GET", "/plain/1");
       expect(found!.responseSchemas).toBeDefined();
+    });
+  });
+
+  describe("applyGlobalMiddlewaresToAllRoutes", () => {
+    it("keeps response schemas on static routes after global middlewares are applied", async () => {
+      router.get(
+        "/static-probe",
+        {
+          responses: {
+            200: { type: "object", properties: { id: { type: "number" } } },
+          },
+        },
+        async (_req, res) => {
+          res.ok({ id: 1, secret: "leaked" });
+        },
+      );
+
+      router.applyGlobalMiddlewaresToAllRoutes([
+        noopMiddleware as ServerRouteMiddleware,
+      ]);
+
+      const found = router.find("GET", "/static-probe");
+      expect(found!.responseSchemas).toBeDefined();
+
+      const req = new Request();
+      const res = new Response();
+      res.setRouteResponseSchemas(found!.responseSchemas);
+      await found!.handler(req, res);
+
+      const body = JSON.parse(res.getBody());
+      expect(body).toEqual({ id: 1 });
+      expect(body).not.toHaveProperty("secret");
+    });
+
+    it("keeps response schemas on dynamic routes after global middlewares are applied", async () => {
+      router.get(
+        "/dynamic-probe/:id",
+        {
+          responses: {
+            200: { type: "object", properties: { id: { type: "number" } } },
+          },
+        },
+        async (_req, res) => {
+          res.ok({ id: 1, secret: "leaked" });
+        },
+      );
+
+      router.applyGlobalMiddlewaresToAllRoutes([
+        noopMiddleware as ServerRouteMiddleware,
+      ]);
+
+      const found = router.find("GET", "/dynamic-probe/1");
+      expect(found!.responseSchemas).toBeDefined();
+
+      const req = new Request();
+      const res = new Response();
+      res.setRouteResponseSchemas(found!.responseSchemas);
+      await found!.handler(req, res);
+
+      const body = JSON.parse(res.getBody());
+      expect(body).toEqual({ id: 1 });
+      expect(body).not.toHaveProperty("secret");
     });
   });
 

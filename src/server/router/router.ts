@@ -977,16 +977,26 @@ export class Router {
   ): void {
     for (const route of this.routes) {
       const updatedMiddleware = [...middlewares, ...(route.middleware || [])];
+      // route.handler is already validation-wrapped from its first registration,
+      // so validationSchemas must stay undefined here or it gets wrapped twice.
+      // swaggerOptions/responses must be forwarded though - passing undefined
+      // wiped them from the route (and, for static routes, silently dropped
+      // response schema stripping since staticRouteCache gets overwritten).
+      const validationSchemas = route.validationSchemas;
       this.addOrUpdate(
         route.method as HttpMethod,
         route.path,
         updatedMiddleware,
         route.handler,
         undefined,
-        undefined,
-        undefined,
+        route.swaggerOptions,
+        route.responses,
         true,
       );
+      // addOrUpdate mutates this.routes[idx] in place (the same object as
+      // `route`) and nulls this field; restore it so the registry stays
+      // accurate for swagger and future re-registrations.
+      route.validationSchemas = validationSchemas;
     }
   }
 

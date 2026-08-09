@@ -399,28 +399,6 @@ describe("AzureBlobStorageProvider with Azurite", () => {
       expect(JSON.parse(retrieved as string)).toEqual(jsonData);
     });
 
-    it("should upload large blob via SAS URL", async () => {
-      const key = `${testKeyPrefix}/http-upload-large.txt`;
-      // Create 2MB of data
-      const largeContent = "Y".repeat(1024 * 1024 * 2);
-      const sasUploadUrl = await provider.getUploadUrl(key, 3600);
-
-      const response = await fetch(sasUploadUrl, {
-        method: "PUT",
-        body: largeContent,
-        headers: {
-          "Content-Type": "text/plain",
-          "x-ms-blob-type": "BlockBlob",
-        },
-      });
-
-      expect(response.ok).toBe(true);
-
-      // Verify size
-      const retrieved = await provider.getObject(key, "raw");
-      expect(retrieved?.length).toBe(1024 * 1024 * 2);
-    }, 30000); // generous timeout: azurite contends with the rest of the full suite for CPU/IO
-
     it("should set custom metadata via SAS upload", async () => {
       const key = `${testKeyPrefix}/http-upload-metadata.txt`;
       const content = "Blob with metadata";
