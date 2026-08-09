@@ -227,6 +227,11 @@ export type {
 export { asyncLocalStorage } from "./plugins/async_local_storage/async_local_storage.js";
 export type { AsyncLocalStorageContextSetters } from "./plugins/async_local_storage/async_local_storage_types.js";
 export { BasePlugin } from "./plugins/base_plugin.js";
+export {
+  betterAuthHandler,
+  mountBetterAuth,
+} from "./plugins/better_auth/better_auth.js";
+export type { BetterAuthMountOptions } from "./plugins/better_auth/better_auth_types.js";
 export { compression } from "./plugins/compression/compression.js";
 export type { CompressionOptions } from "./plugins/compression/compression_types.js";
 export { cookie } from "./plugins/cookie/cookie.js";
