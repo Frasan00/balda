@@ -74,10 +74,9 @@ export class ServerDeno implements ServerInterface {
         baldaRequest.setQueryString(search);
         baldaRequest.setDenoIpExtractor(req, info);
 
-        // User input handler
         const handlerResponse = await handler?.(req, info);
-        if (handlerResponse) {
-          return new globalThis.Response(null, { status: 426 });
+        if (handlerResponse instanceof globalThis.Response) {
+          return handlerResponse;
         }
 
         // GraphQL handler

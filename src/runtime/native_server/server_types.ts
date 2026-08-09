@@ -124,15 +124,19 @@ export type ServerListenCallback = ({
 }) => SyncOrAsync;
 
 /**
- * Custom bun fetch call to be used as an hook inside Bun.serve method
+ * Custom bun fetch call to be used as an hook inside Bun.serve method.
+ * Return a Response to fully handle the request yourself (skips balda's own
+ * GraphQL/upgrade/routing); return void to let balda continue as normal.
  */
 type CustomBunFetch = (
   req: BaldaRequest,
   server: Bun.Server<any>,
-) => SyncOrAsync;
+) => SyncOrAsync<Response | void>;
 
 /**
- * Custom deno fetch call to be used as an hook inside Deno.serve method
+ * Custom deno fetch call to be used as an hook inside Deno.serve method.
+ * Return a Response to fully handle the request yourself (skips balda's own
+ * GraphQL/upgrade/routing); return void to let balda continue as normal.
  */
 type CustomDenoFetch = (
   ...options: Parameters<Parameters<typeof Deno.serve>[0]["handler"]>
@@ -144,7 +148,7 @@ type CustomDenoFetch = (
 export type ServerTapOptionsBuilder<T extends RunTimeType> = T extends "node"
   ? (req: Omit<IncomingMessage, "url">) => Promise<void>
   : T extends "bun"
-    ? Partial<Parameters<typeof Bun.serve>[0]> & {
+    ? Partial<Omit<Parameters<typeof Bun.serve>[0], "fetch">> & {
         fetch?: CustomBunFetch;
       }
     : T extends "deno"

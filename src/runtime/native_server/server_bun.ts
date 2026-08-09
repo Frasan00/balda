@@ -20,6 +20,42 @@ import {
   withTimeout,
 } from "./server_utils.js";
 
+type BunUpgradeTracker = {
+  server: Bun.Server<any>;
+  readonly upgraded: boolean;
+};
+
+/**
+ * Wraps the shared Bun.Server passed to a `tapOptions.bun.fetch` hook so balda can tell
+ * whether the hook already upgraded this request - the flag must live on a per-request
+ * wrapper, not the server object itself, since that's shared across concurrent requests.
+ */
+function createUpgradeTracker(server: Bun.Server<any>): BunUpgradeTracker {
+  let upgraded = false;
+  const proxiedServer = new Proxy(server, {
+    get(target, property) {
+      if (property === "upgrade") {
+        return (request: globalThis.Request, options?: unknown) => {
+          const success = (
+            target.upgrade as (r: globalThis.Request, o?: unknown) => boolean
+          )(request, options);
+          upgraded ||= success;
+          return success;
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
+  return {
+    server: proxiedServer,
+    get upgraded() {
+      return upgraded;
+    },
+  };
+}
+
 export class ServerBun implements ServerInterface {
   port: number;
   hostname: string;
@@ -74,7 +110,19 @@ export class ServerBun implements ServerInterface {
         baldaRequest.setQueryString(search);
         baldaRequest.setBunIpExtractor(req, server);
 
-        await fetch?.call(this, baldaRequest, server);
+        const upgradeTracker = fetch ? createUpgradeTracker(server) : undefined;
+        const hookResult = await fetch?.call(
+          this,
+          baldaRequest,
+          upgradeTracker?.server ?? server,
+        );
+
+        if (upgradeTracker?.upgraded) {
+          return;
+        }
+        if (hookResult instanceof globalThis.Response) {
+          return hookResult;
+        }
 
         if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
           const apolloHandler = await this.ensureGraphQLHandler();
