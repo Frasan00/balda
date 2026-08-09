@@ -71,6 +71,23 @@ export type ServerConnectInput<H extends NodeHttpClient = NodeHttpClient> = {
   graphql?: GraphQL;
 } & (H extends "https" ? HttpsOptions<H> : {});
 
+export type ServerCloseOptions = {
+  /**
+   * Maximum time in milliseconds to wait for open connections to drain before they are
+   * forcibly closed. close() always settles within roughly this bound.
+   *
+   * On Node, WebSocket connections are entirely the app's own `ws` library's
+   * responsibility — close its clients yourself (e.g. `wss.clients` in a `beforeClose`
+   * hook) if you want a graceful, app-aware goodbye; this timeout is a generic backstop,
+   * not WS-aware. On Bun (native WS support), this is the actual mechanism: an open WS
+   * connection blocks close() until either it closes on its own or this timeout forces it.
+   *
+   * Use 0 to force-close immediately.
+   * @default 10000
+   */
+  timeoutMs?: number;
+};
+
 export type ServerRouteMiddleware = (
   req: BaldaRequest,
   res: BaldaResponse,

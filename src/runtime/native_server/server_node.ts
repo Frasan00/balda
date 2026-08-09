@@ -1,5 +1,6 @@
 import {
   createServer,
+  type Server as HttpServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
@@ -26,6 +27,7 @@ import type {
   HttpsServerOptions,
   NodeServer,
   NodeTapOptions,
+  ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
@@ -33,6 +35,7 @@ import type {
 import {
   canHaveBody,
   createGraphQLHandlerInitializer,
+  DEFAULT_CLOSE_TIMEOUT_MS,
   executeApolloGraphQLRequestNode,
   executeMiddlewareChain,
 } from "./server_utils.js";
@@ -247,15 +250,42 @@ export class ServerNode<H extends NodeHttpClient> implements ServerInterface {
     }
   }
 
-  async close(): Promise<void> {
+  /**
+   * Closes the server, always settling within roughly `options.timeoutMs` (default 10s).
+   */
+  async close(options?: ServerCloseOptions): Promise<void> {
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
     return new Promise((resolve, reject) => {
-      this.runtimeServer.close((err) => {
-        if (err && "code" in err && err.code !== "ERR_SERVER_NOT_RUNNING") {
+      let settled = false;
+      let forceTimer: NodeJS.Timeout | undefined;
+      const settle = (err?: NodeJS.ErrnoException) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(forceTimer);
+        if (err && err.code !== "ERR_SERVER_NOT_RUNNING") {
           reject(err);
         } else {
           resolve();
         }
-      });
+      };
+
+      this.runtimeServer.close((err) => settle(err));
+      // Native, free, and additive - only reaches plain idle keep-alive connections (not
+      // upgraded ones, see the doc comment above), so this is never harmful to call.
+      (this.runtimeServer as HttpServer).closeIdleConnections?.();
+
+      const force = () => {
+        (this.runtimeServer as HttpServer).closeAllConnections?.();
+        // closeAllConnections() can't reach an upgraded socket either, so this timer is
+        // what actually bounds close() when one is still open - settle regardless.
+        setTimeout(() => settle(), 50).unref?.();
+      };
+
+      if (timeoutMs <= 0) {
+        force();
+        return;
+      }
+      forceTimer = setTimeout(force, timeoutMs).unref?.();
     });
   }
 

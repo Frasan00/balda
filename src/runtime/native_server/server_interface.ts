@@ -1,5 +1,9 @@
 import { GraphQL } from "../../graphql/graphql.js";
-import type { RuntimeServer, ServerRoute } from "./server_types.js";
+import type {
+  RuntimeServer,
+  ServerCloseOptions,
+  ServerRoute,
+} from "./server_types.js";
 
 /**
  * Standard interface for server implementations between different environments.
@@ -19,6 +23,9 @@ export interface ServerInterface {
   routes: ServerRoute[];
   /** Connect to the server */
   listen(): void;
-  /** Close the server */
-  close(): Promise<void>;
+  /**
+   * Close the server. Always settles within roughly `options.timeoutMs` (default 10s) -
+   * open connections are given that long to drain before being forced closed.
+   */
+  close(options?: ServerCloseOptions): Promise<void>;
 }

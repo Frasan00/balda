@@ -323,3 +323,38 @@ export const createGraphQLHandlerInitializer = (graphql: GraphQL) => {
     }
   };
 };
+
+/**
+ * Default bound (in milliseconds) for how long `Server.close()`/`disconnect()` waits for
+ * open connections to drain before forcing them closed.
+ */
+export const DEFAULT_CLOSE_TIMEOUT_MS = 10_000;
+
+/**
+ * Races a promise against a timeout, resolving "done" if it wins or "timeout" if the clock
+ * runs out first - used by the Bun/Deno close() paths to bound a runtime shutdown call that
+ * may otherwise hang indefinitely (e.g. Bun's `stop()` with an open WebSocket connection).
+ *
+ * A rejection from `promise` before the timeout still rejects this - callers should let
+ * that propagate. A rejection *after* the timeout has already resolved "timeout" is a no-op
+ * (promises settle once), which is also what keeps that late rejection from surfacing as an
+ * unhandled rejection - a `.then` rejection handler is still attached to it either way.
+ */
+export const withTimeout = <T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<"timeout" | "done"> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve("timeout"), ms);
+    promise.then(
+      () => {
+        clearTimeout(timer);
+        resolve("done");
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+};

@@ -29,6 +29,7 @@ import type {
   HttpMethod,
   HttpsOptions,
   RuntimeServerMap,
+  ServerCloseOptions,
   ServerListenCallback,
   ServerRouteHandler,
   ServerRouteMiddleware,
@@ -583,9 +584,13 @@ export interface ServerInterface {
    */
   beforeStart: (hook: ServerHook) => void;
   /**
-   * Register a hook to be called before the server closes (after it stops accepting requests).
-   * Multiple hooks are called in the order they are registered.
-   * Useful for cleanup tasks like disconnecting from databases or flushing logs.
+   * Register a hook to be called before the server stops accepting requests and before any
+   * connection is closed. Multiple hooks are called in the order they are registered.
+   * Useful for cleanup tasks like disconnecting from databases, flushing logs, or - on Node
+   * with a WebSocket library attached to `getNodeServer()` - closing connected WS clients
+   * yourself for a graceful, immediate shutdown (see the WebSockets guide).
+   * If a hook throws, the transport is still closed and the error is rethrown after close
+   * completes.
    * @param hook - The hook function to call, can be sync or async
    * @example
    * ```ts
@@ -612,17 +617,21 @@ export interface ServerInterface {
     url: string;
   }>;
   /**
-   * Closes the server and frees the port
+   * Closes the server and frees the port. Always settles within roughly
+   * `options.timeoutMs` (default 10s) - open connections are given that long to drain
+   * before being forced closed.
    * This method is idempotent and can be called multiple times safely
    * @alias disconnect
    */
-  close: () => Promise<void>;
+  close: (options?: ServerCloseOptions) => Promise<void>;
   /**
-   * Disconnects the server and frees the port
-   * This method is idempotent and can be called multiple times safely
-   * Subsequent calls after the first will have no effect
+   * Disconnects the server and frees the port. Always settles within roughly
+   * `options.timeoutMs` (default 10s) - open connections are given that long to drain
+   * before being forced closed.
+   * This method is idempotent and can be called multiple times safely - a call made while
+   * one is already in flight awaits that same shutdown instead of starting a second one
    */
-  disconnect: () => Promise<void>;
+  disconnect: (options?: ServerCloseOptions) => Promise<void>;
   /**
    * Returns a mock server instance that can be used to test the server without starting it.
    * The mock server lazily bootstraps (imports controllers, applies plugins) on the first request.

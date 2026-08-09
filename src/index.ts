@@ -118,6 +118,7 @@ export type {
   ServerRouteMiddleware,
   ServerRouteHandler,
   HttpsOptions,
+  ServerCloseOptions,
   ServerListenCallback,
   RuntimeServer,
   ServerConnectInput,

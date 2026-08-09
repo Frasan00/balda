@@ -58,6 +58,7 @@ import type {
   HttpMethod,
   HttpsServerOptions,
   RuntimeServerMap,
+  ServerCloseOptions,
   ServerListenCallback,
   ServerRouteHandler,
   ServerRouteMiddleware,
@@ -127,6 +128,7 @@ export class Server<
   #beforeStartHooks: ServerHook[] = [];
   #beforeCloseHooks: ServerHook[] = [];
   #mockServerInstance?: MockServer;
+  #closePromise?: Promise<void>;
 
   readonly inject: InjectFunction;
 
@@ -451,19 +453,27 @@ export class Server<
   /**
    * Closes the server and frees the port
    * This method is idempotent and can be called multiple times safely
+   * @param options.timeoutMs - Maximum time to wait for open connections to drain before
+   * they're forced closed. See {@link ServerCloseOptions}.
    * @returns A promise that resolves when the server is closed
    */
-  async close(): Promise<void> {
-    await this.disconnect();
+  async close(options?: ServerCloseOptions): Promise<void> {
+    await this.disconnect(options);
   }
 
   /**
    * Disconnects the server and frees the port
-   * This method is idempotent and can be called multiple times safely
-   * Subsequent calls after the first will have no effect
+   * This method is idempotent and can be called multiple times safely - a call made while
+   * one is already in flight awaits that same shutdown instead of starting a second one
+   * @param options.timeoutMs - Maximum time to wait for open connections to drain before
+   * they're forced closed. See {@link ServerCloseOptions}.
    * @returns A promise that resolves when the server is disconnected
    */
-  async disconnect(): Promise<void> {
+  async disconnect(options?: ServerCloseOptions): Promise<void> {
+    if (this.#closePromise) {
+      return this.#closePromise;
+    }
+
     if (!this.isListening) {
       this.logger.warn(
         "Trying to disconnect the server that is not listening, ignoring",
@@ -471,17 +481,33 @@ export class Server<
       return;
     }
 
-    try {
+    this.#closePromise = (async () => {
+      let hookError: unknown;
       for (const hook of this.#beforeCloseHooks) {
-        await hook();
+        try {
+          await hook();
+        } catch (error) {
+          hookError ??= error;
+          this.logger.error({ error }, "beforeClose hook failed");
+        }
       }
-      await this.#serverConnector.close();
-    } catch (error) {
-      this.logger.error({ error }, "Error closing server connector");
-      throw error;
-    } finally {
-      this.isListening = false;
-    }
+
+      try {
+        // Always closes the transport, even if a hook above threw - a broken hook must
+        // not leave the port bound.
+        await this.#serverConnector.close(options);
+      } finally {
+        this.isListening = false;
+      }
+
+      if (hookError) {
+        throw hookError;
+      }
+    })().finally(() => {
+      this.#closePromise = undefined;
+    });
+
+    return this.#closePromise;
   }
 
   getMockServer(

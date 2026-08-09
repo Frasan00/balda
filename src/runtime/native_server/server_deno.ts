@@ -7,14 +7,17 @@ import { router } from "../../server/router/router.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
   HttpMethod,
+  ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types.js";
 import {
   createGraphQLHandlerInitializer,
+  DEFAULT_CLOSE_TIMEOUT_MS,
   executeApolloGraphQLRequestWeb,
   executeMiddlewareChain,
+  withTimeout,
 } from "./server_utils.js";
 
 export class ServerDeno implements ServerInterface {
@@ -144,11 +147,24 @@ export class ServerDeno implements ServerInterface {
     });
   }
 
-  async close(): Promise<void> {
+  /**
+   * Closes the server, always settling within roughly `options.timeoutMs` (default 10s).
+   * `shutdown()` already drains gracefully on its own (no bug found here); this is a
+   * consistency/backstop bound shared with the Node and Bun implementations.
+   */
+  async close(options?: ServerCloseOptions): Promise<void> {
     if (!this.runtimeServer) {
       return;
     }
 
-    await this.runtimeServer.shutdown();
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
+    if (timeoutMs <= 0) {
+      // Deno's HttpServer exposes no force-close primitive to fall back to - shutdown()
+      // is all there is, so there's nothing more to do than call it.
+      await this.runtimeServer.shutdown();
+      return;
+    }
+
+    await withTimeout(this.runtimeServer.shutdown(), timeoutMs);
   }
 }

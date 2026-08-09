@@ -5,6 +5,7 @@ import type { ServerInterface } from "./server_interface.js";
 import { ServerNode } from "./server_node.js";
 import type {
   RuntimeServerMap,
+  ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
 } from "./server_types.js";
@@ -51,8 +52,8 @@ export class ServerConnector {
     return this.server.listen();
   }
 
-  async close(): Promise<void> {
-    return this.server.close();
+  async close(options?: ServerCloseOptions): Promise<void> {
+    return this.server.close(options);
   }
 
   private getRuntimeServer(

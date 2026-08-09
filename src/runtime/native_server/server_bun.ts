@@ -7,14 +7,17 @@ import { router } from "../../server/router/router.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
   HttpMethod,
+  ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types.js";
 import {
   createGraphQLHandlerInitializer,
+  DEFAULT_CLOSE_TIMEOUT_MS,
   executeApolloGraphQLRequestWeb,
   executeMiddlewareChain,
+  withTimeout,
 } from "./server_utils.js";
 
 export class ServerBun implements ServerInterface {
@@ -123,11 +126,30 @@ export class ServerBun implements ServerInterface {
     } as Parameters<typeof Bun.serve>[0]);
   }
 
-  async close(): Promise<void> {
+  /**
+   * Closes the server, always settling within roughly `options.timeoutMs` (default 10s).
+   *
+   * Bun's WebSocket support is native (`tapOptions.bun.websocket`), and unlike Node's
+   * bring-your-own `ws` library, there's no app-level way to unstick a plain `stop()` call
+   * once a WebSocket connection is open - it hangs regardless of what the app does with its
+   * own connected clients (confirmed: closing every tracked client first doesn't help,
+   * `stop()` still waits on the underlying connection). `stop(true)` is the only thing that
+   * actually closes it, so that's the force fallback here.
+   */
+  async close(options?: ServerCloseOptions): Promise<void> {
     if (!this.runtimeServer) {
       return;
     }
 
-    await this.runtimeServer.stop();
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
+    if (timeoutMs <= 0) {
+      await this.runtimeServer.stop(true);
+      return;
+    }
+
+    const outcome = await withTimeout(this.runtimeServer.stop(), timeoutMs);
+    if (outcome === "timeout") {
+      await this.runtimeServer.stop(true);
+    }
   }
 }
