@@ -16,7 +16,7 @@
 <meta name="twitter:title" content="Balda - Cross-Runtime Backend Framework">
 <meta name="twitter:description" content="Build fast APIs with decorators, validation, WebSocket, GraphQL, queues, and cron jobs. Runs on Node.js, Bun, and Deno.">
 <meta name="twitter:image" content="/balda/img/logo.svg"><link rel="stylesheet" href="/balda/assets/css/styles.97bfe097.css">
-<script src="/balda/assets/js/runtime~main.474b2f48.js" defer="defer"></script>
+<script src="/balda/assets/js/runtime~main.9c008565.js" defer="defer"></script>
 <script src="/balda/assets/js/main.8aeef775.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -52,6 +52,15 @@
 <li>Requires getting the underlying Node server with <code>server.getNodeServer()</code></li>
 <li>Full control over WebSocket path and configuration</li>
 </ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="shutting-down">Shutting down<a href="#shutting-down" class="hash-link" aria-label="Direct link to Shutting down" title="Direct link to Shutting down">​</a></h4>
+<p>Balda doesn&#x27;t own your <code>ws</code> connections on Node, so it can&#x27;t close them for you — <code>wss</code>
+already tracks every connected client via <code>wss.clients</code>, so close them yourself in a
+<a href="/balda/docs/core-concepts/server#beforeclose"><code>beforeClose</code></a> hook before calling <code>server.close()</code>:</p>
+<div class="language-typescript codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-typescript codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">server</span><span class="token punctuation" style="color:#393A34">.</span><span class="token method function property-access" style="color:#d73a49">beforeClose</span><span class="token punctuation" style="color:#393A34">(</span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token arrow operator" style="color:#393A34">=&gt;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword control-flow" style="color:#00009f">for</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> client </span><span class="token keyword" style="color:#00009f">of</span><span class="token plain"> wss</span><span class="token punctuation" style="color:#393A34">.</span><span class="token property-access">clients</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">    client</span><span class="token punctuation" style="color:#393A34">.</span><span class="token method function property-access" style="color:#d73a49">close</span><span class="token punctuation" style="color:#393A34">(</span><span class="token number" style="color:#36acaa">1001</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;Server shutting down&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></span></code></pre></div></div>
+<p>Without this, <code>server.close()</code> still won&#x27;t hang forever — it falls back to a generic
+<code>timeoutMs</code> bound (10s by default, see <a href="/balda/docs/core-concepts/server#server-shutdown">Server Shutdown</a>)
+— but the connection is only force-closed once that window elapses, and your clients get no
+warning first. Closing them yourself in <code>beforeClose</code> is immediate and graceful.</p>
 <hr>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="bun">Bun<a href="#bun" class="hash-link" aria-label="Direct link to Bun" title="Direct link to Bun">​</a></h3>
 <p>Bun has native WebSocket support built into <code>Bun.serve()</code>. Balda exposes this through the <code>tapOptions.bun.websocket</code> configuration.</p>
@@ -72,6 +81,11 @@
 <li>If upgrade succeeds, your handlers are called at appropriate lifecycle events</li>
 <li>If no websocket config is provided, requests are handled normally (no upgrade attempted)</li>
 </ol>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="shutting-down-1">Shutting down<a href="#shutting-down-1" class="hash-link" aria-label="Direct link to Shutting down" title="Direct link to Shutting down">​</a></h4>
+<p>Unlike Node, WebSocket connections here are entirely balda&#x27;s own code path — <code>server.close()</code>
+gives an open connection up to <code>timeoutMs</code> (10s by default) to close on its own, then force-closes
+it. See <a href="/balda/docs/core-concepts/server#server-shutdown">Server Shutdown</a> for the full <code>timeoutMs</code>
+contract; there&#x27;s nothing extra to configure on the WebSocket side.</p>
 <hr>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="deno">Deno<a href="#deno" class="hash-link" aria-label="Direct link to Deno" title="Direct link to Deno">​</a></h3>
 <p>Deno also has native WebSocket support. Balda exposes this through the <code>tapOptions.deno.websocket</code> configuration.</p>
