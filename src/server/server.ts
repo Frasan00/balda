@@ -87,6 +87,10 @@ import type { PolicyErrorHandlerOptions } from "./policy/policy_error_handler_re
 import { setValidationErrorHandler } from "./router/validation_error_handler_registry.js";
 import type { ValidationErrorHandlerOptions } from "./router/validation_error_handler_registry.js";
 import type { RequestSchema } from "../decorators/validation/validate_types.js";
+import { CronService } from "../cron/cron.js";
+import { MqttService } from "../mqtt/mqtt.js";
+import { defineQueueConfiguration } from "../queue/queue_config.js";
+import { QueueService } from "../queue/queue_service.js";
 
 /**
  * The server class that is used to create and manage the server
@@ -154,6 +158,7 @@ export class Server<
       swagger: options?.swagger ?? true,
       graphql: options?.graphql ?? undefined,
       abortSignal: options?.abortSignal,
+      background: options?.background,
     };
 
     if (options?.ajvInstance) {
@@ -723,9 +728,56 @@ export class Server<
       if (this.#globalMiddlewares.length) {
         router.applyGlobalMiddlewaresToAllRoutes(this.#globalMiddlewares);
       }
+
+      await this.startBackgroundServices();
     })();
 
     return this.#bootstrapPromise;
+  }
+
+  /**
+   * Bootstraps the configured background services (crons, mqtt, queues) from
+   * the `ServerOptions.background` option. This is an explicit alternative to
+   * the glob-based `massiveImport*` helpers.
+   * @internal
+   */
+  private async startBackgroundServices(): Promise<void> {
+    const background = this.serverOptions.background;
+    if (!background) {
+      return;
+    }
+
+    const { crons, mqtt: mqttOpts, queues } = background;
+
+    if (queues?.config) {
+      defineQueueConfiguration(queues.config);
+    }
+
+    if (crons?.length) {
+      const { cron } = await import("../cron/cron_factory.js");
+      for (const job of crons) {
+        const handle = cron(job.schedule, job.options);
+        await handle.start(job.handler as Parameters<typeof handle.start>[0]);
+      }
+    }
+
+    if (mqttOpts) {
+      if (mqttOpts.subscribe?.length) {
+        for (const sub of mqttOpts.subscribe) {
+          await MqttService.register(
+            `programmatic:${sub.topic}:${MqttService.subscriptionCounter++}`,
+            sub.topic as never,
+            sub.handler as never,
+            sub.options,
+          );
+        }
+      }
+      await MqttService.connect(mqttOpts.connect);
+    }
+
+    if (queues?.run) {
+      await QueueService.run();
+    }
   }
 
   /**

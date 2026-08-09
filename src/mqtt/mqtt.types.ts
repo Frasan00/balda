@@ -51,3 +51,15 @@ export type MqttSubscribeOptions = IClientSubscribeOptions;
 export type MqttPublishOptions = IClientPublishOptions;
 
 export type MqttConnectionOptions = IClientOptions;
+
+/**
+ * Handle returned by the programmatic `mqtt.subscribe(topic, handler)` API and
+ * by the `mqtt.topic(...)` factory. Provides an explicit way to stop listening
+ * on a topic without passing around the raw client.
+ */
+export type MqttSubscriptionHandle = {
+  /** The topic this handle is subscribed to. */
+  readonly topic: string;
+  /** Stop listening on the topic. */
+  unsubscribe(): Promise<void>;
+};

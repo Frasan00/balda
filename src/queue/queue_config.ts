@@ -5,6 +5,17 @@ import { defineSQSConfiguration } from "./providers/sqs/sqs_configuration.js";
 import { QueueManager } from "./queue.js";
 import type { GenericPubSub, QueueProviderKey } from "./queue_types.js";
 
+export type QueueConfigurationOptions = {
+  bullmq?: Parameters<typeof defineBullMQConfiguration>[0];
+  pgboss?: Parameters<typeof definePGBossConfiguration>[0];
+  sqs?: Parameters<typeof defineSQSConfiguration>[0];
+} & {
+  [key in Exclude<
+    QueueProviderKey,
+    "bullmq" | "pgboss" | "sqs"
+  >]?: CustomQueueConfiguration;
+};
+
 /**
  * Main entry point to define the queue configuration, meant to be called only once in the application bootstrap
  * @bullmq - The BullMQ configuration options
@@ -35,16 +46,7 @@ import type { GenericPubSub, QueueProviderKey } from "./queue_types.js";
  * });
  */
 export const defineQueueConfiguration = (
-  options: {
-    bullmq?: Parameters<typeof defineBullMQConfiguration>[0];
-    pgboss?: Parameters<typeof definePGBossConfiguration>[0];
-    sqs?: Parameters<typeof defineSQSConfiguration>[0];
-  } & {
-    [key in Exclude<
-      QueueProviderKey,
-      "bullmq" | "pgboss" | "sqs"
-    >]?: CustomQueueConfiguration;
-  },
+  options: QueueConfigurationOptions,
 ): void => {
   const firstClassIntegrations = ["bullmq", "pgboss", "sqs"];
   if (options.bullmq) {

@@ -17,7 +17,6 @@ export class CronService {
 
   /**
    * @description Schedule a cron job.
-   * @internal
    * @example
    * CronService.register('test', '0 0 * * *', () => {
    *   console.log('test');
@@ -25,13 +24,19 @@ export class CronService {
    *   timezone: 'Europe/Istanbul',
    * });
    */
-  static register(name: string, ...args: CronScheduleParams) {
+  static register(
+    name: string,
+    ...args: CronScheduleParams
+  ): CronSchedule & { stop: () => void } {
     args[2] = {
       name,
       ...args[2],
     };
 
-    this.scheduledJobs.push({ name, args });
+    const job: CronSchedule = { name, args };
+    this.scheduledJobs.push(job);
+
+    return { ...job, stop: () => this.stopJob(name) };
   }
 
   /**
@@ -52,15 +57,42 @@ export class CronService {
       return;
     }
 
-    for (const { name, args } of this.scheduledJobs) {
-      this.logger.info(`Scheduling cron job: ${name}`);
-      const scheduledJob = nodeCronModule.schedule(...args);
-      scheduledJob.on("execution:failed", (context) =>
-        this.globalErrorHandler(context),
-      );
+    for (const job of this.scheduledJobs) {
+      if (job.started) {
+        continue;
+      }
+      this.scheduleJob(nodeCronModule, job);
     }
 
     this.logger.info("Cron jobs scheduled");
+  }
+
+  private static scheduleJob(
+    nodeCronModule: import("node-cron").NodeCron,
+    job: CronSchedule,
+  ) {
+    this.logger.info(`Scheduling cron job: ${job.name}`);
+    const scheduledJob = nodeCronModule.schedule(...job.args);
+    scheduledJob.on("execution:failed", (context) => {
+      if (job.onFailed) {
+        job.onFailed(context);
+      } else {
+        this.globalErrorHandler(context);
+      }
+    });
+    job.started = true;
+  }
+
+  /**
+   * @description Stop a scheduled cron job by name. Returns false when no matching job is scheduled.
+   */
+  static stopJob(name: string): boolean {
+    const job = this.scheduledJobs.find((j) => j.name === name);
+    if (!job) {
+      return false;
+    }
+    delete (job as { started?: boolean }).started;
+    return true;
   }
 
   /**

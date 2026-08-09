@@ -87,6 +87,19 @@ type PubSubWithSubscribe<
 const instanceCache = new WeakMap<Function, object>();
 
 /**
+ * Handle returned by the programmatic `queue.subscribe(handler)` API.
+ * Provides an explicit id and an `unsubscribe` method.
+ */
+export type QueueSubscriptionHandle<TPayload> = {
+  /** Unique identifier of the subscription. */
+  readonly id: string;
+  /** The queue topic this handle is subscribed to. */
+  readonly topic: string;
+  /** Stop listening on the queue. */
+  unsubscribe(): Promise<void>;
+};
+
+/**
  * TypedQueue for built-in providers (sqs, bullmq, pgboss)
  */
 export class TypedQueue<
@@ -123,7 +136,25 @@ export class TypedQueue<
   }
 
   /**
-   * Subscribe to the queue, to be used as a decorator on a class method
+   * Programmatically subscribe to the queue with the given handler.
+   * @param handler - The handler function to subscribe to the queue
+   * @returns A handle with an id and an `unsubscribe` method
+   * @example
+   * ```ts
+   * const handle = await queue.subscribe(async (payload: TPayload) => {
+   *   console.log(payload);
+   * });
+   * // Later: await handle.unsubscribe()
+   * ```
+   */
+  subscribe(
+    handler: (payload: TPayload) => Promise<void>,
+  ): Promise<QueueSubscriptionHandle<TPayload>>;
+  /**
+   * Subscribe to the queue as a decorator on a class method.
+   *
+   * @deprecated Use {@link subscribeMethod} for the decorator form, or pass a
+   * handler to {@link subscribe} for the programmatic form.
    * @example
    * ```ts
    * @queue.subscribe()
@@ -133,44 +164,33 @@ export class TypedQueue<
    * ```
    */
   subscribe(): MethodDecorator;
-  /**
-   * Subscribe to the queue with the given handler
-   * @param handler - The handler function to subscribe to the queue
-   * @returns A promise that resolves when subscription is complete
-   * @example
-   * ```ts
-   * await queue.subscribe(async (payload: TPayload) => {
-   *   console.log(payload);
-   * });
-   * // Later: await queue.unsubscribe()
-   * ```
-   */
-  subscribe(handler: (payload: TPayload) => Promise<void>): Promise<void>;
   subscribe(
     handler?: (payload: TPayload) => Promise<void>,
-  ): MethodDecorator | Promise<void> {
+  ): Promise<QueueSubscriptionHandle<TPayload>> | MethodDecorator {
     if (handler) {
-      return this.subscribeWithCallback(handler);
+      const name = `programmatic:${this.topic}:${QueueService.subscriptionCounter++}`;
+      return this.subscribeWithCallback(handler, name).then(() => ({
+        id: name,
+        topic: this.topic,
+        unsubscribe: () => this.unsubscribe(),
+      }));
     }
-    return this.createSubscribeDecorator();
+    return this.subscribeMethod();
   }
 
   /**
-   * Unsubscribe from the queue
-   * @returns A promise that resolves when unsubscription is complete
+   * Subscribe to the queue as a decorator on a class method.
    * @example
    * ```ts
-   * await queue.unsubscribe();
+   * class Handler {
+   *   @queue.subscribeMethod()
+   *   async handle(payload: TPayload) {
+   *     console.log(payload);
+   *   }
+   * }
    * ```
    */
-  async unsubscribe(): Promise<void> {
-    const pubsub = QueueManager.getProvider(
-      this.provider,
-    ) as ProviderInstance<TProvider>;
-    await pubsub.unsubscribe(this.topic);
-  }
-
-  private createSubscribeDecorator(): MethodDecorator {
+  subscribeMethod(): MethodDecorator {
     const topic = this.topic;
     const provider = this.provider;
     const queueOptions = this.queueOptions;
@@ -206,8 +226,24 @@ export class TypedQueue<
     };
   }
 
+  /**
+   * Unsubscribe from the queue
+   * @returns A promise that resolves when unsubscription is complete
+   * @example
+   * ```ts
+   * await queue.unsubscribe();
+   * ```
+   */
+  async unsubscribe(): Promise<void> {
+    const pubsub = QueueManager.getProvider(
+      this.provider,
+    ) as ProviderInstance<TProvider>;
+    await pubsub.unsubscribe(this.topic);
+  }
+
   private async subscribeWithCallback(
     handler: (payload: TPayload) => Promise<void>,
+    name: string,
   ): Promise<void> {
     const pubsub = QueueManager.getProvider(
       this.provider,
@@ -247,31 +283,62 @@ export class CustomTypedQueue<TPayload, TOptions = Record<string, unknown>> {
     );
   }
 
-  // Overloaded subscribe signatures
+  /**
+   * Programmatically subscribe to the queue with the given handler.
+   * @param handler - The handler function to subscribe to the queue
+   * @returns A handle with an id and an `unsubscribe` method
+   * @example
+   * ```ts
+   * const handle = await queue.subscribe(async (payload: TPayload) => {
+   *   console.log(payload);
+   * });
+   * // Later: await handle.unsubscribe()
+   * ```
+   */
+  subscribe(
+    handler: (payload: TPayload) => Promise<void>,
+  ): Promise<QueueSubscriptionHandle<TPayload>>;
+  /**
+   * Subscribe to the queue as a decorator on a class method.
+   *
+   * @deprecated Use {@link subscribeMethod} for the decorator form, or pass a
+   * handler to {@link subscribe} for the programmatic form.
+   * @example
+   * ```ts
+   * @queue.subscribe()
+   * async handle(payload: TPayload) {
+   *   console.log(payload);
+   * }
+   * ```
+   */
   subscribe(): MethodDecorator;
-  subscribe(handler: (payload: TPayload) => Promise<void>): Promise<void>;
   subscribe(
     handler?: (payload: TPayload) => Promise<void>,
-  ): MethodDecorator | Promise<void> {
+  ): Promise<QueueSubscriptionHandle<TPayload>> | MethodDecorator {
     if (handler) {
-      return this.pubsub.subscribe(this.topic, handler);
+      const name = `programmatic:${this.topic}:${QueueService.subscriptionCounter++}`;
+      return this.pubsub.subscribe(this.topic, handler).then(() => ({
+        id: name,
+        topic: this.topic,
+        unsubscribe: () => this.unsubscribe(),
+      }));
     }
-    return this.createSubscribeDecorator();
+    return this.subscribeMethod();
   }
 
   /**
-   * Unsubscribe from the queue
-   * @returns A promise that resolves when unsubscription is complete
+   * Subscribe to the queue as a decorator on a class method.
    * @example
    * ```ts
-   * await queue.unsubscribe();
+   * class Handler {
+   *   @queue.subscribeMethod()
+   *   async handle(payload: TPayload) {
+   *     console.log(payload);
+   *   }
+   * }
    * ```
    */
-  async unsubscribe(): Promise<void> {
-    await this.pubsub.unsubscribe(this.topic);
-  }
-
-  private createSubscribeDecorator(): MethodDecorator {
+  subscribeMethod(): MethodDecorator {
     const topic = this.topic;
     const pubsub = this.pubsub;
 
@@ -303,5 +370,17 @@ export class CustomTypedQueue<TPayload, TOptions = Record<string, unknown>> {
 
       return descriptor;
     };
+  }
+
+  /**
+   * Unsubscribe from the queue
+   * @returns A promise that resolves when unsubscription is complete
+   * @example
+   * ```ts
+   * await queue.unsubscribe();
+   * ```
+   */
+  async unsubscribe(): Promise<void> {
+    await this.pubsub.unsubscribe(this.topic);
   }
 }

@@ -9,6 +9,7 @@ import type {
   MqttHandler,
   MqttPublishOptions,
   MqttSubscription,
+  MqttSubscriptionHandle,
   MqttTopics,
 } from "./mqtt.types.js";
 
@@ -41,11 +42,36 @@ const parseMessage = (
   }
 };
 
+/**
+ * Wrap a user handler so that:
+ * - it is invoked on the class instance when `Ctor` is provided (decorator path)
+ * - the raw Buffer message is parsed once (Buffer -> JSON object -> string)
+ * - a single-parameter handler receives only the parsed message, while a
+ *   two-parameter handler receives `(topic, message)`
+ */
+const createWrappedHandler = (
+  originalMethod: (...args: any[]) => unknown,
+  Ctor: (new () => object) | null,
+) => {
+  return async (msgTopic: string, rawMessage: Buffer): Promise<void> => {
+    const parsedMessage = parseMessage(rawMessage);
+    const instance = Ctor ? new Ctor() : undefined;
+
+    if (originalMethod.length === 1) {
+      await originalMethod.call(instance, parsedMessage);
+      return;
+    }
+
+    await originalMethod.call(instance, msgTopic, parsedMessage);
+  };
+};
+
 export class MqttService {
   static subscriptions: MqttSubscription<MqttTopics>[] = [];
   static client: MqttClient | null = null;
   static connectionOptions: MqttConnectionOptions = {};
   static logger = logger.child({ scope: "MqttService" });
+  static subscriptionCounter = 0;
 
   /**
    * @description Register an MQTT subscription handler.
@@ -220,7 +246,9 @@ export class MqttService {
   }
 
   /**
-   * Create a decorator to subscribe to an MQTT topic
+   * Subscribe to an MQTT topic.
+   *
+   * Used as a decorator on a class method:
    * Messages are automatically parsed: Buffer -> JSON object (if valid) -> string
    * Supports MQTT wildcards: + (single level) and # (multi level)
    *
@@ -229,13 +257,13 @@ export class MqttService {
    * - `handler(topic: string, message: T)` - include topic for wildcards or logging
    *
    * @example
-   * @mqtt.handler('home/temperature', { qos: 1 })
+   * @mqtt.subscribe('home/temperature', { qos: 1 })
    * handleTemperature(message: { value: number; unit: string }) {
    *   console.log('Temperature:', message.value, message.unit);
    * }
    *
    * @example With topic parameter (useful for wildcards)
-   * @mqtt.handler('home/+/temperature', { qos: 1 })
+   * @mqtt.subscribe('home/+/temperature', { qos: 1 })
    * handleRoomTemperature(topic: string, message: string) {
    *   const room = topic.split('/')[1];
    *   console.log(`${room} temperature:`, message);
@@ -244,42 +272,129 @@ export class MqttService {
   subscribe<T extends MqttTopics = MqttTopics>(
     topic: keyof T,
     options?: IClientSubscribeOptions,
-  ) {
-    return function (
-      target: any,
-      propertyKey: string,
-      descriptor: PropertyDescriptor,
-    ): PropertyDescriptor {
-      const originalMethod = descriptor.value;
+  ): MethodDecorator;
+  /**
+   * Programmatically subscribe to an MQTT topic with a callback handler.
+   *
+   * Messages are automatically parsed: Buffer -> JSON object (if valid) -> string.
+   * Returns a handle you can use to stop listening on the topic.
+   *
+   * @param topic - The topic to subscribe to (supports `+` and `#` wildcards)
+   * @param handler - Handler receiving the parsed message. The handler is called with
+   *   `(message)` when it declares a single parameter, or `(topic, message)` when it
+   *   declares two parameters.
+   * @param options - Subscribe options (qos, etc.)
+   * @returns A {@link MqttSubscriptionHandle} to stop listening.
+   * @example
+   * ```ts
+   * const handle = await mqtt.subscribe("home/temperature", (message) => {
+   *   console.log("Temperature:", message);
+   * }, { qos: 1 });
+   *
+   * await handle.unsubscribe();
+   * ```
+   */
+  subscribe<T extends MqttTopics = MqttTopics>(
+    topic: keyof T,
+    handler: MqttHandler<T>,
+    options?: IClientSubscribeOptions,
+  ): Promise<MqttSubscriptionHandle>;
+  subscribe<T extends MqttTopics = MqttTopics>(
+    topic: keyof T,
+    handlerOrOptions?: MqttHandler<T> | IClientSubscribeOptions,
+    options?: IClientSubscribeOptions,
+  ): MethodDecorator | Promise<MqttSubscriptionHandle> {
+    // Decorator form: second argument is options, returns a decorator
+    if (
+      handlerOrOptions === undefined ||
+      typeof handlerOrOptions !== "function"
+    ) {
+      const opts = handlerOrOptions as IClientSubscribeOptions | undefined;
+      return function (
+        target: any,
+        propertyKey: string | symbol,
+        descriptor: PropertyDescriptor,
+      ): PropertyDescriptor {
+        const originalMethod = descriptor.value;
 
-      if (!originalMethod) {
-        return descriptor;
-      }
-
-      const wrappedMethod = async (
-        msgTopic: string,
-        rawMessage: Buffer,
-      ): Promise<void> => {
-        const instance = new target.constructor();
-        const parsedMessage = parseMessage(rawMessage);
-
-        if (originalMethod.length === 1) {
-          await originalMethod.call(instance, parsedMessage);
-          return;
+        if (!originalMethod) {
+          return descriptor;
         }
 
-        await originalMethod.call(instance, msgTopic, parsedMessage);
+        const wrappedMethod = createWrappedHandler(
+          originalMethod,
+          target.constructor,
+        );
+
+        MqttService.register(
+          `${target.constructor.name}.${String(propertyKey)}`,
+          topic,
+          wrappedMethod as unknown as MqttHandler<T>,
+          opts,
+        );
+
+        return descriptor;
       };
+    }
 
-      MqttService.register(
-        `${target.constructor.name}.${propertyKey}`,
-        topic,
-        wrappedMethod as unknown as MqttHandler<T>,
-        options,
-      );
+    // Programmatic form: second argument is a handler, returns a handle
+    const handler = handlerOrOptions;
+    const name = `programmatic:${String(topic)}:${MqttService.subscriptionCounter++}`;
+    const wrappedHandler = createWrappedHandler(
+      handler as unknown as (...args: unknown[]) => unknown,
+      null,
+    );
 
-      return descriptor;
-    };
+    MqttService.register(
+      name,
+      topic,
+      wrappedHandler as unknown as MqttHandler<T>,
+      options,
+    );
+
+    // If the client is already connected, subscribe to the topic right away
+    if (MqttService.client?.connected) {
+      return new Promise<MqttSubscriptionHandle>((resolve, reject) => {
+        MqttService.client?.subscribe(
+          topic as string,
+          options || {},
+          (error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve({
+              topic: String(topic),
+              unsubscribe: () => this.unsubscribe(topic as never),
+            });
+          },
+        );
+      });
+    }
+
+    return Promise.resolve({
+      topic: String(topic),
+      unsubscribe: () => this.unsubscribe(topic as never),
+    });
+  }
+
+  /**
+   * Programmatic, topic-scoped builder.
+   *
+   * Creates a typed handle for a single topic with `subscribe`, `publish` and
+   * `unsubscribe` methods, mirroring the queue factory ergonomics.
+   *
+   * @example
+   * ```ts
+   * const sensor = mqtt.topic<{ value: number }>("home/temperature");
+   *
+   * await sensor.subscribe((msg) => console.log(msg.value));
+   * await sensor.publish({ value: 21 });
+   * await sensor.unsubscribe();
+   * ```
+   */
+  topic<TMessage = string>(topic: string): MqttTopic<TMessage> {
+    return new MqttTopic(topic, this);
   }
 
   /**
@@ -384,6 +499,57 @@ export class MqttService {
         resolve();
       });
     });
+  }
+}
+
+/**
+ * Topic-scoped MQTT builder created by {@link MqttService.topic}.
+ *
+ * Provides a typed, self-contained handle for a single topic.
+ */
+export class MqttTopic<TMessage = string> {
+  constructor(
+    public readonly topic: string,
+    private readonly service: MqttService,
+  ) {}
+
+  /**
+   * Subscribe to this topic with a callback handler.
+   *
+   * The handler is called with the parsed message when it declares a single
+   * parameter, or with `(topic, message)` when it declares two parameters.
+   */
+  subscribe(
+    handler: (message: TMessage) => void | Promise<void>,
+    options?: IClientSubscribeOptions,
+  ): Promise<MqttSubscriptionHandle>;
+  subscribe(
+    handler: (topic: string, message: TMessage) => void | Promise<void>,
+    options?: IClientSubscribeOptions,
+  ): Promise<MqttSubscriptionHandle>;
+  subscribe(
+    handler: (...args: any[]) => void | Promise<void>,
+    options?: IClientSubscribeOptions,
+  ): Promise<MqttSubscriptionHandle> {
+    return this.service.subscribe(
+      this.topic as keyof MqttTopics & string,
+      handler as unknown as MqttHandler<MqttTopics>,
+      options,
+    );
+  }
+
+  /** Publish a message to this topic. */
+  publish(message: TMessage, options?: MqttPublishOptions): Promise<void> {
+    return this.service.publish(
+      this.topic as never,
+      message as MqttTopics[keyof MqttTopics],
+      options,
+    );
+  }
+
+  /** Stop listening on this topic. */
+  unsubscribe(): Promise<void> {
+    return this.service.unsubscribe(this.topic as never);
   }
 }
 

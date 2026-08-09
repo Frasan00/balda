@@ -1,6 +1,6 @@
 // Decorators
 export { cache } from "./decorators/cache/cache.js";
-export { cron } from "./cron/decorator/cron_decorator.js";
+export { cron } from "./cron/cron_factory.js";
 export { arg } from "./decorators/command/arg.js";
 export { flag } from "./decorators/command/flag.js";
 export { controller } from "./decorators/controller/controller.js";
@@ -39,10 +39,17 @@ export type {
   CronSchedule,
   CronScheduleParams,
   CronUIOptions,
+  CronFactoryOptions,
+  CronHandle,
 } from "./cron/cron.types.js";
 
 // MQTT
-export { MqttService, setMqttGlobalErrorHandler, mqtt } from "./mqtt/mqtt.js";
+export {
+  MqttService,
+  setMqttGlobalErrorHandler,
+  mqtt,
+  MqttTopic,
+} from "./mqtt/mqtt.js";
 export type {
   MqttTopics,
   MqttHandler,
@@ -50,6 +57,7 @@ export type {
   MqttPublishOptions,
   MqttSubscribeOptions,
   MqttSubscription,
+  MqttSubscriptionHandle,
   PublishTopic,
 } from "./mqtt/mqtt.types.js";
 
@@ -80,8 +88,13 @@ export type {
 } from "./queue/providers/sqs/sqs_configuration.js";
 export { QueueManager } from "./queue/queue.js";
 export { defineQueueConfiguration } from "./queue/queue_config.js";
+export type { QueueConfigurationOptions } from "./queue/queue_config.js";
 export { QueueService } from "./queue/queue_service.js";
-export type { CustomTypedQueue, TypedQueue } from "./queue/typed_queue.js";
+export type {
+  CustomTypedQueue,
+  TypedQueue,
+  QueueSubscriptionHandle,
+} from "./queue/typed_queue.js";
 
 // Logger
 export { logger } from "./logger/logger.js";

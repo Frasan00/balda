@@ -27,6 +27,7 @@ export class QueueService {
   static typedQueueSubscribers: Map<string, TypedQueueRegistration> = new Map();
   static customQueueSubscribers: Map<string, CustomQueueRegistration> =
     new Map();
+  static subscriptionCounter = 0;
 
   static logger = logger.child({ scope: "QueueService" });
 

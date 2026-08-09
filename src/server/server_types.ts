@@ -20,6 +20,7 @@ import type {
 } from "../plugins/rate_limiter/rate_limiter_types.js";
 import type { SessionOptions } from "../plugins/session/session_types.js";
 import type { StaticPluginOptions } from "../plugins/static/static_types.js";
+import type { QueueConfigurationOptions } from "../queue/queue_config.js";
 import type { swagger } from "../plugins/swagger/swagger.js";
 import type { SwaggerRouteOptions } from "../plugins/swagger/swagger_types.js";
 import type { TimeoutOptions } from "../plugins/timeout/timeout_types.js";
@@ -100,6 +101,37 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
   host?: string;
   /** Controller patterns to match, defaults to an empty array */
   controllerPatterns?: string[];
+  /**
+   * Bootstrap the background services (crons, mqtt, queues) when the server
+   * listens, without the need for glob imports or manual `*.run()` calls.
+   *
+   * - `crons`: schedule each returned cron handle with its handler.
+   * - `mqtt.connect`: MQTT broker connection options.
+   * - `mqtt.subscribe`: programmatic MQTT subscriptions to register on connect.
+   * - `queues.config`: queue provider configuration.
+   * - `queues.run`: subscribe all registered queue handlers (including decorators).
+   */
+  background?: {
+    crons?: Array<{
+      schedule: string;
+      options: import("../cron/cron.types.js").CronFactoryOptions;
+      handler: () => void | Promise<void>;
+    }>;
+    mqtt?: {
+      connect?: import("../mqtt/mqtt.types.js").MqttConnectionOptions;
+      subscribe?: Array<{
+        topic: string;
+        handler: import("../mqtt/mqtt.types.js").MqttHandler<
+          import("../mqtt/mqtt.types.js").MqttTopics
+        >;
+        options?: import("mqtt").IClientSubscribeOptions;
+      }>;
+    };
+    queues?: {
+      config?: QueueConfigurationOptions;
+      run?: boolean;
+    };
+  };
   /**
    * Plugins configuration for the server. Accepts either:
    *
@@ -208,6 +240,7 @@ export type ResolvedServerOptions = {
   swagger: Parameters<typeof swagger>[0] | boolean;
   graphql?: GraphQLOptions;
   abortSignal?: AbortSignal;
+  background?: NonNullable<ServerOptions["background"]>;
 };
 
 export type ServerErrorHandler = (
