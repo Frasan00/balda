@@ -6,10 +6,15 @@ export class MockResponse<T = any> {
   // base getters
   body(): T {
     const body = this.response.getBody();
-    if (
-      typeof body === "string" &&
-      this.response.headers["Content-Type"]?.includes("json")
-    ) {
+    // Header lookup is case-insensitive — callers that forward an already
+    //-built Headers object (e.g. the better-auth adapter) emit lowercase
+    // names, since that's what the Web Headers iterator yields.
+    const contentType = Object.entries(this.response.headers).find(
+      ([key]) => key.toLowerCase() === "content-type",
+    )?.[1];
+    const isJson = contentType?.includes("json") ?? false;
+
+    if (isJson && typeof body === "string") {
       try {
         return JSON.parse(body) as T;
       } catch {
@@ -17,6 +22,16 @@ export class MockResponse<T = any> {
         return body as T;
       }
     }
+
+    if (isJson && (body instanceof Uint8Array || body instanceof ArrayBuffer)) {
+      const text = new TextDecoder().decode(body as Uint8Array | ArrayBuffer);
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        return text as T;
+      }
+    }
+
     return body as T;
   }
 

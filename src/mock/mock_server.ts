@@ -112,7 +112,12 @@ export class MockServer {
     const url = new URL(
       `http://${this.server.host}:${this.server.port}${path}`,
     );
-    url.search = new URLSearchParams(query).toString();
+    // Only the explicit `query` option overrides the URL's own query string —
+    // a query string embedded directly in `path` (e.g. "/x?foo=bar") must
+    // survive when no `query` option is given.
+    if (Object.keys(query).length > 0) {
+      url.search = new URLSearchParams(query).toString();
+    }
 
     const webRequest = new globalThis.Request(url.toString(), {
       method: method.toUpperCase(),
@@ -304,7 +309,12 @@ export class MockServer {
     const url = new URL(
       `http://${this.server.host}:${this.server.port}${path}`,
     );
-    url.search = new URLSearchParams(query).toString();
+    // Only the explicit `query` option overrides the URL's own query string —
+    // a query string embedded directly in `path` (e.g. "/x?foo=bar") must
+    // survive when no `query` option is given.
+    if (Object.keys(query).length > 0) {
+      url.search = new URLSearchParams(query).toString();
+    }
 
     let body: string | Uint8Array | ArrayBuffer | undefined = undefined;
 
