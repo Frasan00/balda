@@ -15,20 +15,12 @@ import type { RunTimeType } from "../runtime.js";
 export type { HttpsServerOptions };
 
 export type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "DELETE"
-  | "PATCH"
-  | "OPTIONS"
-  | "HEAD";
+  "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
 
 export type NodeServer = HttpServer | HttpsServer | Http2Server;
 
 export type RuntimeServer =
-  | NodeServer
-  | ReturnType<typeof Bun.serve>
-  | ReturnType<typeof Deno.serve>;
+  NodeServer | ReturnType<typeof Bun.serve> | ReturnType<typeof Deno.serve>;
 
 export type RuntimeServerMap<
   T extends RunTimeType,
@@ -46,8 +38,7 @@ export type RuntimeServerMap<
       : never;
 
 export type HttpsOptions<T extends NodeHttpClient> = T extends
-  | "https"
-  | "http2-secure"
+  "https" | "http2-secure"
   ? {
       /** HTTPS/TLS options, required when nodeHttpClient is 'https' or 'http2-secure' */
       httpsOptions: HttpsServerOptions;

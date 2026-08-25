@@ -148,10 +148,7 @@ const escapeHtml = (str?: string): string => {
  */
 function getOrConvertToJSONSchema(
   schema:
-    | RequestSchema
-    | ZodType
-    | AjvCompileReturnType
-    | Record<string, unknown>,
+    RequestSchema | ZodType | AjvCompileReturnType | Record<string, unknown>,
   options?: ZodToJSONSchemaOptions,
 ): JSONSchema {
   if (!schema || typeof schema !== "object") {

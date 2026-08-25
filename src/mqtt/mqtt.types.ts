@@ -31,8 +31,7 @@ export type ExpandedMqttTopics<T extends MqttTopics> = {
  * Union of exact topic keys and expanded wildcard topics
  */
 export type PublishTopic<T extends MqttTopics> =
-  | keyof T
-  | keyof ExpandedMqttTopics<T>;
+  keyof T | keyof ExpandedMqttTopics<T>;
 
 export type MqttHandler<T extends MqttTopics> = (
   topic: keyof T,

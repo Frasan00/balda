@@ -13,9 +13,7 @@ type TypeBoxSchemaLike = { static: any; params: any };
 type SafeJSONSchema = IsAny<JSONSchema> extends true ? never : JSONSchema;
 
 export type RequestSchema =
-  | ZodSchemaLike
-  | TypeBoxSchemaLike
-  | AjvCompileParams[0];
+  ZodSchemaLike | TypeBoxSchemaLike | AjvCompileParams[0];
 
 export type ValidatedData<T extends RequestSchema> = T extends {
   _zod: { output: infer O };

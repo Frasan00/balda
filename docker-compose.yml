@@ -85,17 +85,17 @@ services:
     networks:
       - local-network
 
+  # legacy service name; the image is Floci (github.com/floci-io/floci), a MIT-licensed
+  # drop-in for LocalStack's now auth-gated community image - same port, same wire protocols.
   localstack:
-    image: localstack/localstack:4.4.0
+    image: floci/floci:1.7.0
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=s3,cloudfront,iam,lambda
-      - DEBUG=1
+      - FLOCI_HOSTNAME=localstack
     env_file:
       - .env.test
     volumes:
-      - "./.localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - local-network
@@ -119,7 +119,7 @@ services:
     volumes:
       - azurite_data:/data
     command: >
-      azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose
+      azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck
     environment:
       - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
     healthcheck:

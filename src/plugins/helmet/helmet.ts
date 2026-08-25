@@ -25,8 +25,7 @@ export const helmet = (options?: HelmetOptions): ServerRouteMiddleware => {
     crossOriginEmbedderPolicy: "require-corp" as false | string,
     contentSecurityPolicy: "default-src 'self'" as false | string,
     permissionsPolicy: "camera=(), microphone=(), geolocation=()" as
-      | false
-      | string,
+      false | string,
     originAgentCluster: true,
     ...options,
   };

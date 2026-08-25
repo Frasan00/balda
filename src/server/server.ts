@@ -64,12 +64,17 @@ import type {
   ServerRouteMiddleware,
   ServerTapOptions,
 } from "../runtime/native_server/server_types.js";
+import {
+  createFetchHandler,
+  createGraphQLHandlerInitializer,
+} from "../runtime/native_server/server_utils.js";
 import { runtime } from "../runtime/runtime.js";
 import type { SyncOrAsync } from "../type_util.js";
 import { router } from "./router/router.js";
 import type { ClientRouter, Route } from "./router/router_type.js";
 import type { TypedMiddleware } from "./http/typed_middleware.js";
 import type {
+  FetchHandler,
   InjectFunction,
   NodeHttpClient,
   ResolvedServerOptions,
@@ -131,6 +136,7 @@ export class Server<
   #closePromise?: Promise<void>;
 
   readonly inject: InjectFunction;
+  readonly fetch: FetchHandler;
 
   /**
    * The constructor for the server
@@ -190,6 +196,7 @@ export class Server<
 
     this.setupAbortSignalHandler();
     this.inject = this.createInjectFunction();
+    this.fetch = this.createFetchFunction();
   }
 
   get protectedKeys(): string[] {
@@ -599,6 +606,27 @@ export class Server<
     };
 
     return injectFn;
+  }
+
+  /**
+   * Builds `this.fetch` - a portable `fetch(request) => Promise<response>` handler built on the
+   * same `createFetchHandler` pipeline Bun and Deno use for `listen()`. No `attachConnInfo`/`tap`/
+   * `tryUpgradeWebSocket` deps are wired here since there is no underlying platform server object
+   * to hook into outside of `listen()`, so the returned response is always defined.
+   */
+  private createFetchFunction(): FetchHandler {
+    const ensureGraphQLHandler = createGraphQLHandlerInitializer(this.graphql);
+    const handler = createFetchHandler({
+      graphql: this.graphql,
+      ensureGraphQLHandler,
+    });
+
+    return async (request: Request): Promise<Response> => {
+      await this.ensureBootstrapped();
+      // Always defined: this handler is built with no tap/WS deps, so createFetchHandler's
+      // "handled with no response" branches (Bun's WS-upgrade protocol) are never reachable.
+      return (await handler(request)) as Response;
+    };
   }
 
   private async importControllers(

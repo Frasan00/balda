@@ -28,12 +28,7 @@ export default class InitMailerCommand extends Command {
     defaultValue: "none",
   })
   static templateEngine:
-    | "handlebars"
-    | "ejs"
-    | "edge"
-    | "mustache"
-    | "custom"
-    | "none";
+    "handlebars" | "ejs" | "edge" | "mustache" | "custom" | "none";
 
   @flag.string({
     description:

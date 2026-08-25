@@ -1,22 +1,16 @@
-import { errorFactory } from "../../errors/error_factory.js";
-import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import { GraphQL } from "../../graphql/graphql.js";
-import { Request } from "../../server/http/request.js";
-import { Response } from "../../server/http/response.js";
-import { router } from "../../server/router/router.js";
+import type { Request } from "../../server/http/request.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
-  HttpMethod,
   ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types.js";
 import {
+  createFetchHandler,
   createGraphQLHandlerInitializer,
   DEFAULT_CLOSE_TIMEOUT_MS,
-  executeApolloGraphQLRequestWeb,
-  executeMiddlewareChain,
   withTimeout,
 } from "./server_utils.js";
 
@@ -49,99 +43,62 @@ export class ServerDeno implements ServerInterface {
   listen(): void {
     const tapOptions = this.tapOptions?.deno;
     const { handler, ...rest } = tapOptions ?? {};
-    const graphqlEnabled = this.graphql.isEnabled;
-    const graphqlEndpoint = "/graphql";
+    const websocketConfig = tapOptions?.websocket;
+
+    const fetchHandler = createFetchHandler({
+      graphql: this.graphql,
+      ensureGraphQLHandler: this.ensureGraphQLHandler,
+      attachConnInfo: (req: Request, info: unknown) =>
+        req.setDenoIpExtractor(req.toWebApi(), info),
+      buildGraphQLContext: (req: Request, info: unknown) => ({ req, info }),
+      tap: handler
+        ? async (req: Request, info: unknown) => {
+            const hookResult = await handler(
+              req.toWebApi() as Parameters<
+                Parameters<typeof Deno.serve>[0]["handler"]
+              >[0],
+              info as Parameters<
+                Parameters<typeof Deno.serve>[0]["handler"]
+              >[1],
+            );
+            if (hookResult instanceof globalThis.Response) {
+              return { response: hookResult };
+            }
+            return undefined;
+          }
+        : undefined,
+      tryUpgradeWebSocket: websocketConfig
+        ? (req: Request) => {
+            if (req.rawHeaders.get("upgrade") !== "websocket") {
+              return undefined;
+            }
+
+            const { socket, response } = Deno.upgradeWebSocket(req.toWebApi());
+
+            // Set event handlers instead of calling them immediately
+            if (websocketConfig.open) {
+              socket.onopen = () => websocketConfig.open?.(socket);
+            }
+            if (websocketConfig.message) {
+              socket.onmessage = (event) =>
+                websocketConfig.message?.(socket, event.data);
+            }
+            if (websocketConfig.close) {
+              socket.onclose = () => websocketConfig.close?.(socket);
+            }
+
+            return { response };
+          }
+        : undefined,
+    });
 
     this.runtimeServer = Deno.serve({
       port: this.port,
       hostname: this.hostname,
-      handler: async (req, info) => {
-        const urlString = req.url;
-        const protocolEnd = urlString.indexOf("://") + 3;
-        const pathStart = urlString.indexOf("/", protocolEnd);
-        const pathAndQuery =
-          pathStart === -1 ? "/" : urlString.slice(pathStart);
-        const queryIndex = pathAndQuery.indexOf("?");
-        const pathname =
-          queryIndex === -1 ? pathAndQuery : pathAndQuery.slice(0, queryIndex);
-        const search =
-          queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
-
-        const match = router.find(req.method as HttpMethod, pathname);
-
-        const baldaRequest = Request.fromRequest(req);
-        baldaRequest.params = match?.params ?? {};
-        baldaRequest.setQueryString(search);
-        baldaRequest.setDenoIpExtractor(req, info);
-
-        const handlerResponse = await handler?.(req, info);
-        if (handlerResponse instanceof globalThis.Response) {
-          return handlerResponse;
-        }
-
-        // GraphQL handler
-        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const apolloHandler = await this.ensureGraphQLHandler();
-          if (apolloHandler) {
-            const webRequest = baldaRequest.toWebApi();
-            return executeApolloGraphQLRequestWeb(
-              apolloHandler.server,
-              webRequest,
-              req.method,
-              search,
-              { req: baldaRequest, info },
-            );
-          }
-        }
-
-        // ws upgrade handler
-        if (
-          baldaRequest.rawHeaders.get("upgrade") === "websocket" &&
-          this.tapOptions?.deno?.websocket
-        ) {
-          const webRequest = baldaRequest.toWebApi();
-          const { socket, response } = Deno.upgradeWebSocket(webRequest);
-
-          // Set event handlers instead of calling them immediately
-          if (this.tapOptions?.deno?.websocket?.open) {
-            socket.onopen = () =>
-              this.tapOptions?.deno?.websocket?.open?.(socket);
-          }
-
-          if (this.tapOptions?.deno?.websocket?.message) {
-            socket.onmessage = (event) => {
-              this.tapOptions?.deno?.websocket?.message?.(socket, event.data);
-            };
-          }
-
-          if (this.tapOptions?.deno?.websocket?.close) {
-            socket.onclose = () =>
-              this.tapOptions?.deno?.websocket?.close?.(socket);
-          }
-
-          return response;
-        }
-
-        const baldaResponse = new Response();
-        if (match?.responseSchemas) {
-          baldaResponse.setRouteResponseSchemas(match.responseSchemas);
-        }
-
-        await executeMiddlewareChain(
-          match?.middleware ?? [],
-          match?.handler ??
-            ((req, res) => {
-              res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
-              });
-            }),
-          baldaRequest,
-          baldaResponse,
-        );
-
-        const webResponse = Response.toWebResponse(baldaResponse);
-        return webResponse;
-      },
+      handler: (req, info) =>
+        fetchHandler(req, info) as ReturnType<
+          Parameters<typeof Deno.serve>[0]["handler"]
+        >,
       ...rest,
     });
   }

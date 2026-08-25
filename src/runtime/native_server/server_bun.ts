@@ -1,22 +1,16 @@
-import { errorFactory } from "../../errors/error_factory.js";
-import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import { GraphQL } from "../../graphql/graphql.js";
-import { Request } from "../../server/http/request.js";
-import { Response } from "../../server/http/response.js";
-import { router } from "../../server/router/router.js";
+import type { Request } from "../../server/http/request.js";
 import type { ServerInterface } from "./server_interface.js";
 import type {
-  HttpMethod,
   ServerCloseOptions,
   ServerConnectInput,
   ServerRoute,
   ServerTapOptions,
 } from "./server_types.js";
 import {
+  createFetchHandler,
   createGraphQLHandlerInitializer,
   DEFAULT_CLOSE_TIMEOUT_MS,
-  executeApolloGraphQLRequestWeb,
-  executeMiddlewareChain,
   withTimeout,
 } from "./server_utils.js";
 
@@ -85,90 +79,57 @@ export class ServerBun implements ServerInterface {
   listen(): void {
     const tapOptions = this.tapOptions?.bun;
     const { fetch, websocket, ...rest } = tapOptions ?? {};
-    const graphqlEnabled = this.graphql.isEnabled;
-    const graphqlEndpoint = "/graphql";
+
+    const fetchHandler = createFetchHandler({
+      graphql: this.graphql,
+      ensureGraphQLHandler: this.ensureGraphQLHandler,
+      attachConnInfo: (req: Request, server: Bun.Server<any>) =>
+        req.setBunIpExtractor(req.toWebApi(), server),
+      buildGraphQLContext: (req: Request, server: Bun.Server<any>) => ({
+        req,
+        server,
+      }),
+      tap: fetch
+        ? async (req: Request, server: Bun.Server<any>) => {
+            const upgradeTracker = createUpgradeTracker(server);
+            const hookResult = await fetch.call(
+              this,
+              req,
+              upgradeTracker.server,
+            );
+
+            if (upgradeTracker.upgraded) {
+              return {};
+            }
+            if (hookResult instanceof globalThis.Response) {
+              return { response: hookResult };
+            }
+            return undefined;
+          }
+        : undefined,
+      tryUpgradeWebSocket: websocket
+        ? (req: Request, server: Bun.Server<any>) => {
+            if (req.rawHeaders.get("upgrade") !== "websocket") {
+              return undefined;
+            }
+            // bun-types ties `.upgrade()`'s `data` option to the server's WebSocketData
+            // generic; balda's `websocket` config isn't generic over that type (it's a
+            // plain lifecycle object). Call `.upgrade()` as a real method (not detached -
+            // Bun's native implementation requires `this` to be the actual server) and
+            // only cast the options argument, same pattern
+            // `test/server_functions/server-tap-hooks.test.ts` already uses for this call.
+            const success = server.upgrade(req.toWebApi(), {
+              data: {},
+            } as any);
+            return success ? {} : undefined;
+          }
+        : undefined,
+    });
 
     this.runtimeServer = Bun.serve({
       port: this.port,
       hostname: this.hostname,
-      fetch: async (req, server) => {
-        const urlString = req.url;
-        const protocolEnd = urlString.indexOf("://") + 3;
-        const pathStart = urlString.indexOf("/", protocolEnd);
-        const pathAndQuery =
-          pathStart === -1 ? "/" : urlString.slice(pathStart);
-        const queryIndex = pathAndQuery.indexOf("?");
-        const pathname =
-          queryIndex === -1 ? pathAndQuery : pathAndQuery.slice(0, queryIndex);
-        const search =
-          queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
-
-        const match = router.find(req.method as HttpMethod, pathname);
-
-        const baldaRequest = Request.fromRequest(req);
-        baldaRequest.params = match?.params ?? {};
-        baldaRequest.setQueryString(search);
-        baldaRequest.setBunIpExtractor(req, server);
-
-        const upgradeTracker = fetch ? createUpgradeTracker(server) : undefined;
-        const hookResult = await fetch?.call(
-          this,
-          baldaRequest,
-          upgradeTracker?.server ?? server,
-        );
-
-        if (upgradeTracker?.upgraded) {
-          return;
-        }
-        if (hookResult instanceof globalThis.Response) {
-          return hookResult;
-        }
-
-        if (graphqlEnabled && pathname.startsWith(graphqlEndpoint)) {
-          const apolloHandler = await this.ensureGraphQLHandler();
-          if (apolloHandler) {
-            const webRequest = baldaRequest.toWebApi();
-            return executeApolloGraphQLRequestWeb(
-              apolloHandler.server,
-              webRequest,
-              req.method,
-              search,
-              { req: baldaRequest, server },
-            );
-          }
-        }
-
-        if (
-          websocket &&
-          baldaRequest.rawHeaders.get("upgrade") === "websocket"
-        ) {
-          const webRequest = baldaRequest.toWebApi();
-          const success = server.upgrade(webRequest, { data: {} });
-          if (success) {
-            return;
-          }
-        }
-
-        const baldaResponse = new Response();
-        if (match?.responseSchemas) {
-          baldaResponse.setRouteResponseSchemas(match.responseSchemas);
-        }
-
-        await executeMiddlewareChain(
-          match?.middleware ?? [],
-          match?.handler ??
-            ((req, res) => {
-              res.notFound({
-                ...errorFactory(new RouteNotFoundError(req.url, req.method)),
-              });
-            }),
-          baldaRequest,
-          baldaResponse,
-        );
-
-        const webResponse = Response.toWebResponse(baldaResponse);
-        return webResponse;
-      },
+      fetch: (req, server) => fetchHandler(req, server),
       ...(websocket ? { websocket } : {}),
       ...rest,
     } as Parameters<typeof Bun.serve>[0]);

@@ -114,8 +114,7 @@ export class SQSPubSub implements GenericPubSub {
   private async resolveQueueUrl(topic: string): Promise<string> {
     const attrs = SQSConfiguration.options.consumer;
     const url = (attrs as Record<string, unknown> | undefined)?.queueUrlMap as
-      | Record<string, string>
-      | undefined;
+      Record<string, string> | undefined;
     if (!url?.[topic]) {
       throw new Error(`[SQS] Queue url not configured for topic "${topic}"`);
     }

@@ -170,9 +170,6 @@ benchmark-results/
 .claude/
 .cursor/
 
-# Docker
-.localstack/
-
 .idea/
 
 TODO.md

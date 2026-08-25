@@ -1,8 +1,13 @@
+import { errorFactory } from "../../errors/error_factory.js";
+import { RouteNotFoundError } from "../../errors/route_not_found.js";
 import type { GraphQL } from "../../graphql/graphql.js";
-import type { Request } from "../../server/http/request.js";
+import { Request } from "../../server/http/request.js";
 import { Response } from "../../server/http/response.js";
+import { router } from "../../server/router/router.js";
 import { TypedMiddleware } from "../../server/http/typed_middleware.js";
+import type { SyncOrAsync } from "../../type_util.js";
 import type {
+  HttpMethod,
   ServerRouteHandler,
   ServerRouteMiddleware,
 } from "./server_types.js";
@@ -357,4 +362,122 @@ export const withTimeout = <T>(
       },
     );
   });
+};
+
+/**
+ * Result of a runtime-specific hook (`tap` or a WebSocket upgrade attempt): a discriminated
+ * "this request is fully handled, stop routing" signal. The outer object being present means
+ * "handled"; `response` may still be omitted, because Bun's `server.upgrade()` protocol requires
+ * `Bun.serve`'s `fetch` callback to return `undefined` once an upgrade has succeeded. So
+ * `{ response: undefined }` (handled, nothing to return) and `undefined` (not handled, keep
+ * routing) are deliberately different values here.
+ */
+export type FetchHandlerHookResult = { response?: globalThis.Response } | void;
+
+export type CreateFetchHandlerDeps = {
+  graphql: GraphQL;
+  ensureGraphQLHandler: ReturnType<typeof createGraphQLHandlerInitializer>;
+  /** Attaches a lazy IP extractor to the balda request. Omit for runtimes with no connection info. */
+  attachConnInfo?: (req: Request, ...runtimeArgs: any[]) => void;
+  /** Builds the context value passed to Apollo for GraphQL requests. Defaults to `{ req }`. */
+  buildGraphQLContext?: (
+    req: Request,
+    ...runtimeArgs: any[]
+  ) => Record<string, unknown>;
+  /** Runs before routing (`tapOptions.<runtime>.fetch` / `.handler`); a result short-circuits the request. */
+  tap?: (
+    req: Request,
+    ...runtimeArgs: any[]
+  ) => SyncOrAsync<FetchHandlerHookResult>;
+  /** Attempts a native WebSocket upgrade; a result short-circuits the request. */
+  tryUpgradeWebSocket?: (
+    req: Request,
+    ...runtimeArgs: any[]
+  ) => SyncOrAsync<FetchHandlerHookResult>;
+};
+
+/**
+ * Builds the runtime-agnostic request pipeline shared by Bun, Deno, and `Server.fetch()`: parse
+ * the URL, match the route, build a balda `Request`, run the optional tap/GraphQL/WebSocket
+ * hooks, then execute the middleware chain and serialize the balda `Response` back to a Web
+ * `Response`.
+ *
+ * Node keeps its own `IncomingMessage` fast path instead of using this - it never builds a Web
+ * `Request` at all (lazy headers, lazy body, lazy query), which is where its throughput edge
+ * over this handler comes from.
+ */
+export const createFetchHandler = (
+  deps: CreateFetchHandlerDeps,
+): ((
+  request: globalThis.Request,
+  ...runtimeArgs: any[]
+) => Promise<globalThis.Response | undefined>) => {
+  const graphqlEndpoint = "/graphql";
+
+  return async (request, ...runtimeArgs) => {
+    const urlString = request.url;
+    const protocolEnd = urlString.indexOf("://") + 3;
+    const pathStart = urlString.indexOf("/", protocolEnd);
+    const pathAndQuery = pathStart === -1 ? "/" : urlString.slice(pathStart);
+    const queryIndex = pathAndQuery.indexOf("?");
+    const pathname =
+      queryIndex === -1 ? pathAndQuery : pathAndQuery.slice(0, queryIndex);
+    const search = queryIndex === -1 ? "" : pathAndQuery.slice(queryIndex + 1);
+
+    const match = router.find(request.method as HttpMethod, pathname);
+
+    const baldaRequest = Request.fromRequest(request);
+    baldaRequest.params = match?.params ?? {};
+    baldaRequest.setQueryString(search);
+    deps.attachConnInfo?.(baldaRequest, ...runtimeArgs);
+
+    const tapResult = await deps.tap?.(baldaRequest, ...runtimeArgs);
+    if (tapResult) {
+      return tapResult.response;
+    }
+
+    if (deps.graphql.isEnabled && pathname.startsWith(graphqlEndpoint)) {
+      const apolloHandler = await deps.ensureGraphQLHandler();
+      if (apolloHandler) {
+        const webRequest = baldaRequest.toWebApi();
+        const contextValue = deps.buildGraphQLContext
+          ? deps.buildGraphQLContext(baldaRequest, ...runtimeArgs)
+          : { req: baldaRequest };
+        return executeApolloGraphQLRequestWeb(
+          apolloHandler.server,
+          webRequest,
+          request.method,
+          search,
+          contextValue,
+        );
+      }
+    }
+
+    const wsResult = await deps.tryUpgradeWebSocket?.(
+      baldaRequest,
+      ...runtimeArgs,
+    );
+    if (wsResult) {
+      return wsResult.response;
+    }
+
+    const baldaResponse = new Response();
+    if (match?.responseSchemas) {
+      baldaResponse.setRouteResponseSchemas(match.responseSchemas);
+    }
+
+    await executeMiddlewareChain(
+      match?.middleware ?? [],
+      match?.handler ??
+        ((req, res) => {
+          res.notFound({
+            ...errorFactory(new RouteNotFoundError(req.url, req.method)),
+          });
+        }),
+      baldaRequest,
+      baldaResponse,
+    );
+
+    return Response.toWebResponse(baldaResponse);
+  };
 };

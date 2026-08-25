@@ -10,10 +10,9 @@ export type QueueConfigurationOptions = {
   pgboss?: Parameters<typeof definePGBossConfiguration>[0];
   sqs?: Parameters<typeof defineSQSConfiguration>[0];
 } & {
-  [key in Exclude<
-    QueueProviderKey,
-    "bullmq" | "pgboss" | "sqs"
-  >]?: CustomQueueConfiguration;
+  [
+    key in Exclude<QueueProviderKey, "bullmq" | "pgboss" | "sqs">
+  ]?: CustomQueueConfiguration;
 };
 
 /**

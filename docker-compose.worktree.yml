@@ -78,15 +78,17 @@ services:
         aliases:
           - balda-postgres
 
+  # legacy service name; the image is Floci (github.com/floci-io/floci), a MIT-licensed
+  # drop-in for LocalStack's now auth-gated community image - same port, same wire protocols.
+  # No `ports:` here on purpose: the runtime containers reach it by hostname on
+  # local-network, and this file exposes nothing to the host.
   localstack:
-    image: localstack/localstack:latest
+    image: floci/floci:1.7.0
     environment:
-      - SERVICES=s3,cloudfront,iam,lambda
-      - DEBUG=1
+      - FLOCI_HOSTNAME=localstack
     env_file:
       - .env.test
     volumes:
-      - "./.localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - local-network
@@ -111,6 +113,7 @@ services:
       --blobPort 10000
       --location /data
       --loose
+      --skipApiVersionCheck
     environment:
       - AZURITE_ACCOUNT_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
     healthcheck:

@@ -354,8 +354,7 @@ export interface GroupRouter<
   // --- GROUP (nestable) ---
   group<
     const TMiddlewares extends readonly (
-      | ServerRouteMiddleware
-      | TypedMiddleware<any>
+      ServerRouteMiddleware | TypedMiddleware<any>
     )[] = readonly (ServerRouteMiddleware | TypedMiddleware<any>)[],
   >(
     path: string,

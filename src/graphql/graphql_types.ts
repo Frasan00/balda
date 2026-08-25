@@ -9,9 +9,7 @@ export type GraphQLTypeDef =
   | (() => string | DocumentNode | string[] | DocumentNode[]);
 
 export type GraphQLResolvers =
-  | Record<string, unknown>
-  | Record<string, unknown>[]
-  | unknown;
+  Record<string, unknown> | Record<string, unknown>[] | unknown;
 
 export interface GraphQLContext extends BaseContext {}
 
@@ -39,8 +37,7 @@ export type GraphQLOptions = {
     "typeDefs" | "resolvers"
   > & {
     context?:
-      | ((arg: any) => GraphQLContext | Promise<GraphQLContext>)
-      | GraphQLContext;
+      ((arg: any) => GraphQLContext | Promise<GraphQLContext>) | GraphQLContext;
   };
 };
 

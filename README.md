@@ -5,6 +5,7 @@ A **cross-runtime, FastAPI-inspired Node.js backend framework** that aims to wor
 ## Key Features
 
 - **Cross-Runtime Compatibility**: Single codebase that runs on Node.js, Bun, and Deno. It uses the native runtime apis for maximum performance (es. `Bun.serve`, `Deno.serve`, etc).
+- **Deploy anywhere**: `server.listen()` for any container host, `server.fetch()` for Vercel/Netlify/Deno Deploy/Supabase, and a native `handle()` adapter for AWS Lambda. See [Deployment](https://frasan00.github.io/balda/docs/deployment/overview).
 - **Decorator-Based Architecture**: Balda is inspired by FastAPI, NestJS and ExpressJS syntax with type-safe request/response handling
 - **Advanced Validation**: Supports both Zod and Ajv schema based validation for best developer experience
 - **Rich Plugin Ecosystem**: Rate limiting, CORS, file uploads, structured logging, GraphQL, and more

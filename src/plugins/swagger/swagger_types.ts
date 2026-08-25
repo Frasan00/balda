@@ -2,11 +2,7 @@
  * Type of Swagger UI to use
  */
 export type SwaggerUIType =
-  | "standard"
-  | "rapidoc"
-  | "scalar"
-  | "elements"
-  | "custom";
+  "standard" | "rapidoc" | "scalar" | "elements" | "custom";
 
 type HTMLString = string;
 
@@ -219,10 +215,7 @@ export type OpenIDConnectConfig = {
 };
 
 export type Security =
-  | BearerOptions
-  | ApiKeyOptions
-  | OAuth2Options
-  | OpenIdConnectOptions;
+  BearerOptions | ApiKeyOptions | OAuth2Options | OpenIdConnectOptions;
 
 type BearerOptions = {
   type: "bearer";

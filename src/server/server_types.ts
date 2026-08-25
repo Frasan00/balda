@@ -334,6 +334,24 @@ export interface InjectFunction {
   ): Promise<MockResponse<TResponse>>;
 }
 
+/**
+ * A Web-standard `fetch(request) => Promise<response>` handler for the server, portable to any
+ * platform that hands you a Web `Request` and expects a Web `Response` back - Cloudflare Pages,
+ * Vercel/Netlify functions, Deno Deploy, Supabase Edge Functions, a Service Worker, etc.
+ *
+ * @example
+ * ```typescript
+ * // Deno Deploy / Supabase Edge Functions
+ * Deno.serve(server.fetch);
+ *
+ * // Vercel / Netlify functions
+ * export default server.fetch;
+ * ```
+ */
+export type FetchHandler = (
+  request: globalThis.Request,
+) => Promise<globalThis.Response>;
+
 export interface ServerInterface {
   /**
    * Identifier for the balda server instance
@@ -657,6 +675,25 @@ export interface ServerInterface {
    * ```
    */
   inject: InjectFunction;
+  /**
+   * A Web-standard `fetch(request) => Promise<response>` handler for the server. Portable to any
+   * platform that hands you a Web `Request` and expects a Web `Response` back - Cloudflare Pages,
+   * Vercel/Netlify functions, Deno Deploy, Supabase Edge Functions, a Service Worker, etc.
+   * Lazily bootstraps the server on the first call, same as `inject()`.
+   *
+   * Does not handle WebSocket upgrades - those need the underlying platform's native upgrade
+   * mechanism, which only exists once the server is actually `listen()`-ing.
+   *
+   * @example
+   * ```typescript
+   * // Deno Deploy / Supabase Edge Functions
+   * Deno.serve(server.fetch);
+   *
+   * // Vercel / Netlify functions
+   * export default server.fetch;
+   * ```
+   */
+  fetch: FetchHandler;
   /**
    * Ensures the server is bootstrapped (controllers imported, plugins applied).
    * This is called lazily by `inject()` and `MockServer.request()`, but can be called explicitly to pre-bootstrap.

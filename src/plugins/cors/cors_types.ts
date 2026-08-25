@@ -1,11 +1,5 @@
 export type CorsMethods =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "DELETE"
-  | "OPTIONS"
-  | "PATCH"
-  | "HEAD";
+  "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS" | "PATCH" | "HEAD";
 
 /**
  * Options for CORS middleware.

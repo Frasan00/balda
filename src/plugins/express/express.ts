@@ -374,8 +374,7 @@ export function mountExpressRouter(
 ): void {
   const normalizedBase = normalizePath(basePath);
   const stack = (expressRouter as ExpressRouter).stack as
-    | RouterLayer[]
-    | undefined;
+    RouterLayer[] | undefined;
 
   if (!stack) {
     logger.warn(
@@ -413,8 +412,7 @@ function processExpressLayer(layer: RouterLayer, basePath: string): void {
     const layerPath = layer.path || "";
     const fullPath = normalizePath(basePath + layerPath);
     const layerStack = (layer.handle as ExpressRouter).stack as
-      | RouterLayer[]
-      | undefined;
+      RouterLayer[] | undefined;
 
     if (layerStack && Array.isArray(layerStack)) {
       for (const subLayer of layerStack) {

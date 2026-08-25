@@ -125,5 +125,4 @@ export type StorageOptions = MemoryStorageStrategy | CustomStorageStrategy;
  * Rate limiter options
  */
 export type RateLimiterKeyOptions =
-  | IpRateLimiterOptions
-  | CustomRateLimiterOptions;
+  IpRateLimiterOptions | CustomRateLimiterOptions;

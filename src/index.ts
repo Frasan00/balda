@@ -141,6 +141,7 @@ export type {
   ResponseBodyForStatus,
 } from "./server/router/path_types.js";
 export type {
+  FetchHandler,
   InjectFunction,
   NodeHttpClient,
   ServerErrorHandler,
@@ -154,6 +155,12 @@ export type {
 
 import { Server } from "./server/server.js";
 export { Server };
+
+export { handle } from "./runtime/native_server/server_lambda.js";
+export type {
+  LambdaProxyEventV2,
+  LambdaProxyResultV2,
+} from "./runtime/native_server/server_lambda.js";
 
 // hash
 export { hash } from "./runtime/native_hash.js";

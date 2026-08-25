@@ -443,8 +443,7 @@ export class Router {
   get<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | BodylessMethodOptions<any, any, any, any, any>
-      | ControllerHandler<TPath>,
+      BodylessMethodOptions<any, any, any, any, any> | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -732,8 +731,7 @@ export class Router {
   delete<TPath extends string = string>(
     path: TPath,
     optionsOrHandler:
-      | BodylessMethodOptions<any, any, any, any, any>
-      | ControllerHandler<TPath>,
+      BodylessMethodOptions<any, any, any, any, any> | ControllerHandler<TPath>,
     maybeHandler?: ControllerHandler<TPath>,
   ): void {
     const fullPath = this.joinPath(path);
@@ -916,8 +914,7 @@ export class Router {
    */
   group<
     const TMiddlewares extends readonly (
-      | ServerRouteMiddleware
-      | TypedMiddleware<any>
+      ServerRouteMiddleware | TypedMiddleware<any>
     )[] = readonly (ServerRouteMiddleware | TypedMiddleware<any>)[],
   >(
     path: string,
