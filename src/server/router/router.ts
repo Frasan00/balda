@@ -99,7 +99,7 @@ export class Router {
    * @internal
    */
   addOrUpdate(
-    method: HttpMethod,
+    method: HttpMethod | (string & {}),
     path: string,
     middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[],
     handler: ServerRouteHandler,
@@ -113,7 +113,7 @@ export class Router {
     responses?: Record<number, RequestSchema>,
     allowUpdate: boolean = false,
   ): void {
-    method = method.toUpperCase() as HttpMethod;
+    method = method.toUpperCase();
     const clean = path.split("?")[0];
 
     // Pre-compile request schemas (body, query, and headers) for faster validation
@@ -274,10 +274,42 @@ export class Router {
 
     // fall back to O(k) tree traversal for dynamic routes
     const root = this.trees.get(method);
-    if (!root) {
-      return null;
+    if (root) {
+      const match = this.findInTree(root, pathWithoutQuery);
+      if (match) {
+        return match;
+      }
     }
 
+    // No method-specific route: fall back to the catch-all "any" tree, which
+    // matches every HTTP method (including future/unknown ones like QUERY).
+    const anyCacheKey = `*:${pathWithoutQuery}`;
+    const anyCachedRoute = this.staticRouteCache.get(anyCacheKey);
+    if (anyCachedRoute) {
+      return anyCachedRoute;
+    }
+
+    const anyRoot = this.trees.get("*");
+    if (anyRoot) {
+      return this.findInTree(anyRoot, pathWithoutQuery);
+    }
+
+    return null;
+  }
+
+  /**
+   * Walk a radix tree for the given path and return the resolved route, or null.
+   * @internal
+   */
+  private findInTree(
+    root: Node,
+    pathWithoutQuery: string,
+  ): {
+    middleware: (ServerRouteMiddleware | TypedMiddleware<any>)[];
+    handler: ServerRouteHandler;
+    params: Params;
+    responseSchemas?: RouteResponseSchemas;
+  } | null {
     const trimmed = pathWithoutQuery.replace(/^\/+|\/+$/g, "");
     const segments = trimmed.length === 0 ? [] : trimmed.split("/");
     const params: Params = {};
@@ -897,6 +929,166 @@ export class Router {
 
     this.addOrUpdate(
       "HEAD",
+      fullPath,
+      combined,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+      responses,
+    );
+  }
+
+  /**
+   * Register a route that matches every HTTP method under this router's base path.
+   * This includes methods not explicitly mapped by the framework (e.g. the QUERY
+   * method), so it works even when no dedicated `router.query()` exists.
+   *
+   * A specific method route (e.g. `router.post()`) always takes precedence over
+   * an `any()` route for that method.
+   *
+   * @note Swagger/OpenAPI 3.x has no "any method" concept, so this route is
+   * emitted under a non-standard `any` key that Swagger UI/validators may ignore.
+   */
+  any<TPath extends string = string>(
+    path: TPath,
+    handler: ControllerHandler<TPath>,
+  ): void;
+  any<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+    TBody extends RequestSchema | undefined = undefined,
+    TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
+  >(
+    path: TPath,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
+  ): void;
+  any<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
+  ): void {
+    const fullPath = this.joinPath(path);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      headers,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+
+    const combined = [...this.middlewares, ...middlewares];
+    const validationSchemas = { body, query, headers, all };
+
+    this.addOrUpdate(
+      "*",
+      fullPath,
+      combined,
+      handler,
+      validationSchemas,
+      swaggerOptions,
+      responses,
+    );
+  }
+
+  /**
+   * Register a QUERY route under this router's base path with type-safe path
+   * parameters. The QUERY method (RFC 9520) can carry a request body, so body
+   * and `all` validation are supported.
+   *
+   * @note Swagger/OpenAPI 3.x does not standardize the QUERY method, so this
+   * route is emitted under a non-standard `query` key that Swagger UI/validators
+   * may ignore.
+   */
+  query<TPath extends string = string>(
+    path: TPath,
+    handler: ControllerHandler<TPath>,
+  ): void;
+  query<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+    TBody extends RequestSchema | undefined = undefined,
+    TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
+  >(
+    path: TPath,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TAll,
+      InferMiddlewareExtensions<TMiddlewares>
+    >,
+  ): void;
+  query<TPath extends string = string>(
+    path: TPath,
+    optionsOrHandler:
+      | StandardMethodOptions<any, any, any, any, any, any, any>
+      | ControllerHandler<TPath>,
+    maybeHandler?: ControllerHandler<TPath>,
+  ): void {
+    const fullPath = this.joinPath(path);
+    const {
+      middlewares,
+      handler,
+      body,
+      query,
+      headers,
+      all,
+      responses,
+      swaggerOptions,
+    } = this.extractOptionsAndHandler(optionsOrHandler, maybeHandler);
+
+    const combined = [...this.middlewares, ...middlewares];
+    const validationSchemas = { body, query, headers, all };
+
+    this.addOrUpdate(
+      "QUERY",
       fullPath,
       combined,
       handler,

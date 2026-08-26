@@ -241,7 +241,9 @@ function generateOpenAPISpec(globalOptions: SwaggerGlobalOptions) {
     if (swaggerOptions?.excludeFromSwagger) continue;
 
     if (!paths[route.path]) paths[route.path] = {};
-    const method = route.method.toLowerCase();
+    // OpenAPI 3.x has no "any method" or QUERY method concept. Emit them under
+    // non-standard keys (`any` / `query`) that Swagger UI/validators may ignore.
+    const method = route.method === "*" ? "any" : route.method.toLowerCase();
     const operation: Record<string, any> = {
       summary: swaggerOptions?.name || `${method.toUpperCase()} ${route.path}`,
       description: swaggerOptions?.description || "",

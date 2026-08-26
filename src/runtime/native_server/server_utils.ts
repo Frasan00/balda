@@ -58,7 +58,7 @@ export const executeMiddlewareChain = (
   return dispatch().then(() => res);
 };
 
-const METHODS_WITH_BODY = new Set(["post", "put", "patch"]);
+const METHODS_WITH_BODY = new Set(["post", "put", "patch", "query"]);
 
 export const canHaveBody = (method?: string) => {
   if (!method) {

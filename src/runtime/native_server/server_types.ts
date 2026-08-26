@@ -15,7 +15,7 @@ import type { RunTimeType } from "../runtime.js";
 export type { HttpsServerOptions };
 
 export type HttpMethod =
-  "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+  "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD" | "QUERY";
 
 export type NodeServer = HttpServer | HttpsServer | Http2Server;
 

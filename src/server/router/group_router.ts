@@ -351,6 +351,100 @@ export interface GroupRouter<
     >,
   ): void;
 
+  // --- ANY (every HTTP method, including future/unknown ones) ---
+  any<TPath extends string = string>(
+    path: TPath,
+    handler: ControllerHandler<
+      TPath,
+      Record<number, RequestSchema>,
+      unknown,
+      unknown,
+      unknown,
+      unknown,
+      TGroupExt
+    >,
+  ): void;
+  any<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+    TBody extends RequestSchema | undefined = undefined,
+    TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
+  >(
+    path: TPath,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TAll,
+      TGroupExt & InferMiddlewareExtensions<TMiddlewares>
+    >,
+  ): void;
+
+  // --- QUERY (RFC 9520, can carry a body) ---
+  query<TPath extends string = string>(
+    path: TPath,
+    handler: ControllerHandler<
+      TPath,
+      Record<number, RequestSchema>,
+      unknown,
+      unknown,
+      unknown,
+      unknown,
+      TGroupExt
+    >,
+  ): void;
+  query<
+    TPath extends string = string,
+    TResponses extends Record<number, RequestSchema> = Record<
+      number,
+      RequestSchema
+    >,
+    TBody extends RequestSchema | undefined = undefined,
+    TQuery extends RequestSchema | undefined = undefined,
+    THeaders extends RequestSchema | undefined = undefined,
+    TAll extends RequestSchema | undefined = undefined,
+    const TMiddlewares extends readonly TypedMiddleware<any>[] =
+      readonly TypedMiddleware<any>[],
+  >(
+    path: TPath,
+    options: StandardMethodOptions<
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TPath,
+      TAll,
+      TMiddlewares
+    >,
+    handler: ControllerHandler<
+      TPath,
+      TResponses,
+      TBody,
+      TQuery,
+      THeaders,
+      TAll,
+      TGroupExt & InferMiddlewareExtensions<TMiddlewares>
+    >,
+  ): void;
+
   // --- GROUP (nestable) ---
   group<
     const TMiddlewares extends readonly (

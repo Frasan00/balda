@@ -108,6 +108,55 @@ router.get(
 );
 ```
 
+### Catch-all methods: `router.any()`
+
+`router.any()` registers a route that matches **every HTTP method** — including methods
+not explicitly mapped by the framework (e.g. the new `QUERY` method, RFC 9520). It works
+even when no dedicated `router.query()` exists.
+
+A specific method route (e.g. `router.post()`) always takes precedence over an `any()`
+route for that method.
+
+```typescript
+// Matches GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, QUERY, and any future method
+router.any("/webhook", (req, res) => {
+  res.json({ method: req.method });
+});
+
+// Root catch-all (e.g. SPA fallback) — takes precedence over the built-in 404 handler
+router.any("*", (req, res) => {
+  res.sendFile("index.html");
+});
+```
+
+:::note Swagger
+OpenAPI 3.x has no "any method" concept, so `any()` routes are emitted under a
+non-standard `any` key that Swagger UI/validators may ignore.
+:::
+
+### The `QUERY` method: `router.query()`
+
+The `QUERY` method (RFC 9520) is used to retrieve a representation selected by a query
+expression. It can carry a request body, so `body` and `all` validation are supported.
+
+```typescript
+router.query(
+  "/search",
+  {
+    body: SearchExpressionSchema,
+  },
+  (req, res) => {
+    // req.body is the validated query expression
+    res.json({ results: runQuery(req.body) });
+  },
+);
+```
+
+:::note Swagger
+OpenAPI 3.x does not standardize the `QUERY` method, so `query()` routes are emitted
+under a non-standard `query` key that Swagger UI/validators may ignore.
+:::
+
 ### 3. Controller Decorators
 
 For organized, feature-based routing:
@@ -338,7 +387,7 @@ See [Request-Response](./request-response) for more on type-safe requests and re
 
 ## Route Options
 
-All route methods (`get`, `post`, `put`, `patch`, `delete`, `options`, `head`) support an optional configuration object:
+All route methods (`get`, `post`, `put`, `patch`, `delete`, `options`, `head`, `any`, `query`) support an optional configuration object:
 
 ```typescript
 import { z } from "zod";

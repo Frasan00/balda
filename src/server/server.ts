@@ -885,29 +885,30 @@ export class Server<
    * @internal
    */
   private registerNotFoundRoutes(): void {
-    const methods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-      "HEAD",
-    ] as const;
-    for (const method of methods) {
-      router.addOrUpdate(
-        method,
-        "*",
-        [],
-        this.handleNotFound,
-        {},
-        {
-          excludeFromSwagger: true,
-        },
-        undefined,
-        true,
+    // The not-found fallback lives in the catch-all "any" tree so it applies to
+    // every HTTP method (including future/unknown ones like QUERY). A specific
+    // method route or a user `router.any()` route always takes precedence.
+    // If the user already registered a root catch-all `any("*")`/`any("/*")`,
+    // skip so we don't clobber their handler at bootstrap.
+    const hasCatchAll = router
+      .getRoutes()
+      .some(
+        (r) => r.method === "*" && r.path.replace(/^\/+|\/+$/g, "") === "*",
       );
+    if (hasCatchAll) {
+      return;
     }
+
+    router.addOrUpdate(
+      "*",
+      "*",
+      [],
+      this.handleNotFound,
+      {},
+      {
+        excludeFromSwagger: true,
+      },
+    );
   }
 
   /**
