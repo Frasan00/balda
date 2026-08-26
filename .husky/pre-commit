@@ -1,16 +1,17 @@
 #!/usr/bin/env sh
+set -eu
 
-yarn format
+cleanup() {
+  yarn docker:worktree:down
+}
 
-yarn build:prod
+trap cleanup EXIT HUP INT TERM
 
-echo "Running tests..."
+yarn docker:worktree:up
 
-echo "Running tests for Node..."
-yarn test
+yarn format:worktree
 
-echo "Running tests for Bun..."
-yarn test:bun
+yarn build:worktree
 
-echo "Running tests for Deno..."
-yarn test:deno
+echo "Running tests in the portless worktree stack..."
+yarn test:all:worktree

@@ -1,0 +1,75 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="85"
+          stroke="url(#primaryGradient)"
+          stroke-width="2.5"
+          fill="none"
+          opacity="0.3"/>
+
+  <!-- Main shield/badge shape -->
+  <path d="M100 20 L165 55 L165 125 L100 180 L35 125 L35 55 Z"
+        fill="url(#primaryGradient)"
+        opacity="0.95"/>
+
+  <!-- Inner shield accent -->
+  <path d="M100 35 L155 65 L155 120 L100 165 L45 120 L45 65 Z"
+        fill="none"
+        stroke="url(#accentGradient)"
+        stroke-width="1.5"
+        opacity="0.4"/>
+
+  <!-- Stylized "B" letterform -->
+  <g filter="url(#glow)">
+    <!-- Vertical bar -->
+    <rect x="70" y="60" width="8" height="80" fill="white" rx="2"/>
+
+    <!-- Top curve of B -->
+    <path d="M78 68 L110 68 C120 68 128 76 128 86 C128 96 120 100 110 100 L78 100"
+          stroke="white"
+          stroke-width="8"
+          fill="none"
+          stroke-linecap="round"/>
+
+    <!-- Bottom curve of B -->
+    <path d="M78 100 L115 100 C127 100 135 108 135 118 C135 128 127 132 115 132 L78 132"
+          stroke="white"
+          stroke-width="8"
+          fill="none"
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Connection nodes (representing cross-runtime) -->
+  <circle cx="100" cy="30" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="160" cy="62" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="160" cy="118" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="100" cy="175" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="40" cy="118" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+  <circle cx="40" cy="62" r="3.5" fill="#a5b4fc" opacity="0.9"/>
+
+  <!-- Performance accent lines -->
+  <g opacity="0.5">
+    <line x1="25" y1="85" x2="35" y2="85" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+    <line x1="22" y1="95" x2="35" y2="95" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+    <line x1="25" y1="105" x2="35" y2="105" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

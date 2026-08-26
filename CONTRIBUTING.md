@@ -42,32 +42,18 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 * **Update documentation** if needed
 * **Write a clear commit message** describing your changes
 
-**Before committing**, always run tests using Docker Compose to ensure cross-runtime compatibility:
-
-```bash
-docker compose up --build
-docker compose exec node yarn test
-docker compose exec bun yarn test:bun
-docker compose exec deno yarn test:deno
-docker compose down
-```
-
-If you're working from a git worktree or already have the default stack bound to local ports, use the portless worktree compose file instead:
+**Before committing**, always run the portless Docker Compose workflow to ensure cross-runtime compatibility:
 
 ```bash
 yarn docker:worktree:up
-yarn test:worktree
+yarn test:all:worktree
 yarn docker:worktree:down
 ```
 
-For the other runtimes, start the matching worktree stack first:
+The worktree Compose file exposes no ports to the host and is safe to use even outside a git worktree.
 
 ```bash
-yarn docker:worktree:up:bun
-yarn test:bun:worktree
-
-yarn docker:worktree:up:deno
-yarn test:deno:worktree
+docker compose -f docker-compose.worktree.yml config
 ```
 
 ## Development Setup
@@ -79,7 +65,7 @@ yarn test:deno:worktree
 * Ensures consistent environment across all runtimes
 
 **Option 2: Local Development**
-* Node.js 22.x (check `.nvmrc`)
+* Node.js 24.x LTS (check `.nvmrc`)
 * Yarn package manager
 * Optionally: Bun and Deno for cross-runtime testing
 
@@ -110,21 +96,12 @@ docker compose exec bun yarn test:bun
 docker compose exec deno yarn test:deno
 ```
 
-If the default ports are already occupied, start the worktree-safe stack instead:
+For a full portless runtime validation, use the worktree-safe stack:
 
 ```bash
 yarn docker:worktree:up
-yarn test:worktree
-```
-
-For Bun or Deno, swap in the matching startup command first:
-
-```bash
-yarn docker:worktree:up:bun
-yarn test:bun:worktree
-
-yarn docker:worktree:up:deno
-yarn test:deno:worktree
+yarn test:all:worktree
+yarn docker:worktree:down
 ```
 
 4. Start development servers:
@@ -239,16 +216,10 @@ Balda follows strict TypeScript coding standards defined in the user rules:
 ### Testing with Docker Compose (Required Before Commit)
 
 ```bash
-# Start containers
-docker compose up --build
-
-# Run all tests across all runtimes
-docker compose exec node yarn test
-docker compose exec bun yarn test:bun
-docker compose exec deno yarn test:deno
-
-# Stop containers
-docker compose down
+# Start the portless stack, run all runtimes, then remove containers and volumes
+yarn docker:worktree:up
+yarn test:all:worktree
+yarn docker:worktree:down
 ```
 
 ### Testing Locally
@@ -308,13 +279,11 @@ When contributing, ensure your changes work across all supported runtimes:
 * **Bun**: Uses `Bun.serve` for performance
 * **Deno**: Uses `Deno.serve` with appropriate imports
 
-**Always test on all runtimes using Docker Compose before submitting:**
+**Always test on all runtimes using the portless Docker Compose workflow before submitting:**
 ```bash
-docker compose up --build
-docker compose exec node yarn test
-docker compose exec bun yarn test:bun
-docker compose exec deno yarn test:deno
-docker compose down
+yarn docker:worktree:up
+yarn test:all:worktree
+yarn docker:worktree:down
 ```
 
 Alternatively, test locally:

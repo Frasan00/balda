@@ -1,6 +1,6 @@
 {
   "name": "balda",
-  "version": "0.0.76",
+  "version": "0.0.77",
   "type": "module",
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
@@ -12,6 +12,9 @@
       "require": "./lib/index.cjs"
     }
   },
+  "files": [
+    "lib"
+  ],
   "repository": "git@github.com:Frasan00/balda.git",
   "author": "Frasan00 <francesco.sangiovanni.7@gmail.com>",
   "license": "MIT",
@@ -35,11 +38,12 @@
     "build:worktree": "rm -rf lib && docker compose -f docker-compose.worktree.yml exec -T node yarn tsup",
     "build:test": "rm -rf lib && docker compose exec -T node yarn tsup && rm -rf lib",
     "build:prod": "rm -rf lib && docker compose exec -T node yarn tsup --minify",
-    "docker:worktree:down": "docker compose -f docker-compose.worktree.yml down",
-    "docker:worktree:up": "docker compose -f docker-compose.worktree.yml up -d --build node redis sqs postgres localstack mqtt azurite mailcatcher",
+    "docker:worktree:down": "docker compose -f docker-compose.worktree.yml down -v --remove-orphans",
+    "docker:worktree:up": "docker compose -f docker-compose.worktree.yml up -d --build",
     "docker:worktree:up:bun": "docker compose -f docker-compose.worktree.yml up -d --build bun redis sqs postgres localstack mqtt azurite mailcatcher",
     "docker:worktree:up:deno": "docker compose -f docker-compose.worktree.yml up -d --build deno redis sqs postgres localstack mqtt azurite mailcatcher",
     "format": "docker compose exec -T node yarn prettier --write \"**/*.ts\"",
+    "format:worktree": "docker compose -f docker-compose.worktree.yml exec -T node yarn prettier --write \"**/*.ts\"",
     "lint": "eslint .",
     "lint:worktree": "docker compose -f docker-compose.worktree.yml exec -T node yarn eslint .",
     "lint:fix": "eslint . --fix",
@@ -160,7 +164,7 @@
     "edge-parser": "9.1.0"
   },
   "engines": {
-    "node": ">=18.20.8"
+    "node": ">=22.14.0"
   },
   "prettier": {
     "printWidth": 80,

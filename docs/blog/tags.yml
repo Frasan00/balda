@@ -1,0 +1,4 @@
+# Tags configuration for Balda blog
+balda:
+  description: Balda framework related posts
+  permalink: /blog/tags/balda

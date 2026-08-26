@@ -36,6 +36,7 @@ README.md
 # Docker and deployment
 Dockerfile
 docker-compose.yml
+docker-compose.worktree.yml
 docker-compose.services.yml
 docker/
 .dockerignore
@@ -54,6 +55,10 @@ yarn.lock
 .gitignore
 .dockerignore
 .npmignore
+
+# Agent guidance and local hooks
+AGENTS.md
+.Codex/
 
 # Temporary files
 tmp/
