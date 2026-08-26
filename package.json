@@ -57,7 +57,8 @@
     "test:worktree": "docker compose -f docker-compose.worktree.yml exec -T node yarn vitest --run",
     "test:watch": "docker compose exec -T node yarn vitest --watch",
     "test:coverage": "docker compose exec -T node yarn vitest --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "sh scripts/release.sh"
   },
   "devDependencies": {
     "@adminjs/express": "^6.1.1",

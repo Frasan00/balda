@@ -68,6 +68,7 @@ deno/
 # Scripts and misc
 speed_test.sh
 run-benchmarks.sh
+scripts/
 todo.md
 
 # Benchmark files
