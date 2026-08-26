@@ -170,4 +170,6 @@ benchmark-results/
 
 .idea/
 
+.sisyphus/
+
 TODO.md

@@ -59,6 +59,7 @@ yarn.lock
 # Agent guidance and local hooks
 AGENTS.md
 .Codex/
+.sisyphus/
 
 # Temporary files
 tmp/
