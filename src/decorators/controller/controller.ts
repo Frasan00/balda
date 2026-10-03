@@ -5,11 +5,7 @@ import type { HttpMethod } from "../../runtime/native_server/server_types.js";
 import type { PolicyMetadata } from "../../server/policy/policy_types.js";
 import { createPolicyMiddleware } from "../../server/policy/policy_middleware.js";
 import { router } from "../../server/router/router.js";
-import {
-  getCacheService,
-  getCacheOptions,
-} from "../../cache/cache.registry.js";
-import { createCacheMiddleware } from "../../cache/cache.plugin.js";
+import { createLazyCacheMiddleware } from "../../cache/cache.plugin.js";
 import { resolveCacheConfig } from "../../cache/cache.utils.js";
 import type { CacheRouteConfig } from "../../cache/cache.types.js";
 
@@ -66,18 +62,10 @@ export const controller = (
 
       // Inject cache middleware if @cache() decorator was used
       if (meta.cacheConfig) {
-        const cacheService = getCacheService();
-        if (cacheService) {
-          const resolved = resolveCacheConfig(
-            meta.cacheConfig as CacheRouteConfig,
-          );
-          const cacheMw = createCacheMiddleware(
-            cacheService,
-            resolved,
-            getCacheOptions(),
-          );
-          allMiddlewares.push(cacheMw);
-        }
+        const resolved = resolveCacheConfig(
+          meta.cacheConfig as CacheRouteConfig,
+        );
+        allMiddlewares.push(createLazyCacheMiddleware(resolved));
       }
 
       router.addOrUpdate(

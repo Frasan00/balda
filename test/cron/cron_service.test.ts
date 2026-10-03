@@ -230,7 +230,9 @@ describe("CronService", () => {
     it("should import all matching files", async () => {
       const initialJobCount = CronService.scheduledJobs.length;
 
-      await CronService.massiveImportCronJobs(["test/cron/*.ts"]);
+      // Narrow to the fixtures: a bare `test/cron/*.ts` also matches the sibling test files,
+      // and importing those mid-test throws "Cannot call describe() inside a test".
+      await CronService.massiveImportCronJobs(["test/cron/test_cron*.ts"]);
 
       expect(CronService.scheduledJobs.length).toBeGreaterThanOrEqual(
         initialJobCount,

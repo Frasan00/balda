@@ -20,11 +20,7 @@ import type {
 import type { RequestSchema } from "../../decorators/validation/validate_types.js";
 import { wrapHandlerWithValidation } from "./validation_wrapper.js";
 import type { CacheRouteConfig } from "../../cache/cache.types.js";
-import {
-  getCacheService,
-  getCacheOptions,
-} from "../../cache/cache.registry.js";
-import { createCacheMiddleware } from "../../cache/cache.plugin.js";
+import { createLazyCacheMiddleware } from "../../cache/cache.plugin.js";
 import { resolveCacheConfig } from "../../cache/cache.utils.js";
 import type {
   TypedMiddleware,
@@ -411,16 +407,8 @@ export class Router {
 
     // Inject cache middleware if cache config is given
     if (options.cache) {
-      const cacheService = getCacheService();
-      if (cacheService) {
-        const resolved = resolveCacheConfig(options.cache as CacheRouteConfig);
-        const cacheMw = createCacheMiddleware(
-          cacheService,
-          resolved,
-          getCacheOptions(),
-        );
-        middlewares.push(cacheMw);
-      }
+      const resolved = resolveCacheConfig(options.cache as CacheRouteConfig);
+      middlewares.push(createLazyCacheMiddleware(resolved));
     }
 
     return {

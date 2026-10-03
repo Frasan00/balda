@@ -11,7 +11,7 @@ import {
 import { MemoryCacheProvider } from "../../src/cache/providers/memory_cache_provider.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
 import { Server } from "../../src/server/server.js";
-import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
+import { getCallCount, resetCallCount } from "./controllers/cache_counter.js";
 
 // ─── Shared memory provider so we can reset it between tests ────────────────
 const memoryProvider = new MemoryCacheProvider();
@@ -30,7 +30,9 @@ describe("Cache — @cache() decorator (controller)", () => {
       plugins: {
         bodyParser: { json: {} },
       },
-      controllerPatterns: ["./test/controllers/cache_test_controller.{ts,js}"],
+      controllerPatterns: [
+        "./test/cache/controllers/cache_test_controller.{ts,js}",
+      ],
     });
 
     mockServer = server.getMockServer();

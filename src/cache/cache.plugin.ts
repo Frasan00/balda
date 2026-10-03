@@ -1,6 +1,7 @@
 import { logger } from "../logger/logger.js";
 import type { ServerRouteMiddleware } from "../runtime/native_server/server_types.js";
 import { CACHE_STATUS_HEADER, CacheStatus } from "./cache.constants.js";
+import { getCacheOptions, getCacheService } from "./cache.registry.js";
 import type { CacheService } from "./cache.service.js";
 import type {
   CachePluginOptionsResolved,
@@ -125,6 +126,39 @@ export function createCacheMiddleware(
       res.setHeader(CACHE_STATUS_HEADER, CacheStatus.Bypass);
       return next();
     }
+  };
+}
+
+/**
+ * Creates a cache middleware that binds the global CacheService on the first request.
+ *
+ * Routes are registered when their module is imported, which can happen before the cache
+ * service is initialized (or before it is replaced). Resolving it per request keeps those
+ * routes working instead of silently caching nothing, or caching through a stale service.
+ */
+export function createLazyCacheMiddleware(
+  routeConfig: CacheRouteConfigResolved,
+): ServerRouteMiddleware {
+  let boundService: CacheService | null = null;
+  let bound: ServerRouteMiddleware | null = null;
+
+  return async (req, res, next) => {
+    const cacheService = getCacheService();
+
+    if (!cacheService) {
+      return next();
+    }
+
+    if (cacheService !== boundService) {
+      boundService = cacheService;
+      bound = createCacheMiddleware(
+        cacheService,
+        routeConfig,
+        getCacheOptions(),
+      );
+    }
+
+    return bound!(req, res, next);
   };
 }
 

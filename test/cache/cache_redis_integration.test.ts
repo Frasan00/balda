@@ -11,7 +11,7 @@ import {
 import { RedisCacheProvider } from "../../src/cache/providers/redis_cache_provider.js";
 import type { MockServer } from "../../src/mock/mock_server.js";
 import { Server } from "../../src/server/server.js";
-import { getCallCount, resetCallCount } from "../controllers/cache_counter.js";
+import { getCallCount, resetCallCount } from "./controllers/cache_counter.js";
 
 const REDIS_HOST = process.env.REDIS_HOST || "localhost";
 const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
@@ -48,7 +48,9 @@ describe("Cache (Redis) — @cache() decorator (controller)", () => {
       plugins: {
         bodyParser: { json: {} },
       },
-      controllerPatterns: ["./test/controllers/cache_test_controller.{ts,js}"],
+      controllerPatterns: [
+        "./test/cache/controllers/cache_test_controller.{ts,js}",
+      ],
     });
 
     mockServer = server.getMockServer();
