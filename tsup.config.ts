@@ -45,6 +45,9 @@ export default defineConfig([
     splitting: false,
     treeshake: true,
     minify: true,
+    // Without this, minification renames the error classes and `BaldaError`
+    // would publish mangled `code` values.
+    keepNames: true,
   },
   {
     entry: ["src/cli.ts"],

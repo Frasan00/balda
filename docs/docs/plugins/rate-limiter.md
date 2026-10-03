@@ -17,10 +17,8 @@ import { Server } from "balda";
 const server = new Server({
   plugins: {
     rateLimiter: {
-      keyOptions: {
-        limit: 100,
-        windowMs: 60000, // 1 minute
-      },
+      keyOptions: { limit: 100 },
+      storageOptions: { windowMs: 60_000 }, // 1 minute
     },
   },
 });
@@ -36,40 +34,57 @@ When the app runs behind a reverse proxy, register the **[Trust Proxy](./trust-p
 rateLimiter: {
   keyOptions: {
     type: "ip",
-    limit: 100,                     // Requests per window
-    windowMs: 60000                 // Time window in ms (1 minute)
-  }
+    limit: 100,               // Requests per window
+  },
+  storageOptions: {
+    windowMs: 60_000,         // Time window in ms (1 minute)
+  },
 }
 ```
 
 ### Custom Key-Based Limiting
 
+Set `type: "custom"` and supply a `key` function:
+
 ```typescript
 rateLimiter: {
   keyOptions: {
-    key: (req) => {
-      // Use API key or user ID as rate limit key
-      return req.rawHeaders.get('X-API-Key') || req.ip;
-    },
+    type: "custom",
+    key: (req) => req.rawHeaders.get("X-API-Key") ?? req.ip,
     limit: 50,
-    windowMs: 60000
-  }
+  },
+  storageOptions: {
+    windowMs: 60_000,
+  },
 }
 ```
 
 ### Storage Configuration
 
+Storage is the **second** argument, not part of `keyOptions`. Passing it inline is ignored:
+
+```typescript
+import { rateLimiter } from "balda";
+
+rateLimiter(
+  { type: "ip", limit: 100 },
+  { type: "memory", windowMs: 60_000, maxKeys: 100_000 },
+);
+```
+
+When registered as a plugin, the same two objects are `keyOptions` and `storageOptions`:
+
 ```typescript
 rateLimiter: {
-  keyOptions: {
-    limit: 100,
-    windowMs: 60000,
-    storageStrategy: "memory"  // Default: in-memory storage
-  }
+  keyOptions: { type: "ip", limit: 100 },
+  storageOptions: { type: "memory", windowMs: 60000 }
 }
 ```
 
 ## Usage
+
+The limiter takes the same two arguments everywhere: `rateLimiter(keyOptions, storageOptions)`.
+Registering it as a plugin just splits them into `keyOptions` / `storageOptions`.
 
 ### Global Rate Limiting
 
@@ -77,10 +92,8 @@ rateLimiter: {
 const server = new Server({
   plugins: {
     rateLimiter: {
-      keyOptions: {
-        limit: 100,
-        windowMs: 60000, // 100 requests per minute
-      },
+      keyOptions: { limit: 100 },
+      storageOptions: { windowMs: 60_000 }, // 100 requests per minute
     },
   },
 });
@@ -104,14 +117,7 @@ import { rateLimiter } from "balda";
 @controller("/api")
 export class ApiController {
   @get("/public", {
-    middleware: [
-      rateLimiter({
-        keyOptions: {
-          limit: 1000,
-          windowMs: 60000,
-        },
-      }),
-    ],
+    middleware: [rateLimiter({ limit: 1000 }, { windowMs: 60_000 })],
   })
   async publicEndpoint(req: Request, res: Response) {
     // 1000 requests per minute
@@ -120,12 +126,7 @@ export class ApiController {
 
   @post("/auth/login", {
     middleware: [
-      rateLimiter({
-        keyOptions: {
-          limit: 5,
-          windowMs: 15 * 60 * 1000, // 15 minutes
-        },
-      }),
+      rateLimiter({ limit: 5 }, { windowMs: 15 * 60 * 1000 }), // 15 minutes
     ],
   })
   async login(req: Request, res: Response) {
@@ -141,26 +142,40 @@ export class ApiController {
 ```typescript
 rateLimiter: {
   keyOptions: {
+    type: "custom",
     key: (req) => {
       // Rate limit by user ID if authenticated, IP otherwise
       const userId = req.user?.id;
-      return userId || req.ip;
+      return userId ?? req.ip;
     },
     limit: 100,
-    windowMs: 60000
-  }
+  },
+  storageOptions: { windowMs: 60_000 },
 }
 ```
 
 ## Error Response
 
-When rate limit is exceeded:
+Rejected requests return `statusCode` (default 429) with a `code` and `message`:
 
 ```json
 // Response: 429 Too Many Requests
 {
-  "error": "Too many requests. Please try again later."
+  "message": "ERR_RATE_LIMIT_EXCEEDED",
+  "code": "RATE_LIMIT_EXCEEDED"
 }
+```
+
+Both are configurable — `message` for humans, `code` for clients that branch on it:
+
+```typescript
+rateLimiter({
+  type: "ip",
+  limit: 100,
+  message: "Slow down.",
+  code: "RATE_LIMITED",
+  statusCode: 429,
+});
 ```
 
 ## Common Patterns
@@ -169,10 +184,8 @@ When rate limit is exceeded:
 
 ```typescript
 rateLimiter: {
-  keyOptions: {
-    limit: 100,
-    windowMs: 60 * 1000  // 100 requests per minute
-  }
+  keyOptions: { limit: 100 },
+  storageOptions: { windowMs: 60 * 1000 }, // 100 requests per minute
 }
 ```
 
@@ -180,10 +193,8 @@ rateLimiter: {
 
 ```typescript
 rateLimiter: {
-  keyOptions: {
-    limit: 5,
-    windowMs: 15 * 60 * 1000  // 5 attempts per 15 minutes
-  }
+  keyOptions: { limit: 5 },
+  storageOptions: { windowMs: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
 }
 ```
 
@@ -191,10 +202,8 @@ rateLimiter: {
 
 ```typescript
 rateLimiter: {
-  keyOptions: {
-    limit: 1000,
-    windowMs: 60 * 1000  // 1000 requests per minute
-  }
+  keyOptions: { limit: 1000 },
+  storageOptions: { windowMs: 60 * 1000 }, // 1000 requests per minute
 }
 ```
 
@@ -202,10 +211,8 @@ rateLimiter: {
 
 ```typescript
 rateLimiter: {
-  keyOptions: {
-    limit: 10,
-    windowMs: 60 * 60 * 1000  // 10 requests per hour
-  }
+  keyOptions: { limit: 10 },
+  storageOptions: { windowMs: 60 * 60 * 1000 }, // 10 requests per hour
 }
 ```
 
@@ -215,10 +222,8 @@ rateLimiter: {
 const server = new Server({
   plugins: {
     rateLimiter: {
-      keyOptions: {
-        limit: 100,
-        windowMs: 60000,
-      },
+      keyOptions: { limit: 100 },
+      storageOptions: { windowMs: 60_000 },
     },
   },
 });
@@ -233,14 +238,7 @@ export class ApiController {
 
   // Custom rate limit for auth endpoint
   @post("/auth/login", {
-    middleware: [
-      rateLimiter({
-        keyOptions: {
-          limit: 5,
-          windowMs: 15 * 60 * 1000,
-        },
-      }),
-    ],
+    middleware: [rateLimiter({ limit: 5 }, { windowMs: 15 * 60 * 1000 })],
   })
   async login(req: Request, res: Response) {
     const user = await authenticateUser(req.body);
@@ -250,13 +248,14 @@ export class ApiController {
   // Custom rate limit by API key
   @get("/premium", {
     middleware: [
-      rateLimiter({
-        keyOptions: {
-          key: (req) => req.rawHeaders.get("X-API-Key") || req.ip,
+      rateLimiter(
+        {
+          type: "custom",
+          key: (req) => req.rawHeaders.get("X-API-Key") ?? req.ip,
           limit: 1000,
-          windowMs: 60000,
         },
-      }),
+        { windowMs: 60_000 },
+      ),
     ],
   })
   async premiumEndpoint(req: Request, res: Response) {
@@ -274,10 +273,8 @@ const server = new Server({
   plugins: {
     rateLimiter: isProduction
       ? {
-          keyOptions: {
-            limit: 100,
-            windowMs: 60000,
-          },
+          keyOptions: { limit: 100 },
+          storageOptions: { windowMs: 60_000 },
         }
       : undefined, // Disable in development
   },
@@ -286,24 +283,51 @@ const server = new Server({
 
 ## Custom Storage
 
-For distributed systems, implement custom storage:
+For distributed systems, pass an atomic `increment` as the second argument. It must create a new
+fixed window on the first call and return the current count plus the window's reset timestamp:
 
 ```typescript
-rateLimiter: {
-  keyOptions: {
-    limit: 100,
+rateLimiter(
+  { type: "ip", limit: 100 },
+  {
+    type: "custom",
     windowMs: 60000,
-    storageStrategy: "custom",
-    get: async (key) => {
-      // Get from Redis, DynamoDB, etc.
-      return await redis.get(key);
+    increment: async (key, windowMs) => {
+      // Atomically increment in Redis, DynamoDB, etc.
+      const count = await redis.incr(key);
+      if (count === 1) await redis.pexpire(key, windowMs);
+      const ttl = await redis.pttl(key);
+      return { count, resetAt: Date.now() + (ttl > 0 ? ttl : windowMs) };
     },
-    set: async (key, value) => {
-      // Store in Redis, DynamoDB, etc.
-      await redis.set(key, value);
-    }
-  }
-}
+  },
+);
+```
+
+A ready-made Redis implementation ships with balda — it uses the built-in `Bun.RedisClient` on Bun
+and dynamically imports `ioredis` on Node and Deno:
+
+```typescript
+import { rateLimiter, redisRateLimitStorage } from "balda";
+
+server.use(
+  rateLimiter(
+    { type: "ip", limit: 100 },
+    redisRateLimitStorage({ url: process.env.REDIS_URL, keyPrefix: "rl:" }),
+  ),
+);
+```
+
+When custom storage throws, the limiter **fails closed** by default (returns the 429 response) since
+a custom store is a shared external dependency. Pass `failClosed: false` to fail open instead, and
+use `onStorageError(error, key, windowMs)` to observe outages:
+
+```typescript
+rateLimiter({
+  type: "ip",
+  failClosed: false,
+  onStorageError: (err, key, windowMs) =>
+    logger.error({ err, key, windowMs }, "rate limit store down"),
+});
 ```
 
 ## Best Practices
@@ -313,3 +337,4 @@ rateLimiter: {
 3. **Monitor rate limit hits** - Adjust limits based on actual usage
 4. **Use distributed storage** - In-memory storage doesn't work across multiple servers
 5. **Provide clear error messages** - Help users understand why they're being limited
+6. **Watch storage failures** - `onStorageError` turns a silent outage into a log line

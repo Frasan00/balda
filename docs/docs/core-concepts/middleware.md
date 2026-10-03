@@ -30,7 +30,7 @@ const logger = (req, res, next) => {
 };
 
 const auth = (req, res, next) => {
-  const token = req.rawHeaders.get('authorization');
+  const token = req.rawHeaders.get("authorization");
 
   if (!token) {
     return res.unauthorized({ error: "Authentication required" });
@@ -106,7 +106,7 @@ getAdmin(req, res) { res.json({ users: [] }); }
 
 ```typescript
 const authMiddleware = async (req, res, next) => {
-  const token = req.rawHeaders.get('authorization')?.replace("Bearer ", "");
+  const token = req.rawHeaders.get("authorization")?.replace("Bearer ", "");
 
   if (!token) {
     return res.unauthorized({ error: "Token required" });
@@ -184,7 +184,7 @@ export class UsersController {
 ```typescript
 const asyncAuth = async (req, res, next) => {
   try {
-    const user = await verifyToken(req.rawHeaders.get('authorization'));
+    const user = await verifyToken(req.rawHeaders.get("authorization"));
     req.user = user;
     next();
   } catch {
@@ -201,7 +201,7 @@ const conditionalAuth = (req, res, next) => {
     return next(); // Skip auth for public routes
   }
 
-  const token = req.rawHeaders.get('authorization');
+  const token = req.rawHeaders.get("authorization");
   if (!token) {
     return res.unauthorized({ error: "Authentication required" });
   }
@@ -272,6 +272,23 @@ router.get(
   },
 );
 ```
+
+### Consuming an Extension Outside a Handler
+
+Plugin callbacks typed against the bare `Request` — for example `rateLimiter`'s custom `key` — cannot see properties added by another middleware. Use the exported `RequestWithExtension<T>` helper to widen the request at that point:
+
+```typescript
+import { rateLimiter, type RequestWithExtension } from "balda";
+
+type AuthExtension = { userId: string };
+
+const perAccountLimiter = rateLimiter({
+  type: "custom",
+  key: (req) => (req as RequestWithExtension<AuthExtension>).userId,
+});
+```
+
+An assertion is required rather than annotating the parameter, because the callback is declared as `(req: Request) => string` and a wider parameter type is rejected. Extensions stay route-local: `Request` itself is never widened globally.
 
 ### Built-in Typed Middlewares
 

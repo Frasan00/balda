@@ -1,3 +1,4 @@
+import { logger } from "../../logger/logger.js";
 import {
   InMemoryStorage,
   InMemoryStorageInterface,
@@ -10,6 +11,8 @@ import type {
   RateLimiterKeyOptions,
   StorageOptions,
 } from "./rate_limiter_types.js";
+
+const log = logger.child({ scope: "RateLimiter" });
 
 /**
  * Rate limiter plugin.
@@ -26,6 +29,7 @@ export const rateLimiter = (
     type: "ip",
     limit: 100,
     message: "ERR_RATE_LIMIT_EXCEEDED",
+    code: "RATE_LIMIT_EXCEEDED",
     statusCode: 429,
     ...keyOptions,
   };
@@ -35,12 +39,12 @@ export const rateLimiter = (
     ...storageOptions,
   };
 
-  const windowMs =
-    baseStorageOptions.type === "memory"
-      ? (baseStorageOptions.windowMs ?? 60_000)
-      : 60_000;
+  const windowMs = baseStorageOptions.windowMs ?? 60_000;
 
-  const failClosed = baseKeyOptions.failClosed ?? false;
+  // A custom store is a shared external dependency, so an outage should not silently
+  // open the floodgates; in-memory storage keeps the historical fail-open default.
+  const failClosed =
+    baseKeyOptions.failClosed ?? baseStorageOptions.type === "custom";
 
   const storage: InMemoryStorageInterface =
     baseStorageOptions.type === "memory"
@@ -48,6 +52,11 @@ export const rateLimiter = (
       : {
           increment: (baseStorageOptions as any).increment,
         };
+
+  const limitBody = () => ({
+    message: baseKeyOptions.message,
+    code: baseKeyOptions.code,
+  });
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = baseKeyOptions.type === "ip" ? req.ip : baseKeyOptions.key(req);
@@ -61,20 +70,24 @@ export const rateLimiter = (
     try {
       const result = await storage.increment(key, windowMs);
       count = result.count;
-    } catch {
+    } catch (error) {
+      log.warn({ err: error, key }, "rate limiter storage increment failed");
+
+      try {
+        baseKeyOptions.onStorageError?.(error, key, windowMs);
+      } catch (handlerError) {
+        log.warn({ err: handlerError }, "onStorageError handler threw");
+      }
+
       if (failClosed) {
-        return res.status(baseKeyOptions.statusCode!).json({
-          message: baseKeyOptions.message,
-        });
+        return res.status(baseKeyOptions.statusCode!).json(limitBody());
       }
 
       return next();
     }
 
     if (count > baseKeyOptions.limit!) {
-      return res.status(baseKeyOptions.statusCode!).json({
-        message: baseKeyOptions.message,
-      });
+      return res.status(baseKeyOptions.statusCode!).json(limitBody());
     }
 
     return next();

@@ -56,6 +56,26 @@ export function defineMiddleware<TExtension extends Record<string, any>>(
 }
 
 /**
+ * Widens a `Request` with a middleware extension, for callbacks declared against the
+ * bare `Request` (e.g. `rateLimiter`'s custom `key`) that cannot otherwise see properties
+ * added by another middleware.
+ *
+ * @template TExtension - The extension properties to add to the request
+ *
+ * @example
+ * ```typescript
+ * type AuthExtension = { userId: string };
+ *
+ * rateLimiter({
+ *   type: "custom",
+ *   key: (req) => (req as RequestWithExtension<AuthExtension>).userId,
+ * });
+ * ```
+ */
+export type RequestWithExtension<TExtension extends Record<string, any>> =
+  Request & TExtension;
+
+/**
  * Extracts the extension type from a single middleware.
  * Returns `{}` for unbranded middlewares (backward compatibility).
  */

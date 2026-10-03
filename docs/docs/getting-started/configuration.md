@@ -29,16 +29,22 @@ const server = new Server({
 
 ## Configuration Options
 
-| Option               | Type              | Default   | Description                                            |
-| -------------------- | ----------------- | --------- | ------------------------------------------------------ |
-| `port`               | number            | 80        | Port to listen on                                      |
-| `host`               | string            | "0.0.0.0" | Host address                                           |
-| `controllerPatterns` | string[]          | []        | Glob patterns for controller files                     |
-| `plugins`            | object            | {}        | Plugin configurations                                  |
-| `swagger`            | boolean \| object | true      | Enable/configure Swagger docs                          |
-| `tapOptions`         | object            | {}        | Runtime-specific server options, see [WebSockets](../websockets/overview) |
-| `nodeHttpClient`     | string            | "http"    | Node.js HTTP module (http, https, http2, http2-secure) |
-| `httpsOptions`       | object            | -         | TLS options for HTTPS/HTTP2 (Node.js only)             |
+| Option               | Type              | Default   | Description                                                                                             |
+| -------------------- | ----------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| `port`               | number            | 80        | Port to listen on                                                                                       |
+| `host`               | string            | "0.0.0.0" | Host address                                                                                            |
+| `controllerPatterns` | string[]          | []        | Glob patterns for controller files                                                                      |
+| `plugins`            | object            | {}        | Plugin configurations, see [Plugins Overview](../plugins/overview)                                      |
+| `swagger`            | boolean \| object | true      | Enable/configure Swagger docs                                                                           |
+| `tapOptions`         | object            | {}        | Runtime-specific server options, see [WebSockets](../websockets/overview)                               |
+| `nodeHttpClient`     | string            | "http"    | Node.js HTTP module (http, https, http2, http2-secure)                                                  |
+| `httpsOptions`       | object            | -         | TLS options for HTTPS/HTTP2 (Node.js only)                                                              |
+| `exposeErrorDetails` | boolean \| "auto" | false     | Include `stack`/`cause` in built-in error bodies, see [Error Handling](../core-concepts/error-handling) |
+
+:::warning
+`exposeErrorDetails` defaults to `false`. The built-in error factories are process-global, so when
+several `Server` instances coexist, the last constructed one wins.
+:::
 
 ## Environment Variables
 
@@ -76,10 +82,14 @@ const server = new Server({
 const server = new Server({
   port: Number(process.env.PORT),
   host: "0.0.0.0",
+  exposeErrorDetails: false,
   plugins: {
     cors: { origin: process.env.ALLOWED_ORIGINS.split(",") },
     helmet: {},
-    rateLimiter: { windowMs: 15 * 60 * 1000, max: 100 },
+    rateLimiter: {
+      keyOptions: { type: "ip", limit: 100 },
+      storageOptions: { type: "memory", windowMs: 15 * 60 * 1000 },
+    },
     compression: {},
   },
   swagger: false,

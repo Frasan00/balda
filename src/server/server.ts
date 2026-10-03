@@ -7,7 +7,11 @@ import type {
   CacheProvider,
 } from "../cache/cache.types.js";
 import { AjvStateManager } from "../ajv/ajv.js";
-import { errorFactory } from "../errors/error_factory.js";
+import {
+  errorFactory,
+  resolveExposeErrorDetails,
+  setExposeErrorDetails,
+} from "../errors/error_factory.js";
 import { MethodNotAllowedError } from "../errors/method_not_allowed.js";
 import { RouteNotFoundError } from "../errors/route_not_found.js";
 import { GraphQL } from "../graphql/graphql.js";
@@ -122,6 +126,7 @@ export class Server<
 
   isListening: boolean;
   isProduction: boolean;
+  exposeErrorDetails: boolean;
   graphql: GraphQL;
 
   #bootstrapPromise?: Promise<void>;
@@ -181,6 +186,11 @@ export class Server<
 
     this.isListening = false;
     this.isProduction = this.#nativeEnv.get("NODE_ENV") === "production";
+    this.exposeErrorDetails = resolveExposeErrorDetails(
+      options?.exposeErrorDetails,
+      this.#nativeEnv.get("NODE_ENV"),
+    );
+    setExposeErrorDetails(this.exposeErrorDetails);
     this.graphql = new GraphQL(this.serverOptions.graphql);
 
     this.#serverConnector = new ServerConnector({
@@ -840,11 +850,6 @@ export class Server<
    * @internal
    */
   private handleNotFound: ServerRouteHandler = (req, res) => {
-    if (this.#notFoundHandler) {
-      this.#notFoundHandler(req, res);
-      return;
-    }
-
     const pathname = new URL(req.url).pathname;
     const allMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const allowedMethods: string[] = [];
@@ -860,23 +865,28 @@ export class Server<
       }
     }
 
+    const error = allowedMethods.length
+      ? new MethodNotAllowedError(pathname, req.method)
+      : new RouteNotFoundError(pathname, req.method);
+
+    // The raw error (with stack/cause) is passed as context so a custom handler
+    // can log or expose details even when exposeErrorDetails is off.
+    if (this.#notFoundHandler) {
+      this.#notFoundHandler(req, res, error);
+      return;
+    }
+
     if (allowedMethods.length) {
       res.setHeader("Allow", allowedMethods.join(", "));
-      const methodNotAllowedError = new MethodNotAllowedError(
-        pathname,
-        req.method,
-      );
-
       res.methodNotAllowed({
-        ...errorFactory(methodNotAllowedError),
+        ...errorFactory(error),
       });
 
       return;
     }
 
-    const notFoundError = new RouteNotFoundError(pathname, req.method);
     res.notFound({
-      ...errorFactory(notFoundError),
+      ...errorFactory(error),
     });
   };
 

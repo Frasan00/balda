@@ -359,6 +359,7 @@ describe("Built-in plugin behavior", () => {
     expect(secondResponse.statusCode()).toBe(429);
     expect(secondResponse.body()).toEqual({
       message: "ERR_RATE_LIMIT_EXCEEDED",
+      code: "RATE_LIMIT_EXCEEDED",
     });
   });
 

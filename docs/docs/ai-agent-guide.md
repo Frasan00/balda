@@ -406,10 +406,12 @@ server.setPolicyErrorHandler({
   map: (req) => ({ code: "UNAUTHORIZED", message: "Not allowed" }),
 });
 
-server.setNotFoundHandler((req, res) => res.notFound({ error: "Route not found" }));
+server.setNotFoundHandler((req, res, error) =>
+  res.notFound({ error: "Route not found", code: error.name }),
+);
 ```
 
-Set `NODE_ENV=production` so `BaldaError` serialization omits stack traces.
+Framework error bodies carry `{ code, message }`. `stack`/`cause` are **off by default** regardless of `NODE_ENV` — pass `exposeErrorDetails: true` (or `"auto"` for the legacy dev-only behaviour) to include them. `setErrorHandler` and `setNotFoundHandler` always receive the raw error, so log it there rather than exposing it.
 
 ## 14. GraphQL
 

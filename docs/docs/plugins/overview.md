@@ -104,7 +104,8 @@ const server = new Server({
     helmet: isProduction ? {} : undefined,
     rateLimiter: isProduction
       ? {
-          keyOptions: { limit: 100, windowMs: 15 * 60 * 1000 },
+          keyOptions: { limit: 100 },
+          storageOptions: { windowMs: 15 * 60 * 1000 },
         }
       : undefined,
   },
@@ -182,7 +183,8 @@ const server = new Server({
     helmet: isProduction ? {} : undefined,
     rateLimiter: isProduction
       ? {
-          keyOptions: { limit: 100, windowMs: 15 * 60 * 1000 },
+          keyOptions: { limit: 100 },
+          storageOptions: { windowMs: 15 * 60 * 1000 },
         }
       : undefined,
   },
@@ -208,7 +210,10 @@ Combine security plugins for defense in depth:
 plugins: {
   helmet: { contentSecurityPolicy: { directives: { defaultSrc: ["'self'"] } } },
   cors: { origin: ['https://myapp.com'], credentials: true },
-  rateLimiter: { keyOptions: { limit: 100, windowMs: 15 * 60 * 1000 } }
+  rateLimiter: {
+    keyOptions: { limit: 100 },
+    storageOptions: { windowMs: 15 * 60 * 1000 },
+  },
 }
 ```
 

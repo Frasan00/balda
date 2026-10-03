@@ -143,13 +143,20 @@ export class ApiController {
 | Option                   | Type    | Default   | Description                                     |
 | ------------------------ | ------- | --------- | ----------------------------------------------- |
 | `sizeLimit`              | string  | `"100kb"` | Maximum request body size (`kb` or `mb`)        |
-| `parseEmptyBodyAsObject` | boolean | `false`   | Parse empty body as `{}` instead of `undefined` |
-| `encoding`               | string  | `'utf-8'` | Text encoding for decoding                      |
-| `customErrorMessage`     | object  | -         | Custom error response for size limit            |
+| `parseEmptyBodyAsObject` | boolean | `true`    | Parse empty body as `{}` instead of `undefined` |
+| `maxDepth`               | number  | `32`      | Maximum JSON nesting depth                      |
+| `maxKeys`                | number  | `10000`   | Maximum total key count across all levels       |
+| `customErrorMessage`     | object  | -         | Custom `{ status, message }` for the size limit |
+
+`maxDepth` and `maxKeys` guard against stack-overflow and hash-flooding payloads. Both are
+enforced after parsing and answered with `413`.
 
 ### JSON Error Responses
 
 #### Size Limit Exceeded
+
+Answers with the raw `customErrorMessage` shape rather than the shared error format, because the
+message is configurable:
 
 ```json
 // Response: 413 Payload Too Large
@@ -163,9 +170,23 @@ export class ApiController {
 ```json
 // Response: 400 Bad Request
 {
-  "error": "Invalid JSON syntax"
+  "code": "JsonNotValidError",
+  "message": "JSON_NOT_VALID: \"Invalid JSON syntax\" is not a valid JSON"
 }
 ```
+
+#### Depth or Key Limit Exceeded
+
+```json
+// Response: 413 Payload Too Large
+{
+  "code": "RangeError",
+  "message": "JSON depth limit (32) exceeded"
+}
+```
+
+Both this and the invalid-JSON response come from the shared error factory, so they carry the same
+`{ code, message }` shape.
 
 ### JSON Content-Type Detection
 
@@ -272,21 +293,13 @@ async createUser(req: Request, res: Response) {
 
 ### URL-Encoded Error Responses
 
-#### Body Too Large
+Both size-limit and parameter-limit failures return the same pair:
 
 ```json
 // Response: 413 Payload Too Large
 {
-  "error": "Request body exceeds limit"
-}
-```
-
-#### Too Many Parameters
-
-```json
-// Response: 400 Bad Request
-{
-  "error": "Too many parameters"
+  "error": "Payload too large",
+  "message": "Request body exceeds the size limit"
 }
 ```
 
@@ -430,12 +443,27 @@ Temporary files are automatically deleted after request completion, even if erro
 
 ### File Error Responses
 
-#### File Too Large
+Multipart limit failures split into two shapes: the per-request total size cap uses its own
+`{ error, message }` payload at `413`, while per-part failures go through the shared error factory
+at `400`.
+
+#### Total Request Size Exceeded
 
 ```json
 // Response: 413 Payload Too Large
 {
-  "error": "File size exceeds limit"
+  "error": "Payload too large",
+  "message": "Total request size exceeds 5242880 bytes"
+}
+```
+
+#### File Too Large
+
+```json
+// Response: 400 Bad Request
+{
+  "code": "FileTooLargeError",
+  "message": "FILE_TOO_LARGE: \"avatar.png\" is too large. Max size is 1048576 bytes, but got 2097152 bytes"
 }
 ```
 
@@ -444,7 +472,8 @@ Temporary files are automatically deleted after request completion, even if erro
 ```json
 // Response: 400 Bad Request
 {
-  "error": "Too many files. Maximum 10 allowed"
+  "code": "BaldaError",
+  "message": "Too many files: Maximum 10 files allowed"
 }
 ```
 

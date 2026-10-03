@@ -11,33 +11,57 @@ Balda provides intelligent error handling out of the box, following HTTP specifi
 
 ## Error Response Format
 
-All error responses follow a standardized format:
+Built-in errors (404, 405, body parser, static files, runtime fallbacks) are serialized through a
+single factory that emits two fields:
 
 ```typescript
-// Development (NODE_ENV !== 'production')
 {
-  "code": "ROUTE_NOT_FOUND",
-  "message": "ROUTE_NOT_FOUND: Cannot GET /unknown",
-  "stack": "Error: ROUTE_NOT_FOUND...",
-  "cause": undefined
-}
-
-// Production (NODE_ENV === 'production')
-{
-  "code": "ROUTE_NOT_FOUND",
+  "code": "RouteNotFoundError",     // the error class name
   "message": "ROUTE_NOT_FOUND: Cannot GET /unknown"
 }
 ```
 
-### Why Stack Traces Are Hidden in Production
+`code` is the error class name (`RouteNotFoundError`, `MethodNotAllowedError`,
+`JsonNotValidError`, `FileTooLargeError`, …) and falls back to `"INTERNAL_ERROR"` when a class does
+not set a name.
 
-Stack traces can expose sensitive information:
+### Stack Traces Are Off by Default
 
-- **Internal file paths**: `/home/app/src/server/server.ts`
-- **Code structure**: Function names and middleware chains
-- **Framework internals**: How your application processes requests
+`stack` and `cause` are **not** included unless you opt in:
 
-This information could help attackers understand your application structure and find vulnerabilities.
+```typescript
+const server = new Server({
+  exposeErrorDetails: true, // include stack + cause in built-in error bodies
+});
+```
+
+| Value    | Behaviour                                                              |
+| -------- | ---------------------------------------------------------------------- |
+| `false`  | Default. Never include `stack`/`cause`.                                |
+| `true`   | Always include them — only do this on internal or local servers.       |
+| `"auto"` | Legacy behaviour: include them only when `NODE_ENV === "development"`. |
+
+The default used to follow `NODE_ENV`, which meant an internet-reachable container with
+`NODE_ENV=development` leaked absolute source paths, middleware chains, and the exact framework
+version to unauthenticated clients. Exposure is now opt-in and independent of the environment.
+
+:::warning Process-wide setting
+The built-in error factory is module-global, so when several `Server` instances coexist the value
+from the most recently constructed one applies to all of them. Custom `setErrorHandler` /
+`setNotFoundHandler` callbacks are unaffected — they always receive the raw error.
+:::
+
+### Keep the Details in Your Handler, Not the Response
+
+A custom handler receives the raw error, so you can log the full stack while returning a sanitized
+body:
+
+```typescript
+server.setErrorHandler((req, res, next, error) => {
+  logger.error({ err: error, url: req.url }, "Unhandled error"); // full stack, server-side
+  res.internalServerError({ code: "INTERNAL_ERROR" }); // clean, client-side
+});
+```
 
 ## 404 Not Found
 
@@ -56,14 +80,18 @@ When a request is made to a path that doesn't exist for **any** HTTP method, Bal
 
 ### Custom Not Found Handler
 
-You can customize the 404 response using `setNotFoundHandler`:
+You can customize the 404 response using `setNotFoundHandler`. The handler receives the
+`RouteNotFoundError` that triggered the response as an optional third argument, so you can inspect
+it (or forward it to your logger) while returning your own body:
 
 ```typescript
 import { Server } from "balda";
 
 const server = new Server({ port: 3000 });
 
-server.setNotFoundHandler((req, res) => {
+server.setNotFoundHandler((req, res, error) => {
+  logger.warn({ err: error, path: new URL(req.url).pathname }, "404");
+
   res.status(404).json({
     error: "Page not found",
     path: new URL(req.url).pathname,
@@ -73,6 +101,22 @@ server.setNotFoundHandler((req, res) => {
 
 server.listen();
 ```
+
+A custom not-found handler also answers 405 requests — the error passed in is a
+`MethodNotAllowedError` in that case, which you can branch on:
+
+```typescript
+server.setNotFoundHandler((req, res, error) => {
+  if (error.name === "MethodNotAllowedError") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  res.status(404).json({ error: "Page not found" });
+});
+```
+
+:::note
+When no custom handler is registered, Balda sets the `Allow` header itself before returning the 405. If you register one, the header is yours to set.
+:::
 
 ## 405 Method Not Allowed
 
@@ -140,7 +184,9 @@ router.get("/users/:id", handler); // Matches GET /users/123
 
 ## Global Error Handler
 
-For handling errors thrown during request processing, use `setErrorHandler`:
+For handling errors thrown during request processing, use `setErrorHandler`. It receives the raw
+thrown error — stack and cause included — regardless of `exposeErrorDetails`, because it is your
+handler's job to decide what reaches the client:
 
 ```typescript
 import { Server } from "balda";
@@ -148,7 +194,7 @@ import { Server } from "balda";
 const server = new Server({ port: 3000 });
 
 server.setErrorHandler((req, res, next, error) => {
-  console.error("Request error:", error);
+  logger.error({ err: error, url: req.url }, "Request error"); // full detail, server-side
 
   // Handle specific error types
   if (error.name === "ValidationError") {
@@ -233,24 +279,33 @@ This handler applies to all policy failures from both:
 
 ## Built-in Error Types
 
-Balda provides several built-in error types:
+Balda provides several built-in error types. Each one becomes the `code` of the response body:
 
-| Error                   | Status | Description                              |
-| ----------------------- | ------ | ---------------------------------------- |
-| `RouteNotFoundError`    | 404    | Path doesn't exist for any method        |
-| `MethodNotAllowedError` | 405    | Path exists but not for requested method |
-| `JsonNotValidError`     | 400    | Invalid JSON in request body             |
-| `FileTooLargeError`     | 413    | Uploaded file exceeds size limit         |
+| Error                   | `code`                  | Status | Description                              |
+| ----------------------- | ----------------------- | ------ | ---------------------------------------- |
+| `RouteNotFoundError`    | `RouteNotFoundError`    | 404    | Path doesn't exist for any method        |
+| `MethodNotAllowedError` | `MethodNotAllowedError` | 405    | Path exists but not for requested method |
+| `JsonNotValidError`     | `JsonNotValidError`     | 400    | Invalid JSON in request body             |
+| `FileTooLargeError`     | `FileTooLargeError`     | 413    | Uploaded file exceeds size limit         |
+| `FileNotFoundError`     | `FileNotFoundError`     | 404    | Requested file is missing from storage   |
+
+These classes are framework-internal — they are not exported from `balda`, and they are not a
+generic "throw to set an HTTP status" API. Use the `res.<status>()` helpers for client errors you
+produce yourself.
 
 ## Best Practices
 
-### 1. Always Set NODE_ENV in Production
+### 1. Leave `exposeErrorDetails` Off
 
-```bash
-NODE_ENV=production node server.js
+```typescript
+const server = new Server({
+  exposeErrorDetails: false, // the default — be explicit if you like
+});
 ```
 
-This ensures stack traces are never exposed to clients.
+Stack traces expose internal file paths, function names, and framework internals. Only turn
+exposure on for a server that is not reachable from the public internet, and prefer `setErrorHandler`
+logging over sending detail to clients.
 
 ### 2. Use Specific Error Handlers
 
@@ -275,7 +330,7 @@ server.setErrorHandler((req, res, next, error) => {
 ### 3. Provide Helpful 404 Responses
 
 ```typescript
-server.setNotFoundHandler((req, res) => {
+server.setNotFoundHandler((req, res, error) => {
   const pathname = new URL(req.url).pathname;
 
   res.status(404).json({

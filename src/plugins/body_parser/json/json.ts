@@ -90,7 +90,7 @@ export const json = (options?: JsonOptions): ServerRouteMiddleware => {
         });
       }
       if (error instanceof RangeError) {
-        return res.status(413).json({ error: error.message });
+        return res.status(413).json({ ...errorFactory(error) });
       }
 
       return res.badRequest({

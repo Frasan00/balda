@@ -1,14 +1,31 @@
 import type { BaldaError } from "./balda_error.js";
-import { NativeEnv } from "../runtime/native_env.js";
 
-const nativeEnv = new NativeEnv();
+// The call sites (body parsers, static plugin, runtime fallbacks) have no Server
+// reference, so stack/cause exposure is a process-wide switch set at construction.
+let exposeErrorDetails = false;
+
+export function setExposeErrorDetails(value: boolean): void {
+  exposeErrorDetails = value;
+}
+
+/**
+ * Resolves the `exposeErrorDetails` server option to a boolean.
+ * `"auto"` reproduces the legacy `NODE_ENV === "development"` behaviour.
+ */
+export function resolveExposeErrorDetails(
+  option: boolean | "auto" | undefined,
+  nodeEnv: string | undefined,
+): boolean {
+  if (option === "auto") {
+    return nodeEnv === "development";
+  }
+  return option ?? false;
+}
 
 export const errorFactory = (error: BaldaError) => {
-  const isDevelopment = nativeEnv.get("NODE_ENV") === "development";
-
   return {
     code: error.name || "INTERNAL_ERROR",
     message: error.message,
-    ...(isDevelopment && { stack: error.stack, cause: error.cause }),
+    ...(exposeErrorDetails && { stack: error.stack, cause: error.cause }),
   };
 };

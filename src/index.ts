@@ -130,6 +130,7 @@ export type { Response } from "./server/http/response.js";
 export {
   defineMiddleware,
   type TypedMiddleware,
+  type RequestWithExtension,
   type InferMiddlewareExtension,
   type InferMiddlewareExtensions,
 } from "./server/http/typed_middleware.js";
@@ -259,7 +260,15 @@ export type { LogOptions } from "./plugins/log/log_types.js";
 export { methodOverride } from "./plugins/method_override/method_override.js";
 export type { MethodOverrideOptions } from "./plugins/method_override/method_override_types.js";
 export { rateLimiter } from "./plugins/rate_limiter/rate_limiter.js";
-export type { RateLimiterKeyOptions } from "./plugins/rate_limiter/rate_limiter_types.js";
+export { redisRateLimitStorage } from "./plugins/rate_limiter/redis_rate_limiter_storage.js";
+export type { RedisRateLimitStorageOptions } from "./plugins/rate_limiter/redis_rate_limiter_storage.js";
+export type {
+  RateLimiterKeyOptions,
+  StorageOptions as RateLimiterStorageOptions,
+  MemoryStorageStrategy,
+  CustomStorageStrategy,
+  IncrementResult,
+} from "./plugins/rate_limiter/rate_limiter_types.js";
 export { session } from "./plugins/session/session.js";
 export type { SessionOptions } from "./plugins/session/session_types.js";
 export { serveStatic } from "./plugins/static/static.js";

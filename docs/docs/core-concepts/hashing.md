@@ -125,10 +125,7 @@ const requireSpecialChars = true;
 import { rateLimiter } from "balda";
 server.use(
   "/auth/login",
-  rateLimiter({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-  }),
+  rateLimiter({ limit: 5 }, { windowMs: 15 * 60 * 1000 }),
 );
 
 // ✅ Use HTTPS in production

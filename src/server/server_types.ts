@@ -228,6 +228,24 @@ export type ServerOptions<H extends NodeHttpClient = NodeHttpClient> = {
    * ```
    */
   abortSignal?: AbortSignal;
+  /**
+   * Include `stack` and `cause` in built-in error response bodies (body parser, static
+   * files, 404/405, runtime fallbacks). Defaults to `false` so deployed servers never
+   * leak stack traces to clients. Use `"auto"` to reproduce the legacy behaviour of
+   * exposing details only when `NODE_ENV === "development"`.
+   *
+   * The built-in error factories are process-global, so when several `Server` instances
+   * coexist the value from the most recently constructed one applies to all of them.
+   * A custom `setNotFoundHandler` / `setErrorHandler` always receives the raw error.
+   * @default false
+   * @example
+   * ```ts
+   * const server = new Server({
+   *   exposeErrorDetails: "auto", // legacy dev-only exposure
+   * });
+   * ```
+   */
+  exposeErrorDetails?: boolean | "auto";
 } & (H extends "https" | "http2-secure" ? HttpsOptions<H> : {});
 
 /** Internal resolved server options with all required properties */
@@ -362,6 +380,11 @@ export interface ServerInterface {
    */
   isProduction: boolean;
   /**
+   * Whether built-in error responses include `stack` and `cause`.
+   * Resolved from the `exposeErrorDetails` option; `false` unless explicitly enabled.
+   */
+  exposeErrorDetails: boolean;
+  /**
    * Whether the server is listening for requests
    */
   isListening: boolean;
@@ -495,7 +518,8 @@ export interface ServerInterface {
   use: (middleware: ServerRouteMiddleware | TypedMiddleware<any>) => void;
 
   /**
-   * Set the error handler for the server
+   * Set the error handler for the server. Receives the raw thrown error as its
+   * fourth argument, including `stack`/`cause`, so it can log or expose details.
    * @param errorHandler - The error handler to be applied to all routes
    */
   setErrorHandler: (errorHandler?: ServerErrorHandler) => void;
@@ -503,11 +527,23 @@ export interface ServerInterface {
    * Sets a custom handler for 404 Not Found responses.
    * If not set, the default RouteNotFoundError will be used.
    *
+   * The handler receives the underlying error (a RouteNotFoundError, or a
+   * MethodNotAllowedError for the 405 case) as its third argument. The raw error
+   * carries `stack`/`cause`, so a handler can log or deliberately expose details
+   * even when `exposeErrorDetails` is off.
+   *
    * @param notFoundHandler - Optional handler to customize 404 responses
    * @example
    * server.setNotFoundHandler((req, res) => {
    *   res.status(404).json({ error: "Custom not found message" });
    * });
+   * @example
+   * ```ts
+   * server.setNotFoundHandler((req, res, error) => {
+   *   logger.warn({ err: error }, "route not found");
+   *   res.status(404).json({ code: "NOT_FOUND", message: error.message });
+   * });
+   * ```
    */
   setNotFoundHandler: (notFoundHandler?: ServerRouteHandler) => void;
   /**

@@ -21,6 +21,33 @@ type BaseRateLimiterOptions = {
   message?: string;
 
   /**
+   * The machine-readable code returned alongside `message` when the rate limit is exceeded
+   * @default "RATE_LIMIT_EXCEEDED"
+   */
+  code?: string;
+
+  /**
+   * Called whenever the storage backend throws while incrementing the counter.
+   * Runs regardless of `failClosed`, so failures are observable even when the
+   * limiter fails open. A throwing handler is caught and logged.
+   * @param error - The error thrown by the storage backend
+   * @param key - The rate-limit key that was being incremented
+   * @param windowMs - The active window in milliseconds
+   * @example
+   * ```ts
+   * rateLimiter(
+   *   {
+   *     type: "ip",
+   *     onStorageError: (err, key, windowMs) =>
+   *       logger.error({ err, key, windowMs }, "rate limit store down"),
+   *   },
+   *   redisRateLimitStorage(),
+   * );
+   * ```
+   */
+  onStorageError?: (error: unknown, key: string, windowMs: number) => void;
+
+  /**
    * The status code to return when the rate limit is exceeded
    * @default 429
    */
@@ -34,7 +61,8 @@ type BaseRateLimiterOptions = {
 
   /**
    * When storage throws, return 429 (fail closed) instead of allowing the request (fail open).
-   * @default false
+   * Defaults to `true` for custom storage (a shared external dependency) and `false` for
+   * in-memory storage.
    */
   failClosed?: boolean;
 };
@@ -110,6 +138,12 @@ export type CustomStorageStrategy = {
    * The type of storage strategy
    */
   type: "custom";
+
+  /**
+   * The fixed window in milliseconds, forwarded to `increment` as its `windowMs` argument
+   * @default 60000
+   */
+  windowMs?: number;
 
   /**
    * Atomically increment the counter for `key` within a `windowMs`-wide fixed window.

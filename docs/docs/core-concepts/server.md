@@ -233,7 +233,9 @@ The router supports the following overloads:
 
 ```typescript
 server.setErrorHandler((req, res, next, error) => {
-  console.error("Error:", error);
+  // `error` is the raw thrown value — stack and cause included — whatever
+  // `exposeErrorDetails` is set to. Sanitize before it reaches the client.
+  logger.error({ err: error }, "Request failed");
 
   if (error.name === "ValidationError") {
     return res.badRequest({ error: error.message });
@@ -245,12 +247,13 @@ server.setErrorHandler((req, res, next, error) => {
 
 ### Custom Not Found Handler
 
-By default, Balda returns a standardized 404 error response when a route is not found. You can customize this behavior using `setNotFoundHandler`:
+By default, Balda returns a standardized 404 error response when a route is not found. You can customize this behavior using `setNotFoundHandler`. The optional third argument is the error that triggered the response — a `RouteNotFoundError`, or a `MethodNotAllowedError` when the path exists under another method:
 
 ```typescript
-server.setNotFoundHandler((req, res) => {
+server.setNotFoundHandler((req, res, error) => {
   res.status(404).json({
     error: "Not Found",
+    code: error.name,
     message: `The route ${req.url} does not exist`,
     timestamp: new Date().toISOString(),
   });

@@ -89,4 +89,36 @@ describe("bodyParser JSON - empty body handling", () => {
 
     expect(res.statusCode()).toBe(400);
   });
+
+  it("does not double-quote the invalid JSON message", async () => {
+    const server = makeServer();
+
+    server.router.post("/echo", (_req, res) => {
+      res.json({ ok: true });
+    });
+
+    const res = await server.inject.post("/echo", { body: "{not json" });
+    const message = (res.body() as { message: string }).message;
+
+    expect(message).toContain(
+      'JSON_NOT_VALID: "Invalid JSON syntax" is not a valid JSON',
+    );
+    expect(message).not.toContain('""');
+  });
+
+  it("returns the shared error shape for depth-limit violations", async () => {
+    const server = makeServer({ maxDepth: 1 });
+
+    server.router.post("/echo", (_req, res) => {
+      res.json({ ok: true });
+    });
+
+    const res = await server.inject.post("/echo", { body: { a: { b: 1 } } });
+    const body = res.body() as Record<string, unknown>;
+
+    expect(res.statusCode()).toBe(413);
+    expect(body).not.toHaveProperty("error");
+    expect(typeof body.code).toBe("string");
+    expect(String(body.message)).toContain("depth limit");
+  });
 });
