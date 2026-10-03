@@ -261,7 +261,10 @@ export { methodOverride } from "./plugins/method_override/method_override.js";
 export type { MethodOverrideOptions } from "./plugins/method_override/method_override_types.js";
 export { rateLimiter } from "./plugins/rate_limiter/rate_limiter.js";
 export { redisRateLimitStorage } from "./plugins/rate_limiter/redis_rate_limiter_storage.js";
-export type { RedisRateLimitStorageOptions } from "./plugins/rate_limiter/redis_rate_limiter_storage.js";
+export type {
+  RedisLikeClient,
+  RedisRateLimitStorageOptions,
+} from "./plugins/rate_limiter/redis_rate_limiter_storage.js";
 export type {
   RateLimiterKeyOptions,
   StorageOptions as RateLimiterStorageOptions,

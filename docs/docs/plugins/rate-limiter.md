@@ -330,6 +330,17 @@ rateLimiter({
 });
 ```
 
+If the Redis connection drops, the storage discards the dead client and rebuilds it on the next
+request, so a Redis restart self-heals without restarting the process. Use `onClientReset` to observe
+that, and `createClient` to supply your own client (cluster, TLS, custom auth):
+
+```typescript
+redisRateLimitStorage({
+  onClientReset: (err) =>
+    logger.error({ err }, "rate limit redis client reset"),
+});
+```
+
 ## Best Practices
 
 1. **Use different limits for different endpoints** - Auth endpoints need stricter limits
